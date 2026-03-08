@@ -1,0 +1,1 @@
+drop function if exists remove_friend_by_uuid(bigint, uuid);

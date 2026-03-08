@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:18.2-alpine3.23
+    container_name: postgres-db-chat-app
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: chat-app
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: Danny0704@
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres-data-chat-app:/var/lib/postgresql/data
+
+volumes:
+  postgres-data-chat-app:

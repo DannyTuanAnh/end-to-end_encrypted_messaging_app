@@ -1,0 +1,116 @@
+package app
+
+import (
+	"context"
+	"log"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/user-manage/internal/config"
+	"github.com/user-manage/internal/routes"
+	"github.com/user-manage/internal/utils"
+	"github.com/user-manage/internal/validation"
+)
+
+type Model interface {
+	Routes() routes.Routes
+}
+
+type Application struct {
+	config  *config.Config
+	route   *gin.Engine
+	modules []Model
+}
+
+func NewApplication(ctx context.Context, cfg *config.Config) *Application {
+	// 1. Initialize the Gin router
+	r := gin.Default()
+
+	// 2. Load environment variables from .env file
+	loadEnv()
+
+	// 3. Initialize custom validator
+	err := validation.InitValidator()
+	if err != nil {
+		log.Fatalf("Failed to initialize validator: %v", err)
+	}
+
+	// 3. khởi tạo health check cho Redis
+	redisHealth := utils.NewRedisHealth()
+
+	// 4. Initialize modules
+	modules := []Model{
+		NewUserModule(),
+	}
+
+	// 4. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
+	// and then passing them to the routes.RegisterRoutes function to register them with the Gin router
+	routes.RegisterRoutes(ctx, r, redisHealth, getModuleRoutes(modules)...)
+
+	return &Application{
+		config:  cfg,
+		route:   r,
+		modules: modules,
+	}
+}
+
+func (ac *Application) Run(ctx context.Context) (string, error) {
+	// 1. Start server with shut down gracefully
+	srv := &http.Server{
+		Addr:         ac.config.Port,
+		Handler:      ac.route,
+		ReadTimeout:  ac.config.ReadTimeout,
+		WriteTimeout: ac.config.WriteTimeout,
+		IdleTimeout:  ac.config.IdleTimeout,
+	}
+
+	utils.StartChecker(ctx)
+
+	// 2. Create a channel to listen for server errors
+	errChan := make(chan error, 1)
+
+	// 3. Listen and serve in a goroutine
+	go func() {
+		log.Printf("Server is running on port %s...", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errChan <- err
+		}
+	}()
+
+	// 4. Wait for an error or a shutdown signal
+	select {
+	case err := <-errChan:
+		return "Server error", err
+
+	case <-ctx.Done():
+		log.Println("Shutting down server...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), ac.config.ShutdownTimeout)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return "Server forced to shutdown", err
+		}
+		return "Server exiting gracefully!", nil
+	}
+
+}
+
+// getModuleRoutes is a helper function that takes a slice of Model interfaces
+// and returns a slice of routes.Routes by calling the Routes() method on each module
+func getModuleRoutes(models []Model) []routes.Routes {
+	routeList := make([]routes.Routes, len(models))
+	for i, model := range models {
+		routeList[i] = model.Routes()
+	}
+	return routeList
+}
+
+// loadEnv is a helper function that loads environment variables from a .env file using the godotenv package
+func loadEnv() {
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		log.Println("No .env file found")
+		panic(err)
+	}
+}

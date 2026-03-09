@@ -1,4 +1,4 @@
-create extension if not exists "pg_uuidv7";
+create extension if not exists "pgcrypto";
 
 create type system_event_type as enum (
     'member_joined',
@@ -14,7 +14,8 @@ create type system_event_type as enum (
 );
 
 create table if not exists system_messages (
-    id uuid primary key default uuidv7(),
+    id bigserial primary key,
+    uuid uuid not null unique default gen_random_uuid(),
     conversation_id bigint not null,
     event_type system_event_type not null,
     actor_id bigint,
@@ -27,6 +28,6 @@ create table if not exists system_messages (
     constraint fk_system_messages_target foreign key (target_id) references users(user_id) on delete set null
 );
 
-create index idx_system_messages_conversation on system_messages(conversation_id, id desc);
+create index idx_system_messages_conversation on system_messages(conversation_id, created_at desc);
 create index idx_system_messages_event_type on system_messages(event_type);
 

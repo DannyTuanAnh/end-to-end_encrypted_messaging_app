@@ -1,5 +1,5 @@
 create table if not exists message_reads (
-    message_id uuid not null,
+    message_id bigint not null,
     user_id bigint not null,
     read_at timestamptz not null default now(),
 

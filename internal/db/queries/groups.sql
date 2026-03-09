@@ -1,14 +1,14 @@
 -- name: CreateGroupConversation :one
-select * from create_group_conversation($1, $2, $3, $4);
+select * from create_group_conversation($1, $2, $3);
 
--- name: AddGroupMembers :exec
--- kiểm tra quyền admin của user_id 3 trước khi thêm user_id 2 vào conversation_id 1
+-- name: AddGroupMembers :one
 insert into conversation_members (conversation_id, user_id, role)
 select $1, $2, 'member'
 where exists (
     select 1 from conversation_members
     where conversation_id = $1 and user_id = $3 and role = 'admin'
-);
+)
+returning conversation_id, user_id, role;
 
 -- name: RemoveGroupMembers :exec
 delete from conversation_members
@@ -38,6 +38,6 @@ order by coalesce(p.name, u.display_name);
 -- name: UpdateGroupInfo :one
 update groups set 
     name = coalesce(sqlc.narg('name'), name),
-    avatar_url = coalesce(sqlc.narg('avatar_url'), avatar_url),
-    updated_at = now()  
+    avatar_url = coalesce(sqlc.narg('avatar_url'), avatar_url)
 where conversation_id = $1
+returning conversation_id, name, avatar_url, created_at;

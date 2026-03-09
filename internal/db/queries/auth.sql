@@ -21,7 +21,7 @@ insert into api_keys (key_hash) values ($1);
 update api_keys set is_active = false, revoked_at = now() where key_hash = $1;
 
 -- name: RevokeAllAPIKeys :exec
-update api_keys set is_active = false, revoked_at = now() where is_active = true
+update api_keys set is_active = false, revoked_at = now() where is_active = true;
 
 -- name: ValidateAPIKey :one
 select is_active from api_keys where key_hash = $1;

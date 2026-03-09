@@ -5,14 +5,64 @@ with user_conversations as (
     where user_id = $1
 ),
 
+all_timeline as (
+    -- User messages
+    select 
+        m.id,
+        m.conversation_id,
+        'user_message' as message_type,
+        m.content as last_message,
+        m.sent_at as last_message_time,
+        m.sender_id,
+        coalesce(p.name, u.display_name) as sender_name,
+        null::bigint as actor_id,
+        null::bigint as target_id,
+        null::text as event_type,
+        null::text as actor_name,
+        null::text as target_name
+    from messages m
+    join users u on m.sender_id = u.user_id
+    left join profiles p on m.sender_id = p.user_id
+    
+    union all
+    
+    -- System events with actor/target names
+    select 
+        sm.id,
+        sm.conversation_id,
+        'system_event' as message_type,
+        sm.content as last_message,
+        sm.created_at as last_message_time,
+        null::bigint as sender_id,
+        null::text as sender_name,
+        sm.actor_id,
+        sm.target_id,
+        sm.event_type::text as event_type,
+        coalesce(actor_p.name, actor_u.display_name) as actor_name,
+        coalesce(target_p.name, target_u.display_name) as target_name
+    from system_messages sm
+    left join users actor_u on sm.actor_id = actor_u.user_id
+    left join users target_u on sm.target_id = target_u.user_id
+    left join profiles actor_p on sm.actor_id = actor_p.user_id
+    left join profiles target_p on sm.target_id = target_p.user_id
+),
+
 latest_messages as (
     select distinct on (conversation_id)
         id,
         conversation_id,
-        content as last_message,
-        sent_at as last_message_time
-    from messages
-    order by conversation_id, sent_at desc
+        message_type,
+        last_message,
+        last_message_time,
+        sender_id,
+        sender_name,
+        actor_id,
+        target_id,
+        event_type,
+        actor_name,
+        target_name
+    from all_timeline
+    order by conversation_id, last_message_time desc
 )
 
 select
@@ -49,8 +99,16 @@ select
     end as avatar_url,
     
     -- Last message info
+    lm.message_type,
     lm.last_message,
     lm.last_message_time,
+    lm.sender_id,
+    lm.sender_name,
+    lm.actor_id,
+    lm.target_id,
+    lm.event_type,
+    lm.actor_name,
+    lm.target_name,
 
     (mr.message_id is not null) as is_read
 
@@ -109,7 +167,7 @@ with combined_timeline as (
     where sm.conversation_id = $1
 )
 select * from combined_timeline
-where ($3::uuid is null or id < $3) 
+where ($3::bigint is null or id < $3)
 order by id desc 
 limit $4;
 

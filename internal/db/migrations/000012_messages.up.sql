@@ -1,7 +1,8 @@
-create extension if not exists "pg_uuidv7";
+create extension if not exists "pgcrypto";
 
 create table if not exists messages (
-    id uuid primary key default uuidv7(),
+    id bigserial primary key,
+    uuid uuid not null unique default gen_random_uuid(),
     conversation_id bigint not null,
     sender_id bigint not null,
     content text not null,
@@ -13,4 +14,4 @@ create table if not exists messages (
 
 create index idx_messages_conversation_sender_with_id on messages(conversation_id, sender_id) include (id);
 create index idx_messages_sender_id on messages(sender_id);
-create index idx_messages_conversation on messages(conversation_id, id desc);
+create index idx_messages_conversation on messages(conversation_id, sent_at desc);

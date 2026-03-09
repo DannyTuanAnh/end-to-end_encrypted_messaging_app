@@ -44,6 +44,10 @@ begin
     insert into conversation_members(conversation_id, user_id)
     values (v_conversation_id, v_sender_id), (v_conversation_id, v_receiver_id);
 
+    -- 5. create system message for the new conversation
+    insert into system_messages (conversation_id, event_type, content)
+    values (v_conversation_id, 'chat_created', 'You are now friends! Start chatting.');
+
     -- 5. get receiver name for notification
     select name from profiles where user_id = v_receiver_id into v_receiver_name;
 

@@ -61,23 +61,58 @@ left join message_reads mr on lm.id = mr.message_id and mr.user_id = $1
 order by coalesce(lm.last_message_time, c.created_at) desc;
 
 -- name: GetMessagesByConversationId :many
-select 
-    m.id,
-    m.sender_id,
-    m.conversation_id,
-    m.content,
-    m.sent_at,
-    coalesce(p.name, u.display_name) as sender_name,
-    p.avatar_url as sender_avatar,
-    case
-        when m.sender_id = $2 then 'sent'
-        else 'received'
-    end as message_direction
-from messages m
-join users u on u.user_id = m.sender_id
-left join profiles p on p.user_id = m.sender_id
-where m.conversation_id = $1
-order by m.sent_at desc;
+with combined_timeline as (
+
+    select 
+        m.id,
+        'user_message' as message_type,
+        m.sender_id,
+        null::bigint as actor_id,
+        null::bigint as target_id,
+        null::text as event_type,
+        m.conversation_id,
+        m.content,
+        m.sent_at as created_at,
+        coalesce(p.name, u.display_name) as sender_name,
+        null::varchar(50) as target_name,
+        p.avatar_url as sender_avatar,
+        case
+            when m.sender_id = $2 then 'sent'
+            else 'received'
+        end as message_direction
+    from messages m
+    join users u on u.user_id = m.sender_id
+    left join profiles p on p.user_id = m.sender_id
+    where m.conversation_id = $1
+
+    union all
+
+    select 
+        sm.id,
+        'system_event' as message_type,
+        null::bigint as sender_id,
+        sm.actor_id,
+        sm.target_id,
+        sm.event_type::text as event_type,
+        sm.conversation_id,
+        sm.content,
+        sm.created_at,
+        coalesce(actor_p.name, actor_u.display_name) as sender_name,
+        coalesce(target_p.name, target_u.display_name) as target_name,
+        null::text as sender_avatar,
+        null::text as message_direction
+    from system_messages sm
+    left join users actor_u on sm.actor_id = actor_u.user_id
+    left join users target_u on sm.target_id = target_u.user_id
+    left join profiles actor_p on sm.actor_id = actor_p.user_id
+    left join profiles target_p on sm.target_id = target_p.user_id
+    where sm.conversation_id = $1
+)
+select * from combined_timeline
+where ($3::uuid is null or id < $3) 
+order by id desc 
+limit $4;
+
 
 -- name: MarkMessagesAsRead :exec
 insert into message_reads (message_id, user_id, read_at)
@@ -93,17 +128,46 @@ insert into messages (sender_id, conversation_id, content)
 values ($1, $2, $3)
 returning id, sender_id, conversation_id, content, sent_at;
 
--- name: CreateGroupConversation
+-- name: CreateSystemMessage :one
+insert into system_messages (conversation_id, event_type, actor_id, target_id, content)
+values ($1, $2, $3, $4, $5)
+returning id, conversation_id, event_type, actor_id, target_id, content, created_at;
 
+-- name: SearchConversationByName :many
+with user_convs as (
+    -- 1. Get my conversations
+    select conversation_id 
+    from conversation_members 
+    where user_id = $1
+),
+conv_details as (
+    -- 2. Get conversation details (name/avatar) based on type
+    select 
+        c.id as conversation_id,
+        c.type,
+        case 
+            when c.type = 'group' then g.name
+            else coalesce(p.name, u.display_name)
+        end as conv_name,
+        case 
+            when c.type = 'group' then g.avatar_url
+            else p.avatar_url
+        end as conv_avatar
+    from conversations c
+    join user_convs uc on c.id = uc.conversation_id
+    left join groups g on c.id = g.conversation_id and c.type = 'group'
+    -- For private chats, get the other member's profile info
+    left join conversation_members other_cm on c.id = other_cm.conversation_id 
+        and c.type = 'private' and other_cm.user_id <> $1
+    left join users u on other_cm.user_id = u.user_id
+    left join profiles p on u.user_id = p.user_id
+)
+select 
+    conversation_id,
+    type as conversation_type,
+    conv_name as conversation_name,
+    conv_avatar as avatar_url
+from conv_details
+where conv_name ilike '%' || $2 || '%'
+order by conv_name;
 
--- name: AddGroupMembers :exec
-insert into conversation_members (conversation_id, user_id)
-values ($1, $2);
-
--- name: RemoveGroupMembers :exec
-delete from conversation_members
-where conversation_id = $1 and user_id = $2;
-
--- name: LeaveConversation :exec
-delete from conversation_members
-where conversation_id = $1 and user_id = $2;

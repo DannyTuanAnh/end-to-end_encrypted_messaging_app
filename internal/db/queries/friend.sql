@@ -23,18 +23,38 @@ order by fr.send_at desc;
 -- name: GetFriendsList :many
 with friend_ids as (
     select user1_id as id from friendships where user2_id = $1
-    union
+    union all
     select user2_id as id from friendships where user1_id = $1
 )
 
 select 
     u.uuid, 
+    u.user_id,
     coalesce(p.name, u.display_name) as name, 
     p.avatar_url,
     u.is_active
 from users u
 left join profiles p on u.user_id = p.user_id
 join friend_ids f on u.user_id = f.id
+order by coalesce(p.name, u.display_name);
+
+-- name: SearchFriendByName :many
+with friend_ids as (
+    select user1_id as id from friendships where user2_id = $1
+    union all
+    select user2_id as id from friendships where user1_id = $1
+)
+
+select 
+    u.uuid, 
+    u.user_id,
+    coalesce(p.name, u.display_name) as name, 
+    p.avatar_url,
+    u.is_active
+from users u
+left join profiles p on u.user_id = p.user_id
+join friend_ids f on u.user_id = f.id
+where coalesce(p.name, u.display_name) ilike '%' || $2 || '%' 
 order by coalesce(p.name, u.display_name);
 
 -- name: RejectFriendRequestById :exec

@@ -22,9 +22,9 @@ order by fr.send_at desc;
 
 -- name: GetFriendsList :many
 with friend_ids as (
-    select user1_id as id from friendships where user2_id = $1
+    select f.user1_id as id from friendships f where f.user2_id = $1
     union all
-    select user2_id as id from friendships where user1_id = $1
+    select f.user2_id as id from friendships f where f.user1_id = $1
 )
 
 select 
@@ -40,9 +40,9 @@ order by coalesce(p.name, u.display_name);
 
 -- name: SearchFriendByName :many
 with friend_ids as (
-    select user1_id as id from friendships where user2_id = $1
+    select f.user1_id as id from friendships f where f.user2_id = $1
     union all
-    select user2_id as id from friendships where user1_id = $1
+    select f.user2_id as id from friendships f where f.user1_id = $1
 )
 
 select 

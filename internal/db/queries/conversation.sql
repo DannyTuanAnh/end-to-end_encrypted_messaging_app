@@ -195,8 +195,8 @@ returning id, conversation_id, event_type, actor_id, target_id, content, created
 with user_convs as (
     -- 1. Get my conversations
     select conversation_id 
-    from conversation_members 
-    where user_id = $1
+    from conversation_members cm
+    where cm.user_id = $1
 ),
 conv_details as (
     -- 2. Get conversation details (name/avatar) based on type

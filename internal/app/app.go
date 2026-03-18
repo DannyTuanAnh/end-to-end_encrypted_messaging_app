@@ -7,10 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/user-manage/internal/config"
-	"github.com/user-manage/internal/routes"
-	"github.com/user-manage/internal/utils"
-	"github.com/user-manage/internal/validation"
+
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 )
 
 type Model interface {
@@ -58,11 +59,11 @@ func NewApplication(ctx context.Context, cfg *config.Config) *Application {
 func (ac *Application) Run(ctx context.Context) (string, error) {
 	// 1. Start server with shut down gracefully
 	srv := &http.Server{
-		Addr:         ac.config.Port,
+		Addr:         ac.config.Server.Port,
 		Handler:      ac.route,
-		ReadTimeout:  ac.config.ReadTimeout,
-		WriteTimeout: ac.config.WriteTimeout,
-		IdleTimeout:  ac.config.IdleTimeout,
+		ReadTimeout:  ac.config.Server.ReadTimeout,
+		WriteTimeout: ac.config.Server.WriteTimeout,
+		IdleTimeout:  ac.config.Server.IdleTimeout,
 	}
 
 	utils.StartChecker(ctx)
@@ -85,7 +86,7 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 
 	case <-ctx.Done():
 		log.Println("Shutting down server...")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), ac.config.ShutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), ac.config.Server.ShutdownTimeout)
 		defer cancel()
 
 		if err := srv.Shutdown(shutdownCtx); err != nil {

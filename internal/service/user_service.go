@@ -3,10 +3,10 @@ package service
 import (
 	"strings"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/google/uuid"
-	"github.com/user-manage/internal/models"
-	"github.com/user-manage/internal/repository"
-	"github.com/user-manage/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 

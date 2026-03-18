@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/user-manage/internal/app"
-	"github.com/user-manage/internal/config"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	defer stop()
 
 	// 1. Initialize configuration
-	cfg := config.NewConfig()
+	cfg := config.NewConfigServer()
 
 	// 2. Initialize application
 	application := app.NewApplication(ctx, cfg)

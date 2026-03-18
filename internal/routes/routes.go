@@ -3,12 +3,12 @@ package routes
 import (
 	"context"
 
+	api_key_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/api_key"
+	auth_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/auth"
+	logger_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/logger"
+	rate_limiter_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/rate_limiter"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/gin-gonic/gin"
-	api_key_middleware "github.com/user-manage/internal/middleware/api_key"
-	auth_middleware "github.com/user-manage/internal/middleware/auth"
-	logger_middleware "github.com/user-manage/internal/middleware/logger"
-	rate_limiter_middleware "github.com/user-manage/internal/middleware/rate_limiter"
-	"github.com/user-manage/internal/utils"
 )
 
 type Routes interface {

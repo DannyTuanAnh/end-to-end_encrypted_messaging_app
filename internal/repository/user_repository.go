@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"github.com/user-manage/internal/models"
-	"github.com/user-manage/internal/utils"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
 type InMemoryUserRepository struct {

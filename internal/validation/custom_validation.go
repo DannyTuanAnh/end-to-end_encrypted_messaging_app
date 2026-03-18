@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/go-playground/validator/v10"
-	"github.com/user-manage/internal/utils"
 )
 
 func RegisterCustomValidations(v *validator.Validate) {

@@ -1,6 +1,6 @@
 package service
 
-import "github.com/user-manage/internal/models"
+import "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 
 type UserService interface {
 	GetAllUsers(search string, page, limit int) (map[string]models.User, error)

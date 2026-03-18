@@ -1,8 +1,8 @@
 package routes
 
 import (
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/handler"
 	"github.com/gin-gonic/gin"
-	"github.com/user-manage/internal/handler"
 )
 
 type UserRoutes struct {

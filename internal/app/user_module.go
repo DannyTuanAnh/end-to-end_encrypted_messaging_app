@@ -1,10 +1,10 @@
 package app
 
 import (
-	"github.com/user-manage/internal/handler"
-	"github.com/user-manage/internal/repository"
-	"github.com/user-manage/internal/routes"
-	"github.com/user-manage/internal/service"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/handler"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 )
 
 type UserModule struct {

@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/user-manage/internal/models"
+import "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 
 type UserRepository interface {
 	FindAll() (map[string]models.User, error)

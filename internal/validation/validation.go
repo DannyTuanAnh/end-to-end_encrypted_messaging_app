@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"github.com/user-manage/internal/utils"
 )
 
 func InitValidator() error {

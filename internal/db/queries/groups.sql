@@ -5,17 +5,17 @@ select * from create_group_conversation($1, $2, $3);
 insert into conversation_members (conversation_id, user_id, role)
 select $1, $2, 'member'
 where exists (
-    select 1 from conversation_members
-    where conversation_id = $1 and user_id = $3 and role = 'admin'
+    select 1 from conversation_members cm
+    where cm.conversation_id = $1 and cm.user_id = $3 and cm.role = 'admin'
 )
 returning conversation_id, user_id, role;
 
 -- name: RemoveGroupMembers :exec
-delete from conversation_members
-where conversation_id = $1 and user_id = $2
+delete from conversation_members cm
+where cm.conversation_id = $1 and cm.user_id = $2
 and exists (
-    select 1 from conversation_members
-    where conversation_id = $1 and user_id = $3 and role = 'admin'
+    select 1 from conversation_members cm
+    where cm.conversation_id = $1 and cm.user_id = $3 and cm.role = 'admin'
 );
 
 -- name: LeaveConversation :one

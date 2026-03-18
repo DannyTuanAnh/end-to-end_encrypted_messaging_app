@@ -3,11 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"github.com/gin-gonic/gin"
-	"github.com/user-manage/internal/dto"
-	"github.com/user-manage/internal/service"
-	"github.com/user-manage/internal/utils"
-	"github.com/user-manage/internal/validation"
 )
 
 type UserHandler struct {

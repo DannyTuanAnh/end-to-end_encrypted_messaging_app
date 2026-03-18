@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/user-manage/internal/utils"
 )
 
 type RateLimiter interface {

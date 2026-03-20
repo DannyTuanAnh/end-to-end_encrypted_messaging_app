@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -24,12 +24,9 @@ type Application struct {
 	modules []Model
 }
 
-func NewApplication(ctx context.Context, cfg *config.Config) *Application {
+func NewApplication(ctx context.Context, cfg *config.Config, db sqlc.Querier) *Application {
 	// 1. Initialize the Gin router
 	r := gin.Default()
-
-	// 2. Load environment variables from .env file
-	loadEnv()
 
 	// 3. Initialize custom validator
 	err := validation.InitValidator()
@@ -37,15 +34,15 @@ func NewApplication(ctx context.Context, cfg *config.Config) *Application {
 		log.Fatalf("Failed to initialize validator: %v", err)
 	}
 
-	// 3. khởi tạo health check cho Redis
+	// 4. Initialize health check for Redis
 	redisHealth := utils.NewRedisHealth()
 
-	// 4. Initialize modules
+	// 5. Initialize modules
 	modules := []Model{
 		NewUserModule(),
 	}
 
-	// 4. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
+	// 6. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
 	// and then passing them to the routes.RegisterRoutes function to register them with the Gin router
 	routes.RegisterRoutes(ctx, r, redisHealth, getModuleRoutes(modules)...)
 
@@ -59,7 +56,7 @@ func NewApplication(ctx context.Context, cfg *config.Config) *Application {
 func (ac *Application) Run(ctx context.Context) (string, error) {
 	// 1. Start server with shut down gracefully
 	srv := &http.Server{
-		Addr:         ac.config.Server.Port,
+		Addr:         ":" + ac.config.Server.Port,
 		Handler:      ac.route,
 		ReadTimeout:  ac.config.Server.ReadTimeout,
 		WriteTimeout: ac.config.Server.WriteTimeout,
@@ -105,13 +102,4 @@ func getModuleRoutes(models []Model) []routes.Routes {
 		routeList[i] = model.Routes()
 	}
 	return routeList
-}
-
-// loadEnv is a helper function that loads environment variables from a .env file using the godotenv package
-func loadEnv() {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Println("No .env file found")
-		panic(err)
-	}
 }

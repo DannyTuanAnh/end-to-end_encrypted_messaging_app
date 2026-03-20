@@ -16,7 +16,7 @@ type Routes interface {
 }
 
 func RegisterRoutes(ctx context.Context, r *gin.Engine, redisHealth *utils.RedisHealth, routes ...Routes) {
-	// Đăng ký middleware cho tất cả các route, bao gồm: logger, rate limiter, API key và authentication
+	// Register middleware for all routes, including: logger, rate limiter, API key and authentication
 	r.Use(logger_middleware.LoggerMiddleware(),
 		rate_limiter_middleware.RateLimitMiddleware(ctx, redisHealth),
 		api_key_middleware.ApiKeyMiddleware(),

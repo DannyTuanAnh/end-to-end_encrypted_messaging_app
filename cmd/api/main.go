@@ -26,17 +26,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// Check for command-line arguments and execute corresponding commands before starting the application
-	hasExecuteCmd := utils.CommandTool(ctx, db.DB)
-	if hasExecuteCmd {
-		return
-	}
-
 	// 1. Initialize configuration
 	cfg := config.NewConfigServer()
 
 	// 2. Initialize application
-	application := app.NewApplication(ctx, cfg, db.DB)
+	hasCmd, application := app.NewApplication(ctx, cfg, db.DB)
+	if hasCmd {
+		return
+	}
 
 	// 3. Run the application and capture any error message
 	msg, err := application.Run(ctx)

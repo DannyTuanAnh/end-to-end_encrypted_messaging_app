@@ -1,31 +1,46 @@
 package utils
 
 import (
-	"context"
+	"flag"
 	"fmt"
-	"os"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 )
 
-// Check if there are command-line arguments
-// If the first argument is "generate-api-key",
-// call the GenerateAPIKey function from the key package to generate a new API key and save it to the database
-func CommandTool(ctx context.Context, db sqlc.Querier) bool {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "generate-api-key":
-			if err := GenerateAPIKey(ctx, db); err != nil {
-				fmt.Printf("Error generating API key: %v\n", err)
-			}
-			return true
-		case "revoke-api-key":
-			if err := RevokeAPIKey(ctx, db); err != nil {
-				fmt.Printf("Error when revoke API key: %v\n", err)
-			}
-			return true
-		}
+func ParseGenerateAPIKeyArgs(args []string) (*models.GenerateAPIKeyArgs, error) {
+	genCmd := flag.NewFlagSet("generate-api-key", flag.ExitOnError)
+
+	clientType := genCmd.String("type", "web", "Type of API key to generate (e.g., 'admin', 'user')")
+
+	if err := genCmd.Parse(args); err != nil {
+		return nil, err
 	}
 
-	return false
+	if *clientType == "" {
+		return nil, fmt.Errorf("client type is required")
+	}
+
+	return &models.GenerateAPIKeyArgs{
+		ClientType: *clientType,
+	}, nil
+}
+
+func ParseRevokeAPIKeyArgs(args []string) (*models.RevokeAPIKeyArgs, error) {
+	revokeCmd := flag.NewFlagSet("revoke-api-key", flag.ExitOnError)
+
+	keyID := revokeCmd.String("id", "", "ID of the API key to revoke")
+
+	if err := revokeCmd.Parse(args); err != nil {
+		return nil, err
+	}
+
+	if *keyID == "" {
+		return &models.RevokeAPIKeyArgs{
+			RevokeAll: true,
+		}, nil
+	}
+
+	return &models.RevokeAPIKeyArgs{
+		KeyID: *keyID,
+	}, nil
 }

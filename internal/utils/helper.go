@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -60,4 +61,16 @@ func WriteEnv(key string, value string) error {
 	log.Printf("%s=%s", key, value)
 
 	return nil
+}
+
+func SaveKeyToEnv(clientType, key string) error {
+	if clientType == "web" {
+		return WriteEnv("VITE_API_KEY", key)
+	}
+
+	envKey := fmt.Sprintf("%s_API_KEY", strings.ToUpper(clientType))
+
+	log.Println("Saving API key to environment variable:", envKey)
+
+	return WriteEnv(envKey, key)
 }

@@ -9,8 +9,6 @@ import (
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
 func main() {
@@ -18,22 +16,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 2. Load environment variables from .env file
-	utils.LoadEnv()
-
-	if err := db.InitDB(); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer db.Close()
-
 	// 1. Initialize configuration
 	cfg := config.NewConfigServer()
 
 	// 2. Initialize application
-	hasCmd, application := app.NewApplication(ctx, cfg, db.DB)
-	if hasCmd {
-		return
-	}
+	application := app.NewApplication(ctx, cfg)
 
 	// 3. Run the application and capture any error message
 	msg, err := application.Run(ctx)

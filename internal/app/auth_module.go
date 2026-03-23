@@ -1,32 +1,33 @@
 package app
 
-// import (
-// 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/handler"
-// 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
-// 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
-// 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
-// )
+import (
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/handler"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
+)
 
-// type AuthModule struct {
-// 	service service.AuthService
-// }
+type AuthModule struct {
+	routes routes.Routes
+}
 
-// func NewAuthModule() *AuthModule {
-// 	// 1. Initialize repository
-// 	user_repo := repository.NewInMemoryUserRepository()
+func NewAuthModule(addr string) *AuthModule {
+	// 1. Initialize repository
+	auth_client, err := client.NewAuthClient(addr)
+	if err != nil {
+		panic("Failed to initialize auth client: " + err.Error())
+	}
 
-// 	// 2. Initialize service
-// 	user_service := service.NewUserService(user_repo)
+	// 2. Initialize middleware
 
-// 	// 3. Initialize handler
-// 	user_handler := handler.NewUserHandler(user_service)
+	// 3. Initialize handler
+	auth_handler := handler.NewAuthHandler(auth_client)
 
-// 	// 4. Initialize routes
-// 	user_routes := routes.NewUserRoutes(user_handler)
+	// 4. Initialize routes
+	user_routes := routes.NewAuthRoutes(auth_handler)
 
-// 	return &UserModule{routes: user_routes}
-// }
+	return &AuthModule{routes: user_routes}
+}
 
-// func (um *UserModule) Routes() routes.Routes {
-// 	return um.routes
-// }
+func (au *AuthModule) Routes() routes.Routes {
+	return au.routes
+}

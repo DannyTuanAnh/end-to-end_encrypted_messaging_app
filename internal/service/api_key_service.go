@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/api_key"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -38,6 +39,8 @@ func (s *apiKeyService) RevokeAPIKey(ctx context.Context, keyID string) error {
 		return err
 	}
 
+	api_key_middleware.InvalidateAPIKey(keyHash)
+
 	log.Printf("API key (%s) revoked successfully\n", keyID)
 
 	return nil
@@ -47,6 +50,8 @@ func (s *apiKeyService) RevokeAll(ctx context.Context) error {
 	if err := s.apiKey_repo.RevokeAll(ctx); err != nil {
 		return err
 	}
+
+	api_key_middleware.InvalidateAllAPIKeys()
 
 	log.Println("All API keys revoked successfully")
 

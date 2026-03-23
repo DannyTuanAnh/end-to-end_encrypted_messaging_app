@@ -45,4 +45,10 @@ migrate-goto:
 sqlc:
 	sqlc generate
 
-.PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop
+# Makefile for generating gRPC code from .proto files
+# Example: make gen-proto path=calculator/calculatorpb/calculator.proto
+# path is the path to your .proto file
+gen-proto:
+	protoc $(path) --go_out=. --go-grpc_out=.
+
+.PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto

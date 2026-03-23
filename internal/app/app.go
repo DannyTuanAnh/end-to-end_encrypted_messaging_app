@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -17,13 +19,19 @@ type ModelHTTP interface {
 	Routes() routes.Routes
 }
 
+type Clients struct {
+	AuthClient auth_proto.AuthServiceClient
+}
+
 type Application struct {
 	config  *config.Config
 	route   *gin.Engine
 	modules []ModelHTTP
+
+	Clients *Clients
 }
 
-func NewApplication(ctx context.Context, cfg *config.Config) *Application {
+func NewApplication(ctx context.Context, cfg *config.Config, db sqlc.Querier) *Application {
 	// 1. Initialize the Gin router
 	r := gin.Default()
 
@@ -38,12 +46,12 @@ func NewApplication(ctx context.Context, cfg *config.Config) *Application {
 
 	// 5. Initialize modules
 	modules := []ModelHTTP{
-		// NewUserModule(),
+		NewAuthModule(cfg.Service.AuthServiceAddr),
 	}
 
 	// 6. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
 	// and then passing them to the routes.RegisterRoutes function to register them with the Gin router
-	routes.RegisterRoutes(ctx, r, redisHealth, getModuleRoutes(modules)...)
+	routes.RegisterRoutes(ctx, r, redisHealth, db, getModuleRoutes(modules)...)
 
 	return &Application{
 		config:  cfg,

@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	api_key_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/api_key"
 	auth_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/auth"
 	logger_middleware "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware/logger"
@@ -15,11 +16,11 @@ type Routes interface {
 	Register(r *gin.RouterGroup)
 }
 
-func RegisterRoutes(ctx context.Context, r *gin.Engine, redisHealth *utils.RedisHealth, routes ...Routes) {
+func RegisterRoutes(ctx context.Context, r *gin.Engine, redisHealth *utils.RedisHealth, db sqlc.Querier, routes ...Routes) {
 	// Register middleware for all routes, including: logger, rate limiter, API key and authentication
 	r.Use(logger_middleware.LoggerMiddleware(),
 		rate_limiter_middleware.RateLimitMiddleware(ctx, redisHealth),
-		api_key_middleware.ApiKeyMiddleware(),
+		api_key_middleware.ApiKeyMiddleware(db),
 		auth_middleware.AuthMiddleware(),
 	)
 

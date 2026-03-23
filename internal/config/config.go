@@ -24,9 +24,14 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+type ServiceConfig struct {
+	AuthServiceAddr string
+}
+
 type Config struct {
-	DB     DatabaseConfig
-	Server ServerConfig
+	DB      DatabaseConfig
+	Server  ServerConfig
+	Service ServiceConfig
 }
 
 func NewConfigServer() *Config {
@@ -37,6 +42,10 @@ func NewConfigServer() *Config {
 			WriteTimeout:    utils.GetEnvTime("SV_WriteTimeout", 10) * time.Second,   // thời gian tối đa để gửi phản hồi cho một yêu cầu
 			IdleTimeout:     utils.GetEnvTime("SV_IdleTimeout", 120) * time.Second,   // thời gian chờ tối đa cho một kết nối không hoạt động (giữ kết nối tối đa 2 phút)
 			ShutdownTimeout: utils.GetEnvTime("SV_ShutdownTimeout", 5) * time.Second, // thời gian tối đa để server hoàn thành các yêu cầu đang xử lý trước khi tắt
+		},
+
+		Service: ServiceConfig{
+			AuthServiceAddr: utils.GetEnv("AUTH_SERVICE_ADDR", ":50051"),
 		},
 	}
 }

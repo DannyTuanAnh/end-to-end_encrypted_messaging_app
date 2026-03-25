@@ -17,12 +17,10 @@ func NewAuthModule(addr string) *AuthModule {
 		panic("Failed to initialize auth client: " + err.Error())
 	}
 
-	// 2. Initialize middleware
-
-	// 3. Initialize handler
+	// 2. Initialize handler
 	auth_handler := handler.NewAuthHandler(auth_client)
 
-	// 4. Initialize routes
+	// 3. Initialize routes
 	user_routes := routes.NewAuthRoutes(auth_handler)
 
 	return &AuthModule{routes: user_routes}

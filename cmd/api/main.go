@@ -10,6 +10,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
+	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
@@ -18,21 +19,31 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 2. Load environment variables from .env file
+	// 1. Load environment variables from .env file
 	utils.LoadEnv()
 
+	// 2. Initialize database connection
 	if err := db.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
+		return
 	}
 	defer db.Close()
 
-	// 1. Initialize configuration
+	// 3. Initialize Redis connection
+	rdb, err := redis_memory.InitRedis()
+	if err != nil {
+		log.Fatalf("Failed to initialize Redis: %v", err)
+		return
+	}
+	defer rdb.CloseRedis()
+
+	// 4. Initialize configuration
 	cfg := config.NewConfigServer()
 
-	// 2. Initialize application
-	application := app.NewApplication(ctx, cfg, db.DB)
+	// 5. Initialize application
+	application := app.NewApplication(ctx, cfg, db.DB, rdb.RDB)
 
-	// 3. Run the application and capture any error message
+	// 6. Run the application and capture any error message
 	msg, err := application.Run(ctx)
 	if err != nil {
 		log.Fatalf("%s: %v\n", msg, err)

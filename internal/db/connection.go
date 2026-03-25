@@ -47,7 +47,7 @@ func InitDB() error {
 	DBPool = pool
 	DB = sqlc.New(DBPool)
 
-	log.Println("Connected")
+	log.Println("Connecting to database successfully")
 
 	return nil
 }

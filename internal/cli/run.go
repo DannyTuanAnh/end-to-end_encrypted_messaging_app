@@ -9,15 +9,16 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 type CLI struct {
 	registry *ServiceRegistry
 }
 
-func NewCLI(db sqlc.Querier) *CLI {
+func NewCLI(db sqlc.Querier, rdb *redis.Client) *CLI {
 	cli_services = []ModelCLIService{
-		app.NewAPIKeyModule(db),
+		app.NewAPIKeyModule(db, rdb),
 	}
 
 	registry := NewServiceRegistry(cli_services)

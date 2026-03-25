@@ -6,12 +6,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 )
 
@@ -31,27 +31,27 @@ type Application struct {
 	Clients *Clients
 }
 
-func NewApplication(ctx context.Context, cfg *config.Config, db sqlc.Querier) *Application {
+func NewApplication(ctx context.Context, cfg *config.Config, db sqlc.Querier, rdb *redis.Client) *Application {
 	// 1. Initialize the Gin router
 	r := gin.Default()
 
-	// 3. Initialize custom validator
+	// 2. Initialize custom validator
 	err := validation.InitValidator()
 	if err != nil {
 		log.Fatalf("Failed to initialize validator: %v", err)
 	}
 
-	// 4. Initialize health check for Redis
-	redisHealth := utils.NewRedisHealth()
+	// 3. Set up initial data in Redis, such as API key generation counter
+	_ = rdb.Set(ctx, "generation_api_key", 1, 0)
 
-	// 5. Initialize modules
+	// 4. Initialize modules
 	modules := []ModelHTTP{
 		NewAuthModule(cfg.Service.AuthServiceAddr),
 	}
 
-	// 6. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
+	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
 	// and then passing them to the routes.RegisterRoutes function to register them with the Gin router
-	routes.RegisterRoutes(ctx, r, redisHealth, db, getModuleRoutes(modules)...)
+	routes.RegisterRoutes(ctx, r, rdb, db, getModuleRoutes(modules)...)
 
 	return &Application{
 		config:  cfg,
@@ -69,8 +69,6 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 		WriteTimeout: ac.config.Server.WriteTimeout,
 		IdleTimeout:  ac.config.Server.IdleTimeout,
 	}
-
-	utils.StartChecker(ctx)
 
 	// 2. Create a channel to listen for server errors
 	errChan := make(chan error, 1)

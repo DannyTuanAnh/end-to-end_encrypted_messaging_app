@@ -20,7 +20,7 @@ func (ur *AuthRoutes) Register(r *gin.RouterGroup) {
 	{
 		// auths.GET("", ur.Auth_handler.GetAllAuths)
 		// auths.GET("/:uuid", ur.Auth_handler.GetAuthByUUID)
-		// auths.POST("", ur.auth_handler.CreateAuth)
+		auths.POST("/login", ur.auth_handler.Login)
 		// auths.PUT("/:uuid", ur.Auth_handler.UpdateAuth)
 		// auths.DELETE("/:uuid", ur.Auth_handler.DeleteAuth)
 	}

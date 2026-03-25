@@ -24,6 +24,24 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+
+	DialTimeout  time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+
+	MaxRetries      int
+	MinRetryBackOff time.Duration
+	MaxRetryBackOff time.Duration
+
+	PoolSize     int
+	MinIdleConns int
+	PoolTimeout  time.Duration
+}
+
 type ServiceConfig struct {
 	AuthServiceAddr string
 }
@@ -32,16 +50,36 @@ type Config struct {
 	DB      DatabaseConfig
 	Server  ServerConfig
 	Service ServiceConfig
+	Redis   RedisConfig
+}
+
+func NewConfigRedis() *Config {
+	return &Config{
+		Redis: RedisConfig{
+			Addr:            utils.GetEnv("REDIS_ADDR", "localhost:6379"),
+			Password:        utils.GetEnv("REDIS_PASSWORD", ""),
+			DB:              utils.GetEnvInt("REDIS_DB", 0),
+			DialTimeout:     utils.GetEnvTime("REDIS_DIALTIMEOUT", 5) * time.Second,
+			ReadTimeout:     utils.GetEnvTime("REDIS_READTIMEOUT", 3) * time.Second,
+			WriteTimeout:    utils.GetEnvTime("REDIS_WRITETIMEOUT", 3) * time.Second,
+			MaxRetries:      utils.GetEnvInt("REDIS_MAXRETRIES", 3),
+			MinRetryBackOff: utils.GetEnvTime("REDIS_MINRETRYBACKOFF", 50) * time.Millisecond,
+			MaxRetryBackOff: utils.GetEnvTime("REDIS_MAXRETRYBACKOFF", 500) * time.Millisecond,
+			PoolSize:        utils.GetEnvInt("REDIS_POOLSIZE", 100),
+			MinIdleConns:    utils.GetEnvInt("REDIS_MINIDLECONNS", 50),
+			PoolTimeout:     utils.GetEnvTime("REDIS_POOLTIMEOUT", 6) * time.Second,
+		},
+	}
 }
 
 func NewConfigServer() *Config {
 	return &Config{
 		Server: ServerConfig{
 			Port:            utils.GetEnv("SV_PORT", "8080"),
-			ReadTimeout:     utils.GetEnvTime("SV_ReadTimeout", 5) * time.Second,     // thời gian tối đa để đọc yêu cầu từ client
-			WriteTimeout:    utils.GetEnvTime("SV_WriteTimeout", 10) * time.Second,   // thời gian tối đa để gửi phản hồi cho một yêu cầu
-			IdleTimeout:     utils.GetEnvTime("SV_IdleTimeout", 120) * time.Second,   // thời gian chờ tối đa cho một kết nối không hoạt động (giữ kết nối tối đa 2 phút)
-			ShutdownTimeout: utils.GetEnvTime("SV_ShutdownTimeout", 5) * time.Second, // thời gian tối đa để server hoàn thành các yêu cầu đang xử lý trước khi tắt
+			ReadTimeout:     utils.GetEnvTime("SV_READTIMEOUT", 5) * time.Second,     // thời gian tối đa để đọc yêu cầu từ client
+			WriteTimeout:    utils.GetEnvTime("SV_WRITETIMEOUT", 10) * time.Second,   // thời gian tối đa để gửi phản hồi cho một yêu cầu
+			IdleTimeout:     utils.GetEnvTime("SV_IDLETIMEOUT", 120) * time.Second,   // thời gian chờ tối đa cho một kết nối không hoạt động (giữ kết nối tối đa 2 phút)
+			ShutdownTimeout: utils.GetEnvTime("SV_SHUTDOWNTIMEOUT", 5) * time.Second, // thời gian tối đa để server hoàn thành các yêu cầu đang xử lý trước khi tắt
 		},
 
 		Service: ServiceConfig{

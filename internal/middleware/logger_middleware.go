@@ -1,4 +1,4 @@
-package logger_middleware
+package middleware
 
 import (
 	"bytes"

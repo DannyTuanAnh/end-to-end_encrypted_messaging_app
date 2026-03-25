@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: chat-app
       POSTGRES_USER: root
-      POSTGRES_PASSWORD: Danny0704@
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
 
     ports:
       - "5433:5432"
@@ -17,5 +17,29 @@ services:
     volumes:
       - postgres-data-chat-app:/var/lib/postgresql/data
 
+  redis:
+    image: redis:8.6.2-alpine
+    container_name: redis-chat-app
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command:
+      [
+        "redis-server",
+        "--save",
+        "900",
+        "1",
+        "--save",
+        "300",
+        "10",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD}",
+      ]
+    volumes:
+      - redis-data-chat-app:/data
+
 volumes:
   postgres-data-chat-app:
+  redis-data-chat-app:

@@ -16,11 +16,12 @@ func NewAuthRoutes(handler *handler.AuthHandler) Routes {
 }
 
 func (ur *AuthRoutes) Register(r *gin.RouterGroup) {
-	auths := r.Group("/auths")
+	auths := r.Group("/auth")
 	{
 		// auths.GET("", ur.Auth_handler.GetAllAuths)
 		// auths.GET("/:uuid", ur.Auth_handler.GetAuthByUUID)
-		auths.POST("/login", ur.auth_handler.Login)
+		auths.GET("/login", ur.auth_handler.Login)
+		auths.POST("/google/callback", ur.auth_handler.Login)
 		// auths.PUT("/:uuid", ur.Auth_handler.UpdateAuth)
 		// auths.DELETE("/:uuid", ur.Auth_handler.DeleteAuth)
 	}

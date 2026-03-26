@@ -53,6 +53,20 @@ type Config struct {
 	Redis   RedisConfig
 }
 
+func NewConfig() *Config {
+	cfg := &Config{}
+
+	// set server
+	serverCfg := NewConfigServer()
+	cfg.Server = serverCfg.Server
+
+	// set auth service
+	authCfg := NewConfigAuthService()
+	cfg.Service = authCfg.Service
+
+	return cfg
+}
+
 func NewConfigRedis() *Config {
 	return &Config{
 		Redis: RedisConfig{
@@ -81,7 +95,11 @@ func NewConfigServer() *Config {
 			IdleTimeout:     utils.GetEnvTime("SV_IDLETIMEOUT", 120) * time.Second,   // thời gian chờ tối đa cho một kết nối không hoạt động (giữ kết nối tối đa 2 phút)
 			ShutdownTimeout: utils.GetEnvTime("SV_SHUTDOWNTIMEOUT", 5) * time.Second, // thời gian tối đa để server hoàn thành các yêu cầu đang xử lý trước khi tắt
 		},
+	}
+}
 
+func NewConfigAuthService() *Config {
+	return &Config{
 		Service: ServiceConfig{
 			AuthServiceAddr: utils.GetEnv("AUTH_SERVICE_ADDR", ":50051"),
 		},

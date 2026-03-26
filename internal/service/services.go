@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 )
 

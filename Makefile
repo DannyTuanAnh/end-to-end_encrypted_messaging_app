@@ -54,4 +54,7 @@ gen-proto:
 run-api:
 	go run cmd/api/main.go
 
+run-auth:
+	go run cmd/auth/main.go
+
 .PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto run-api 

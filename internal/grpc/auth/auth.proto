@@ -5,14 +5,16 @@ package proto;
 option go_package = "internal/grpc/auth;auth_proto";
 
 service AuthService {
-  rpc ValidateAPIKey(ValidateAPIKeyRequest) returns (ValidateAPIKeyResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
 }
 
-message ValidateAPIKeyRequest {
-  string api_key = 1;
+message LoginRequest {
+  string author_code = 1;
 }
 
-message ValidateAPIKeyResponse {
-  bool valid = 1;
-  string msg = 2;
+message LoginResponse {
+  string session = 1;
+  string user_id = 2;
 }
+
+

@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/server"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
@@ -38,13 +38,13 @@ func main() {
 	defer rdb.CloseRedis()
 
 	// 4. Initialize configuration
-	cfg := config.NewConfig()
+	cfg := config.NewConfigAuthService()
 
 	// 5. Initialize application
-	application := app.NewApplication(ctx, cfg, db.DB, rdb.RDB)
+	authServer := server.NewAuthServer(ctx, cfg, db.DB, rdb.RDB)
 
 	// 6. Run the application and capture any error message
-	msg, err := application.Run(ctx)
+	msg, err := authServer.Run()
 	if err != nil {
 		log.Fatalf("%s: %v\n", msg, err)
 	}

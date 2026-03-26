@@ -21,27 +21,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ValidateAPIKeyRequest struct {
+type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	AuthorCode    string                 `protobuf:"bytes,1,opt,name=author_code,json=authorCode,proto3" json:"author_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ValidateAPIKeyRequest) Reset() {
-	*x = ValidateAPIKeyRequest{}
+func (x *LoginRequest) Reset() {
+	*x = LoginRequest{}
 	mi := &file_internal_grpc_auth_auth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ValidateAPIKeyRequest) String() string {
+func (x *LoginRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ValidateAPIKeyRequest) ProtoMessage() {}
+func (*LoginRequest) ProtoMessage() {}
 
-func (x *ValidateAPIKeyRequest) ProtoReflect() protoreflect.Message {
+func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_grpc_auth_auth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,40 +53,40 @@ func (x *ValidateAPIKeyRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ValidateAPIKeyRequest.ProtoReflect.Descriptor instead.
-func (*ValidateAPIKeyRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
+func (*LoginRequest) Descriptor() ([]byte, []int) {
 	return file_internal_grpc_auth_auth_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ValidateAPIKeyRequest) GetApiKey() string {
+func (x *LoginRequest) GetAuthorCode() string {
 	if x != nil {
-		return x.ApiKey
+		return x.AuthorCode
 	}
 	return ""
 }
 
-type ValidateAPIKeyResponse struct {
+type LoginResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
-	Msg           string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+	Session       string                 `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ValidateAPIKeyResponse) Reset() {
-	*x = ValidateAPIKeyResponse{}
+func (x *LoginResponse) Reset() {
+	*x = LoginResponse{}
 	mi := &file_internal_grpc_auth_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ValidateAPIKeyResponse) String() string {
+func (x *LoginResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ValidateAPIKeyResponse) ProtoMessage() {}
+func (*LoginResponse) ProtoMessage() {}
 
-func (x *ValidateAPIKeyResponse) ProtoReflect() protoreflect.Message {
+func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_grpc_auth_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -98,21 +98,21 @@ func (x *ValidateAPIKeyResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ValidateAPIKeyResponse.ProtoReflect.Descriptor instead.
-func (*ValidateAPIKeyResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
+func (*LoginResponse) Descriptor() ([]byte, []int) {
 	return file_internal_grpc_auth_auth_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ValidateAPIKeyResponse) GetValid() bool {
+func (x *LoginResponse) GetSession() string {
 	if x != nil {
-		return x.Valid
+		return x.Session
 	}
-	return false
+	return ""
 }
 
-func (x *ValidateAPIKeyResponse) GetMsg() string {
+func (x *LoginResponse) GetUserId() string {
 	if x != nil {
-		return x.Msg
+		return x.UserId
 	}
 	return ""
 }
@@ -121,14 +121,15 @@ var File_internal_grpc_auth_auth_proto protoreflect.FileDescriptor
 
 const file_internal_grpc_auth_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x1dinternal/grpc/auth/auth.proto\x12\x05proto\"0\n" +
-	"\x15ValidateAPIKeyRequest\x12\x17\n" +
-	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\"@\n" +
-	"\x16ValidateAPIKeyResponse\x12\x14\n" +
-	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x10\n" +
-	"\x03msg\x18\x02 \x01(\tR\x03msg2\\\n" +
-	"\vAuthService\x12M\n" +
-	"\x0eValidateAPIKey\x12\x1c.proto.ValidateAPIKeyRequest\x1a\x1d.proto.ValidateAPIKeyResponseB\x1fZ\x1dinternal/grpc/auth;auth_protob\x06proto3"
+	"\x1dinternal/grpc/auth/auth.proto\x12\x05proto\"/\n" +
+	"\fLoginRequest\x12\x1f\n" +
+	"\vauthor_code\x18\x01 \x01(\tR\n" +
+	"authorCode\"B\n" +
+	"\rLoginResponse\x12\x18\n" +
+	"\asession\x18\x01 \x01(\tR\asession\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId2A\n" +
+	"\vAuthService\x122\n" +
+	"\x05Login\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponseB\x1fZ\x1dinternal/grpc/auth;auth_protob\x06proto3"
 
 var (
 	file_internal_grpc_auth_auth_proto_rawDescOnce sync.Once
@@ -144,12 +145,12 @@ func file_internal_grpc_auth_auth_proto_rawDescGZIP() []byte {
 
 var file_internal_grpc_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_internal_grpc_auth_auth_proto_goTypes = []any{
-	(*ValidateAPIKeyRequest)(nil),  // 0: proto.ValidateAPIKeyRequest
-	(*ValidateAPIKeyResponse)(nil), // 1: proto.ValidateAPIKeyResponse
+	(*LoginRequest)(nil),  // 0: proto.LoginRequest
+	(*LoginResponse)(nil), // 1: proto.LoginResponse
 }
 var file_internal_grpc_auth_auth_proto_depIdxs = []int32{
-	0, // 0: proto.AuthService.ValidateAPIKey:input_type -> proto.ValidateAPIKeyRequest
-	1, // 1: proto.AuthService.ValidateAPIKey:output_type -> proto.ValidateAPIKeyResponse
+	0, // 0: proto.AuthService.Login:input_type -> proto.LoginRequest
+	1, // 1: proto.AuthService.Login:output_type -> proto.LoginResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

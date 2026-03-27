@@ -1,5 +1,5 @@
 -- name: OAuthLogin :one
-select * from oauth_login($1, $2, $3, $4);
+select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean from oauth_login($1, $2, $3, $4, $5) as f;
 
 -- name: CheckSession :one
 select user_id, revoked, revoke_at from sessions where session_id = $1 and device_id = $2;

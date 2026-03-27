@@ -1,18 +1,20 @@
-create type friend_request_result as (
+create or replace function send_friend_request(p_sender_id bigint, p_receiver_id bigint)
+returns table (
     status boolean,
     message text
-);
-
-create or replace function send_friend_request(p_sender_id bigint, p_receiver_id bigint)
-returns friend_request_result
+)
 language plpgsql
 as $$
 declare
     v_existing_sender bigint;
 begin
 
+    status := false;
+
     if p_sender_id = p_receiver_id then
-        return (false, 'You cannot send a friend request to yourself');
+        message := 'You cannot send a friend request to yourself';
+        return next;
+        return;
     end if;
 
     -- 1. check friendship
@@ -21,7 +23,9 @@ begin
         from friendships
         where user1_id = least(p_sender_id, p_receiver_id) and user2_id = greatest(p_sender_id, p_receiver_id)
     ) then
-        return (false, 'already_friends');
+        message := 'already_friends';
+        return next;
+        return;
     end if;
 
     -- 2. create friend request (if not exists)
@@ -37,14 +41,18 @@ begin
         where sender_id = p_receiver_id and receiver_id = p_sender_id and status = 'pending'
         limit 1;
         if v_existing_sender = p_receiver_id then
-            return (false, 'This person has already sent you a friend request');
+            message := 'This person has already sent you a friend request';
         else
-            return (false, 'Friend request already sent');
+            message := 'Friend request already sent';
         end if;
 
+        return next;
+        return;
     end if;
 
-    return (true, 'Friend request sent successfully');
+    status := true;
+    message := 'Friend request sent successfully';
 
+    return next;
 end;
 $$;

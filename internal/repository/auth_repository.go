@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 )
 
 type authRepository struct {
@@ -14,6 +15,16 @@ func NewAuthRepository(db sqlc.Querier) AuthRepository {
 	return &authRepository{auth_repo: db}
 }
 
-func (r *authRepository) Login(ctx context.Context, arg sqlc.OAuthLoginParams) (string, string, error) {
-	return "", "", nil
+func (ar *authRepository) Login(ctx context.Context, arg sqlc.OAuthLoginParams) (models.GoogleLoginResponse, error) {
+	result, err := ar.auth_repo.OAuthLogin(ctx, arg)
+	if err != nil {
+		return models.GoogleLoginResponse{}, err
+	}
+
+	return models.GoogleLoginResponse{
+		SessionId:     result.FSessionID,
+		UserId:        result.FUserID,
+		ProfileExists: result.FProfileExists,
+	}, nil
+
 }

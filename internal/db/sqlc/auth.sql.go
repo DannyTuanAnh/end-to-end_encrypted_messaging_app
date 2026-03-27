@@ -7,10 +7,9 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const checkSession = `-- name: CheckSession :one
@@ -23,9 +22,9 @@ type CheckSessionParams struct {
 }
 
 type CheckSessionRow struct {
-	UserID   int64              `json:"user_id"`
-	Revoked  bool               `json:"revoked"`
-	RevokeAt pgtype.Timestamptz `json:"revoke_at"`
+	UserID   int64     `json:"user_id"`
+	Revoked  bool      `json:"revoked"`
+	RevokeAt time.Time `json:"revoke_at"`
 }
 
 func (q *Queries) CheckSession(ctx context.Context, arg CheckSessionParams) (CheckSessionRow, error) {
@@ -55,26 +54,34 @@ func (q *Queries) CreateAPIKey(ctx context.Context, keyHash string) error {
 }
 
 const oAuthLogin = `-- name: OAuthLogin :one
-select oauth_login from oauth_login($1, $2, $3, $4)
+select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean from oauth_login($1, $2, $3, $4, $5) as f
 `
 
 type OAuthLoginParams struct {
 	PProvider       string    `json:"p_provider"`
 	PProviderUserID string    `json:"p_provider_user_id"`
 	PDisplayName    string    `json:"p_display_name"`
+	PEmail          string    `json:"p_email"`
 	PDeviceID       uuid.UUID `json:"p_device_id"`
 }
 
-func (q *Queries) OAuthLogin(ctx context.Context, arg OAuthLoginParams) (sql.NullString, error) {
+type OAuthLoginRow struct {
+	FUserID        int64     `json:"f_user_id"`
+	FSessionID     uuid.UUID `json:"f_session_id"`
+	FProfileExists bool      `json:"f_profile_exists"`
+}
+
+func (q *Queries) OAuthLogin(ctx context.Context, arg OAuthLoginParams) (OAuthLoginRow, error) {
 	row := q.db.QueryRow(ctx, oAuthLogin,
 		arg.PProvider,
 		arg.PProviderUserID,
 		arg.PDisplayName,
+		arg.PEmail,
 		arg.PDeviceID,
 	)
-	var oauth_login sql.NullString
-	err := row.Scan(&oauth_login)
-	return oauth_login, err
+	var i OAuthLoginRow
+	err := row.Scan(&i.FUserID, &i.FSessionID, &i.FProfileExists)
+	return i, err
 }
 
 const revokeAPIKeyByKey = `-- name: RevokeAPIKeyByKey :exec

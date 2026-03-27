@@ -6,20 +6,19 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
 
 type Querier interface {
-	AcceptFriendRequestById(ctx context.Context, arg AcceptFriendRequestByIdParams) (interface{}, error)
-	AddFriendById(ctx context.Context, arg AddFriendByIdParams) (sql.NullString, error)
+	AcceptFriendRequestById(ctx context.Context, arg AcceptFriendRequestByIdParams) (AcceptFriendRequestByIdRow, error)
+	AddFriendById(ctx context.Context, arg AddFriendByIdParams) (AddFriendByIdRow, error)
 	AddGroupMembers(ctx context.Context, arg AddGroupMembersParams) (AddGroupMembersRow, error)
 	CheckSession(ctx context.Context, arg CheckSessionParams) (CheckSessionRow, error)
 	CleanupSessionTable(ctx context.Context) error
 	// manage apikeys
 	CreateAPIKey(ctx context.Context, keyHash string) error
-	CreateGroupConversation(ctx context.Context, arg CreateGroupConversationParams) (sql.NullString, error)
+	CreateGroupConversation(ctx context.Context, arg CreateGroupConversationParams) (CreateGroupConversationRow, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (CreateMessageRow, error)
 	CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error)
 	CreateSystemMessage(ctx context.Context, arg CreateSystemMessageParams) (CreateSystemMessageRow, error)
@@ -41,7 +40,7 @@ type Querier interface {
 	GetUserByUUID(ctx context.Context, arg GetUserByUUIDParams) (GetUserByUUIDRow, error)
 	LeaveConversation(ctx context.Context, arg LeaveConversationParams) (LeaveConversationRow, error)
 	MarkMessagesAsRead(ctx context.Context, arg MarkMessagesAsReadParams) error
-	OAuthLogin(ctx context.Context, arg OAuthLoginParams) (sql.NullString, error)
+	OAuthLogin(ctx context.Context, arg OAuthLoginParams) (OAuthLoginRow, error)
 	RejectFriendRequestById(ctx context.Context, arg RejectFriendRequestByIdParams) error
 	RemoveFriendById(ctx context.Context, arg RemoveFriendByIdParams) (int64, error)
 	RemoveGroupMembers(ctx context.Context, arg RemoveGroupMembersParams) error

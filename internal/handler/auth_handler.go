@@ -2,9 +2,13 @@ package handler
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,18 +22,30 @@ func NewAuthHandler(auth_client *client.AuthClient) *AuthHandler {
 	}
 }
 
-func (h *AuthHandler) Login(ctx *gin.Context) {
-	log.Println("Login endpoint called")
+func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
+	var input dto.RequestLoginGoogle
 
-	authReq := &auth_proto.LoginRequest{
-		AuthorCode: "fake_auth_code",
-	}
-	_, err := h.auth_client.Client.Login(ctx, authReq)
-	if err == nil {
-		log.Println("Login request sent successfully to AuthService")
-	} else {
-		log.Printf("Failed to send login request to AuthService: %v", err)
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		log.Printf("Failed to bind JSON input: %v", err)
+		utils.ResponseValidator(ctx, validation.HandleValidationErrors(err))
 		return
 	}
 
+	authReq := &auth_proto.LoginRequest{
+		AuthorCode: input.AuthCode,
+	}
+
+	resp, err := h.auth_client.Client.LoginGoogle(ctx, authReq)
+	if err != nil {
+		log.Printf("Failed to call LoginGoogle on AuthService: %v", err)
+		utils.ResponseError(ctx, err)
+		return
+	}
+
+	log.Println("Received response from AuthService LoginGoogle:", resp)
+
+	respAuthDTO := dto.MapLoginGoogleResponseToDTO(resp)
+
+	log.Println("Mapped AuthService response to DTO:", respAuthDTO)
+	utils.ResponseSuccess(ctx, http.StatusOK, respAuthDTO)
 }

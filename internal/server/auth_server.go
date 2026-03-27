@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
@@ -23,9 +24,22 @@ type AuthServer struct {
 	server *grpc.Server
 }
 
-func NewAuthServer(ctx context.Context, cfg *config.Config, db sqlc.Querier, rdb *redis.Client) *AuthServer {
+func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*AuthServer, error) {
+	authCfg := config.NewConfigAuthService()
+	userCfg := config.NewConfigUserService()
+
+	cfg := &config.Config{}
+
+	cfg.Service.AuthServiceAddr = authCfg.Service.AuthServiceAddr
+	cfg.Service.UserServiceAddr = userCfg.Service.UserServiceAddr
+
+	user_client, err := client.NewUserClient(cfg.Service.UserServiceAddr)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create user client: %v", err)
+	}
+
 	auth_repo := repository.NewAuthRepository(db)
-	auth_service := service.NewAuthService(auth_repo)
+	auth_service := service.NewAuthService(auth_repo, user_client)
 
 	s := grpc.NewServer()
 
@@ -35,7 +49,7 @@ func NewAuthServer(ctx context.Context, cfg *config.Config, db sqlc.Querier, rdb
 		ctx:    ctx,
 		cfg:    cfg,
 		server: s,
-	}
+	}, nil
 }
 
 func (as *AuthServer) Run() (string, error) {

@@ -1,8 +1,8 @@
 -- name: AddFriendById :one
-select * from send_friend_request($1, $2);
+select f.status::boolean, f.message::text from send_friend_request($1, $2) as f;
 
 -- name: AcceptFriendRequestById :one
-select * from accept_friend_request($1, $2);
+select a.sender_id::bigint , a.receiver_name::text from accept_friend_request($1, $2) as a;
 
 -- name: GetPendingFriendRequests :many
 select fr.request_id, u.uuid, p.name, p.avatar_url, fr.send_at

@@ -57,4 +57,7 @@ run-api:
 run-auth:
 	go run cmd/auth/main.go
 
-.PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto run-api 
+run-user:
+	go run cmd/user/main.go
+
+.PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto run-api run-auth run-user

@@ -14,14 +14,9 @@ type APIKeyRepository interface {
 }
 
 type AuthRepository interface {
-	Login(ctx context.Context, arg sqlc.OAuthLoginParams) (string, string, error)
+	Login(ctx context.Context, arg sqlc.OAuthLoginParams) (models.GoogleLoginResponse, error)
 }
 
 type UserRepository interface {
-	FindAll() (map[string]models.User, error)
-	Create(user models.User) error
-	FindByUUID(uuid string) (models.User, bool)
-	Update(uuid string, user models.User) error
-	Delete(uuid string) error
-	FindByEmail(email string) (models.User, bool)
+	CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error)
 }

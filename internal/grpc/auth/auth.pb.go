@@ -68,7 +68,8 @@ func (x *LoginRequest) GetAuthorCode() string {
 type LoginResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Session       string                 `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserId        int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,9 +111,16 @@ func (x *LoginResponse) GetSession() string {
 	return ""
 }
 
-func (x *LoginResponse) GetUserId() string {
+func (x *LoginResponse) GetUserId() int64 {
 	if x != nil {
 		return x.UserId
+	}
+	return 0
+}
+
+func (x *LoginResponse) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
 	}
 	return ""
 }
@@ -124,12 +132,13 @@ const file_internal_grpc_auth_auth_proto_rawDesc = "" +
 	"\x1dinternal/grpc/auth/auth.proto\x12\x05proto\"/\n" +
 	"\fLoginRequest\x12\x1f\n" +
 	"\vauthor_code\x18\x01 \x01(\tR\n" +
-	"authorCode\"B\n" +
+	"authorCode\"_\n" +
 	"\rLoginResponse\x12\x18\n" +
 	"\asession\x18\x01 \x01(\tR\asession\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId2A\n" +
-	"\vAuthService\x122\n" +
-	"\x05Login\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponseB\x1fZ\x1dinternal/grpc/auth;auth_protob\x06proto3"
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId2G\n" +
+	"\vAuthService\x128\n" +
+	"\vLoginGoogle\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponseB\x1fZ\x1dinternal/grpc/auth;auth_protob\x06proto3"
 
 var (
 	file_internal_grpc_auth_auth_proto_rawDescOnce sync.Once
@@ -149,8 +158,8 @@ var file_internal_grpc_auth_auth_proto_goTypes = []any{
 	(*LoginResponse)(nil), // 1: proto.LoginResponse
 }
 var file_internal_grpc_auth_auth_proto_depIdxs = []int32{
-	0, // 0: proto.AuthService.Login:input_type -> proto.LoginRequest
-	1, // 1: proto.AuthService.Login:output_type -> proto.LoginResponse
+	0, // 0: proto.AuthService.LoginGoogle:input_type -> proto.LoginRequest
+	1, // 1: proto.AuthService.LoginGoogle:output_type -> proto.LoginResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

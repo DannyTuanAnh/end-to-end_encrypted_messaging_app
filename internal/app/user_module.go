@@ -6,26 +6,26 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
 )
 
-type AuthModule struct {
+type UserModule struct {
 	routes routes.Routes
 }
 
-func NewAuthModule(addr string) *AuthModule {
+func NewUserModule(addr string) *UserModule {
 	// 1. Initialize repository
-	auth_client, err := client.NewAuthClient(addr)
+	user_client, err := client.NewUserClient(addr)
 	if err != nil {
-		panic("Failed to initialize auth client: " + err.Error())
+		panic("Failed to initialize User client: " + err.Error())
 	}
 
 	// 2. Initialize handler
-	auth_handler := handler.NewAuthHandler(auth_client)
+	user_handler := handler.NewUserHandler(user_client)
 
 	// 3. Initialize routes
-	auth_routes := routes.NewAuthRoutes(auth_handler)
+	user_routes := routes.NewUserRoutes(user_handler)
 
-	return &AuthModule{routes: auth_routes}
+	return &UserModule{routes: user_routes}
 }
 
-func (au *AuthModule) Routes() routes.Routes {
-	return au.routes
+func (us *UserModule) Routes() routes.Routes {
+	return us.routes
 }

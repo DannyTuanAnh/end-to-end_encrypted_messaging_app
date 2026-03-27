@@ -7,15 +7,13 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const acceptFriendRequestById = `-- name: AcceptFriendRequestById :one
-select accept_friend_request from accept_friend_request($1, $2)
+select a.sender_id::bigint , a.receiver_name::text from accept_friend_request($1, $2) as a
 `
 
 type AcceptFriendRequestByIdParams struct {
@@ -23,15 +21,20 @@ type AcceptFriendRequestByIdParams struct {
 	PReceiverID int64 `json:"p_receiver_id"`
 }
 
-func (q *Queries) AcceptFriendRequestById(ctx context.Context, arg AcceptFriendRequestByIdParams) (interface{}, error) {
+type AcceptFriendRequestByIdRow struct {
+	ASenderID     int64  `json:"a_sender_id"`
+	AReceiverName string `json:"a_receiver_name"`
+}
+
+func (q *Queries) AcceptFriendRequestById(ctx context.Context, arg AcceptFriendRequestByIdParams) (AcceptFriendRequestByIdRow, error) {
 	row := q.db.QueryRow(ctx, acceptFriendRequestById, arg.PRequestID, arg.PReceiverID)
-	var accept_friend_request interface{}
-	err := row.Scan(&accept_friend_request)
-	return accept_friend_request, err
+	var i AcceptFriendRequestByIdRow
+	err := row.Scan(&i.ASenderID, &i.AReceiverName)
+	return i, err
 }
 
 const addFriendById = `-- name: AddFriendById :one
-select send_friend_request from send_friend_request($1, $2)
+select f.status::boolean, f.message::text from send_friend_request($1, $2) as f
 `
 
 type AddFriendByIdParams struct {
@@ -39,11 +42,16 @@ type AddFriendByIdParams struct {
 	PReceiverID int64 `json:"p_receiver_id"`
 }
 
-func (q *Queries) AddFriendById(ctx context.Context, arg AddFriendByIdParams) (sql.NullString, error) {
+type AddFriendByIdRow struct {
+	FStatus  bool   `json:"f_status"`
+	FMessage string `json:"f_message"`
+}
+
+func (q *Queries) AddFriendById(ctx context.Context, arg AddFriendByIdParams) (AddFriendByIdRow, error) {
 	row := q.db.QueryRow(ctx, addFriendById, arg.PSenderID, arg.PReceiverID)
-	var send_friend_request sql.NullString
-	err := row.Scan(&send_friend_request)
-	return send_friend_request, err
+	var i AddFriendByIdRow
+	err := row.Scan(&i.FStatus, &i.FMessage)
+	return i, err
 }
 
 const getFriendsList = `-- name: GetFriendsList :many
@@ -66,11 +74,11 @@ order by coalesce(p.name, u.display_name)
 `
 
 type GetFriendsListRow struct {
-	Uuid      uuid.UUID   `json:"uuid"`
-	UserID    int64       `json:"user_id"`
-	Name      string      `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	IsActive  bool        `json:"is_active"`
+	Uuid      uuid.UUID `json:"uuid"`
+	UserID    int64     `json:"user_id"`
+	Name      string    `json:"name"`
+	AvatarUrl string    `json:"avatar_url"`
+	IsActive  bool      `json:"is_active"`
 }
 
 func (q *Queries) GetFriendsList(ctx context.Context, user2ID int64) ([]GetFriendsListRow, error) {
@@ -109,11 +117,11 @@ order by fr.send_at desc
 `
 
 type GetPendingFriendRequestsRow struct {
-	RequestID int64       `json:"request_id"`
-	Uuid      uuid.UUID   `json:"uuid"`
-	Name      pgtype.Text `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	SendAt    time.Time   `json:"send_at"`
+	RequestID int64              `json:"request_id"`
+	Uuid      uuid.UUID          `json:"uuid"`
+	Name      pgtype.Text        `json:"name"`
+	AvatarUrl string             `json:"avatar_url"`
+	SendAt    pgtype.Timestamptz `json:"send_at"`
 }
 
 func (q *Queries) GetPendingFriendRequests(ctx context.Context, receiverID int64) ([]GetPendingFriendRequestsRow, error) {
@@ -152,11 +160,11 @@ order by fr.send_at desc
 `
 
 type GetSentFriendRequestsRow struct {
-	RequestID int64       `json:"request_id"`
-	Uuid      uuid.UUID   `json:"uuid"`
-	Name      pgtype.Text `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	SendAt    time.Time   `json:"send_at"`
+	RequestID int64              `json:"request_id"`
+	Uuid      uuid.UUID          `json:"uuid"`
+	Name      pgtype.Text        `json:"name"`
+	AvatarUrl string             `json:"avatar_url"`
+	SendAt    pgtype.Timestamptz `json:"send_at"`
 }
 
 func (q *Queries) GetSentFriendRequests(ctx context.Context, senderID int64) ([]GetSentFriendRequestsRow, error) {
@@ -237,16 +245,16 @@ order by coalesce(p.name, u.display_name)
 `
 
 type SearchFriendByNameParams struct {
-	User2ID int64       `json:"user2_id"`
-	Column2 pgtype.Text `json:"column_2"`
+	User2ID int64  `json:"user2_id"`
+	Column2 string `json:"column_2"`
 }
 
 type SearchFriendByNameRow struct {
-	Uuid      uuid.UUID   `json:"uuid"`
-	UserID    int64       `json:"user_id"`
-	Name      string      `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	IsActive  bool        `json:"is_active"`
+	Uuid      uuid.UUID `json:"uuid"`
+	UserID    int64     `json:"user_id"`
+	Name      string    `json:"name"`
+	AvatarUrl string    `json:"avatar_url"`
+	IsActive  bool      `json:"is_active"`
 }
 
 func (q *Queries) SearchFriendByName(ctx context.Context, arg SearchFriendByNameParams) ([]SearchFriendByNameRow, error) {

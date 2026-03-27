@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
-	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/server"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
@@ -28,23 +28,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// 3. Initialize Redis connection
-	rdb, err := redis_memory.InitRedis()
-	if err != nil {
-		log.Fatalf("Failed to initialize Redis: %v", err)
-		return
-	}
-	defer rdb.CloseRedis()
+	// 4. Initialize configuration
+	cfg := config.NewConfigUserService()
 
 	// 5. Initialize application
-	authServer, err := server.NewAuthServer(ctx, db.DB, rdb.RDB)
-	if err != nil {
-		log.Fatalf("Failed to initialize auth server: %v", err)
-		return
-	}
+	userServer := server.NewUserServer(ctx, cfg, db.DB)
 
 	// 6. Run the application and capture any error message
-	msg, err := authServer.Run()
+	msg, err := userServer.Run()
 	if err != nil {
 		log.Fatalf("%s: %v\n", msg, err)
 	}

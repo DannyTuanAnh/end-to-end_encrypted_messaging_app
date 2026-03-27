@@ -52,8 +52,9 @@ begin
     select name from profiles where user_id = v_receiver_id into v_receiver_name;
 
     -- 6. return sender_id and receiver_name for notification
-    return query select v_sender_id, v_receiver_name;
-
+    sender_id := v_sender_id;
+    receiver_name := v_receiver_name;
+    return next;
 end;
 $$;
 

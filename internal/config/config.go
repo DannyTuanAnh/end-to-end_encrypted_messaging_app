@@ -44,6 +44,7 @@ type RedisConfig struct {
 
 type ServiceConfig struct {
 	AuthServiceAddr string
+	UserServiceAddr string
 }
 
 type Config struct {
@@ -102,6 +103,14 @@ func NewConfigAuthService() *Config {
 	return &Config{
 		Service: ServiceConfig{
 			AuthServiceAddr: utils.GetEnv("AUTH_SERVICE_ADDR", ":50051"),
+		},
+	}
+}
+
+func NewConfigUserService() *Config {
+	return &Config{
+		Service: ServiceConfig{
+			UserServiceAddr: utils.GetEnv("USER_SERVICE_ADDR", ":50052"),
 		},
 	}
 }

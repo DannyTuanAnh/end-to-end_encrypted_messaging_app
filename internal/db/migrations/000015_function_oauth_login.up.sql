@@ -1,20 +1,21 @@
-create type oauth_login_result as (
-    user_id bigint,
-    session_id uuid
-);
-
 create or replace function oauth_login(
     p_provider text,
     p_provider_user_id text,
     p_display_name text,
+    p_email varchar(255),
     p_device_id uuid
 )
-returns oauth_login_result
+returns table (
+    user_id bigint,
+    session_id uuid,
+    profile_exists boolean
+)
 language plpgsql
 as $$
 declare
     v_user_id bigint;
     v_session_id uuid;
+    v_profile_exists boolean := true;
 begin
     -- 1. try to find existing identity
     select ai.user_id
@@ -25,6 +26,8 @@ begin
 
     -- 2. if not found → create new user + identity 
     if v_user_id is null then
+        v_profile_exists := true;
+
         begin
             -- create new user
             insert into users (display_name)
@@ -32,8 +35,8 @@ begin
             returning users.user_id into v_user_id;
 
             -- create auth identity
-            insert into auth_identities (user_id, provider, provider_user_id)
-            values (v_user_id, p_provider, p_provider_user_id);
+            insert into auth_identities (user_id, provider, provider_user_id, email)
+            values (v_user_id, p_provider, p_provider_user_id, p_email);
 
         exception
             when unique_violation then
@@ -49,6 +52,8 @@ begin
                 if v_user_id is null then
                     raise exception 'Race condition: could not find user after unique violation';
                 end if;
+
+            v_profile_exists := false;
         end;
     end if;
 
@@ -62,7 +67,9 @@ begin
     values (v_user_id, p_device_id)
     returning sessions.session_id into v_session_id;
 
-    return (v_user_id, v_session_id);
-
+    user_id := v_user_id;
+    session_id := v_session_id;
+    profile_exists := v_profile_exists;
+    return next;
 end;
 $$;

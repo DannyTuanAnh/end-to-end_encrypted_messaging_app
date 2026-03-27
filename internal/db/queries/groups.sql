@@ -1,5 +1,5 @@
 -- name: CreateGroupConversation :one
-select * from create_group_conversation($1, $2, $3);
+select c.conversation_id::bigint, c.group_name::text, c.invalid_user_ids::bigint[] from create_group_conversation($1, $2, $3) as c;
 
 -- name: AddGroupMembers :one
 insert into conversation_members (conversation_id, user_id, role)

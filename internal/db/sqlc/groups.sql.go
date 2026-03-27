@@ -7,7 +7,6 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -43,7 +42,7 @@ func (q *Queries) AddGroupMembers(ctx context.Context, arg AddGroupMembersParams
 }
 
 const createGroupConversation = `-- name: CreateGroupConversation :one
-select create_group_conversation from create_group_conversation($1, $2, $3)
+select c.conversation_id::bigint, c.group_name::text, c.invalid_user_ids::bigint[] from create_group_conversation($1, $2, $3) as c
 `
 
 type CreateGroupConversationParams struct {
@@ -52,11 +51,17 @@ type CreateGroupConversationParams struct {
 	PMemberIds int64  `json:"p_member_ids"`
 }
 
-func (q *Queries) CreateGroupConversation(ctx context.Context, arg CreateGroupConversationParams) (sql.NullString, error) {
+type CreateGroupConversationRow struct {
+	CConversationID int64   `json:"c_conversation_id"`
+	CGroupName      string  `json:"c_group_name"`
+	CInvalidUserIds []int64 `json:"c_invalid_user_ids"`
+}
+
+func (q *Queries) CreateGroupConversation(ctx context.Context, arg CreateGroupConversationParams) (CreateGroupConversationRow, error) {
 	row := q.db.QueryRow(ctx, createGroupConversation, arg.PCreatorID, arg.PGroupName, arg.PMemberIds)
-	var create_group_conversation sql.NullString
-	err := row.Scan(&create_group_conversation)
-	return create_group_conversation, err
+	var i CreateGroupConversationRow
+	err := row.Scan(&i.CConversationID, &i.CGroupName, &i.CInvalidUserIds)
+	return i, err
 }
 
 const getGroupMembers = `-- name: GetGroupMembers :many
@@ -73,10 +78,10 @@ order by coalesce(p.name, u.display_name)
 `
 
 type GetGroupMembersRow struct {
-	Uuid      uuid.UUID   `json:"uuid"`
-	Name      string      `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	Role      MemberRole  `json:"role"`
+	Uuid      uuid.UUID  `json:"uuid"`
+	Name      string     `json:"name"`
+	AvatarUrl string     `json:"avatar_url"`
+	Role      MemberRole `json:"role"`
 }
 
 func (q *Queries) GetGroupMembers(ctx context.Context, conversationID int64) ([]GetGroupMembersRow, error) {
@@ -158,7 +163,7 @@ returning conversation_id, name, avatar_url, created_at
 type UpdateGroupInfoParams struct {
 	ConversationID int64       `json:"conversation_id"`
 	Name           pgtype.Text `json:"name"`
-	AvatarUrl      pgtype.Text `json:"avatar_url"`
+	AvatarUrl      string      `json:"avatar_url"`
 }
 
 func (q *Queries) UpdateGroupInfo(ctx context.Context, arg UpdateGroupInfoParams) (Group, error) {

@@ -10,6 +10,9 @@ func CORSMiddleware() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		allowedOrigins := map[string]bool{
+			"http://127.0.0.1:5500": true,
+			"http://localhost:5500": true,
+
 			"https://127.0.0.1:5173": true,
 			"https://localhost:5173": true,
 

@@ -88,6 +88,8 @@ func HandleValidationErrors(err error) gin.H {
 			case "strong_password":
 				special := "!@#$%^&*()_+-=[]{},;.:|<>?/~'`" + `"`
 				errors[fieldPath] = fmt.Sprintf("%s phải bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (%s)", fieldPath, special)
+			default:
+				errors[fieldPath] = fmt.Sprintf("%s không hợp lệ", fieldPath)
 			}
 		}
 

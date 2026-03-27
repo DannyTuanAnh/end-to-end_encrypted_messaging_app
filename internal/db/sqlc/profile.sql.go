@@ -7,26 +7,29 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createProfile = `-- name: CreateProfile :one
-INSERT INTO profiles (user_id, name, birthday, avatar_url) VALUES ($1, $2, $3, $4) RETURNING user_id, name, birthday, avatar_url, updated_at
+INSERT INTO profiles (user_id, name, email, birthday, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, name, email, phone, birthday, avatar_url, updated_at
 `
 
 type CreateProfileParams struct {
 	UserID    int64       `json:"user_id"`
 	Name      string      `json:"name"`
-	Birthday  pgtype.Date `json:"birthday"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
+	Email     pgtype.Text `json:"email"`
+	Birthday  time.Time   `json:"birthday"`
+	AvatarUrl string      `json:"avatar_url"`
 }
 
 func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
 	row := q.db.QueryRow(ctx, createProfile,
 		arg.UserID,
 		arg.Name,
+		arg.Email,
 		arg.Birthday,
 		arg.AvatarUrl,
 	)
@@ -34,6 +37,8 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 	err := row.Scan(
 		&i.UserID,
 		&i.Name,
+		&i.Email,
+		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
 		&i.UpdatedAt,
@@ -42,7 +47,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 }
 
 const getProfileByUserId = `-- name: GetProfileByUserId :one
-SELECT user_id, name, birthday, avatar_url, updated_at FROM profiles WHERE user_id = $1
+SELECT user_id, name, email, phone, birthday, avatar_url, updated_at FROM profiles WHERE user_id = $1
 `
 
 func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (Profile, error) {
@@ -51,6 +56,8 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (Profile
 	err := row.Scan(
 		&i.UserID,
 		&i.Name,
+		&i.Email,
+		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
 		&i.UpdatedAt,
@@ -59,7 +66,7 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (Profile
 }
 
 const getProfilesByUserUUID = `-- name: GetProfilesByUserUUID :one
-SELECT p.user_id, p.name, p.birthday, p.avatar_url, p.updated_at
+SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.updated_at
 FROM profiles p
 JOIN users u ON p.user_id = u.user_id
 WHERE u.uuid = $1
@@ -71,6 +78,8 @@ func (q *Queries) GetProfilesByUserUUID(ctx context.Context, argUuid uuid.UUID) 
 	err := row.Scan(
 		&i.UserID,
 		&i.Name,
+		&i.Email,
+		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
 		&i.UpdatedAt,
@@ -82,17 +91,21 @@ const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
 UPDATE profiles SET 
     name = COALESCE($2, name),
     birthday = COALESCE($3, birthday),
-    avatar_url = COALESCE($4, avatar_url),
+    email = COALESCE($4, email),
+    phone = COALESCE($5, phone),
+    avatar_url = COALESCE($6, avatar_url),
     updated_at = now()
 WHERE user_id = $1 
-RETURNING user_id, name, birthday, avatar_url, updated_at
+RETURNING user_id, name, email, phone, birthday, avatar_url, updated_at
 `
 
 type UpdateProfileByUserIdParams struct {
 	UserID    int64       `json:"user_id"`
 	Name      pgtype.Text `json:"name"`
-	Birthday  pgtype.Date `json:"birthday"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
+	Birthday  time.Time   `json:"birthday"`
+	Email     pgtype.Text `json:"email"`
+	Phone     pgtype.Text `json:"phone"`
+	AvatarUrl string      `json:"avatar_url"`
 }
 
 func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (Profile, error) {
@@ -100,12 +113,16 @@ func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileBy
 		arg.UserID,
 		arg.Name,
 		arg.Birthday,
+		arg.Email,
+		arg.Phone,
 		arg.AvatarUrl,
 	)
 	var i Profile
 	err := row.Scan(
 		&i.UserID,
 		&i.Name,
+		&i.Email,
+		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
 		&i.UpdatedAt,

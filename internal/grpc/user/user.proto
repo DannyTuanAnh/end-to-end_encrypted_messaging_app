@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "internal/grpc/user;user_proto";
+
+service UserService {
+  rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
+}
+
+message CreateProfileRequest {
+  int64 user_id = 1;
+  string name = 2;
+  string email = 3;
+  string birthday = 4;
+  string avatar_url = 5;
+}
+
+message CreateProfileResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+
+
+

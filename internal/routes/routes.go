@@ -17,6 +17,7 @@ func RegisterRoutes(ctx context.Context, r *gin.Engine, rdb *redis.Client, db sq
 	// Register middleware for all routes, including: logger, rate limiter, API key and authentication
 	r.Use(middleware.LoggerMiddleware(),
 		middleware.RateLimitMiddleware(ctx, rdb, 60, 100), // 100 requests per 60 seconds
+		middleware.CORSMiddleware(),
 		middleware.ApiKeyMiddleware(db, rdb),
 		middleware.AuthMiddleware(),
 	)

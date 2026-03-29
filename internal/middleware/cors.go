@@ -4,21 +4,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var allowedOrigins = map[string]bool{
+	"http://127.0.0.1:5500": true,
+	"http://localhost:5500": true,
+
+	"https://127.0.0.1:5173": true,
+	"https://localhost:5173": true,
+}
+
 // CORSMiddleware allows cross-origin requests
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-
-		allowedOrigins := map[string]bool{
-			"http://127.0.0.1:5500": true,
-			"http://localhost:5500": true,
-
-			"https://127.0.0.1:5173": true,
-			"https://localhost:5173": true,
-
-			// frontend trên render
-			"https://cinema-booking-system-hid9.onrender.com": true,
-		}
 
 		if allowedOrigins[origin] {
 			c.Header("Access-Control-Allow-Origin", origin)

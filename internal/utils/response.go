@@ -11,10 +11,11 @@ type ErrCode string
 
 // Define constants for different error codes that can be used throughout the application.
 const (
-	ErrCodeBadRequest ErrCode = "BAD_REQUEST"
-	ErrCodeNotFound   ErrCode = "NOT_FOUND"
-	ErrCodeInternal   ErrCode = "INTERNAL_SERVER_ERROR"
-	ErrCodeConflict   ErrCode = "CONFLICT"
+	ErrCodeBadRequest   ErrCode = "BAD_REQUEST"
+	ErrCodeNotFound     ErrCode = "NOT_FOUND"
+	ErrCodeInternal     ErrCode = "INTERNAL_SERVER_ERROR"
+	ErrCodeConflict     ErrCode = "CONFLICT"
+	ErrCodeUnauthorized ErrCode = "UNAUTHORIZED"
 )
 
 // AppError is a custom error type that includes a message, an error code, and an optional underlying error.
@@ -79,6 +80,8 @@ func httpStatusFromCode(code ErrCode) int {
 		return http.StatusNotFound
 	case ErrCodeConflict:
 		return http.StatusConflict
+	case ErrCodeUnauthorized:
+		return http.StatusUnauthorized
 	default:
 		return http.StatusInternalServerError
 	}

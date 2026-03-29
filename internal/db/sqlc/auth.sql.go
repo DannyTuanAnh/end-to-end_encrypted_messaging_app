@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const checkSession = `-- name: CheckSession :one
@@ -22,9 +22,9 @@ type CheckSessionParams struct {
 }
 
 type CheckSessionRow struct {
-	UserID   int64     `json:"user_id"`
-	Revoked  bool      `json:"revoked"`
-	RevokeAt time.Time `json:"revoke_at"`
+	UserID   int64              `json:"user_id"`
+	Revoked  bool               `json:"revoked"`
+	RevokeAt pgtype.Timestamptz `json:"revoke_at"`
 }
 
 func (q *Queries) CheckSession(ctx context.Context, arg CheckSessionParams) (CheckSessionRow, error) {

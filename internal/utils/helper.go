@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -8,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -86,4 +90,25 @@ func SaveKeyToEnv(clientType, key string) error {
 	log.Println("Saving API key to environment variable:", envKey)
 
 	return WriteEnv(envKey, key)
+}
+
+func CheckUUID(id string) bool {
+	err := uuid.Validate(id)
+	return err == nil
+}
+
+func GetKeyRedisAndConvertToInt(ctx context.Context, key string, rdb *redis.Client) (int, error) {
+	result, err := rdb.Get(ctx, key).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return 0, fmt.Errorf("Failed to get key from Redis: %v", err)
+		}
+	}
+
+	resultNum, err := strconv.Atoi(result)
+	if err != nil {
+		return 0, fmt.Errorf("Failed to convert Redis value to int: %v", err)
+	}
+
+	return resultNum, nil
 }

@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -37,17 +36,27 @@ func main() {
 	}
 	defer rdb.CloseRedis()
 
-	// 4. Initialize configuration
-	cfg := config.NewConfig()
+	// 4. Initialize application
+	application := app.NewApplication(ctx, db.DB, rdb.RDB)
 
-	// 5. Initialize application
-	application := app.NewApplication(ctx, cfg, db.DB, rdb.RDB)
+	// 5. Run the application and capture any error messages
+	// Check if the application is running in development mode by checking the ENV environment variable
+	if ENV := os.Getenv("ENV"); ENV == "development" {
+		// RunTLS the application and capture any error messages
+		msg, err := application.RunTLS(ctx)
+		if err != nil {
+			log.Fatalf("%s: %v\n", msg, err)
+		}
 
-	// 6. Run the application and capture any error message
-	msg, err := application.Run(ctx)
-	if err != nil {
-		log.Fatalf("%s: %v\n", msg, err)
+		log.Println(msg)
+	} else {
+		// Run the application and capture any error messages
+		msg, err := application.Run(ctx)
+		if err != nil {
+			log.Fatalf("%s: %v\n", msg, err)
+		}
+
+		log.Println(msg)
 	}
 
-	log.Println(msg)
 }

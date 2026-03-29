@@ -25,11 +25,11 @@ type CreateMessageParams struct {
 }
 
 type CreateMessageRow struct {
-	ID             int64              `json:"id"`
-	SenderID       int64              `json:"sender_id"`
-	ConversationID int64              `json:"conversation_id"`
-	Content        string             `json:"content"`
-	SentAt         pgtype.Timestamptz `json:"sent_at"`
+	ID             int64     `json:"id"`
+	SenderID       int64     `json:"sender_id"`
+	ConversationID int64     `json:"conversation_id"`
+	Content        string    `json:"content"`
+	SentAt         time.Time `json:"sent_at"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (CreateMessageRow, error) {
@@ -56,17 +56,17 @@ type CreateSystemMessageParams struct {
 	EventType      SystemEventType `json:"event_type"`
 	ActorID        pgtype.Int8     `json:"actor_id"`
 	TargetID       pgtype.Int8     `json:"target_id"`
-	Content        string          `json:"content"`
+	Content        pgtype.Text     `json:"content"`
 }
 
 type CreateSystemMessageRow struct {
-	ID             int64              `json:"id"`
-	ConversationID int64              `json:"conversation_id"`
-	EventType      SystemEventType    `json:"event_type"`
-	ActorID        pgtype.Int8        `json:"actor_id"`
-	TargetID       pgtype.Int8        `json:"target_id"`
-	Content        string             `json:"content"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ID             int64           `json:"id"`
+	ConversationID int64           `json:"conversation_id"`
+	EventType      SystemEventType `json:"event_type"`
+	ActorID        pgtype.Int8     `json:"actor_id"`
+	TargetID       pgtype.Int8     `json:"target_id"`
+	Content        pgtype.Text     `json:"content"`
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 func (q *Queries) CreateSystemMessage(ctx context.Context, arg CreateSystemMessageParams) (CreateSystemMessageRow, error) {
@@ -212,21 +212,21 @@ order by coalesce(lm.last_message_time, c.created_at) desc
 `
 
 type GetAllConversationsRow struct {
-	ConversationID   int64            `json:"conversation_id"`
-	ConversationType ConversationType `json:"conversation_type"`
-	ConversationName interface{}      `json:"conversation_name"`
-	AvatarUrl        interface{}      `json:"avatar_url"`
-	MessageType      string           `json:"message_type"`
-	LastMessage      string           `json:"last_message"`
-	LastMessageTime  time.Time        `json:"last_message_time"`
-	SenderID         pgtype.Int8      `json:"sender_id"`
-	SenderName       pgtype.Text      `json:"sender_name"`
-	ActorID          pgtype.Int8      `json:"actor_id"`
-	TargetID         pgtype.Int8      `json:"target_id"`
-	EventType        string           `json:"event_type"`
-	ActorName        string           `json:"actor_name"`
-	TargetName       string           `json:"target_name"`
-	IsRead           interface{}      `json:"is_read"`
+	ConversationID   int64              `json:"conversation_id"`
+	ConversationType ConversationType   `json:"conversation_type"`
+	ConversationName interface{}        `json:"conversation_name"`
+	AvatarUrl        interface{}        `json:"avatar_url"`
+	MessageType      pgtype.Text        `json:"message_type"`
+	LastMessage      pgtype.Text        `json:"last_message"`
+	LastMessageTime  pgtype.Timestamptz `json:"last_message_time"`
+	SenderID         pgtype.Int8        `json:"sender_id"`
+	SenderName       pgtype.Text        `json:"sender_name"`
+	ActorID          pgtype.Int8        `json:"actor_id"`
+	TargetID         pgtype.Int8        `json:"target_id"`
+	EventType        pgtype.Text        `json:"event_type"`
+	ActorName        pgtype.Text        `json:"actor_name"`
+	TargetName       pgtype.Text        `json:"target_name"`
+	IsRead           interface{}        `json:"is_read"`
 }
 
 func (q *Queries) GetAllConversations(ctx context.Context, userID int64) ([]GetAllConversationsRow, error) {
@@ -327,19 +327,19 @@ type GetMessagesByConversationIdParams struct {
 }
 
 type GetMessagesByConversationIdRow struct {
-	ID               int64              `json:"id"`
-	MessageType      string             `json:"message_type"`
-	SenderID         int64              `json:"sender_id"`
-	ActorID          pgtype.Int8        `json:"actor_id"`
-	TargetID         pgtype.Int8        `json:"target_id"`
-	EventType        string             `json:"event_type"`
-	ConversationID   int64              `json:"conversation_id"`
-	Content          string             `json:"content"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
-	SenderName       string             `json:"sender_name"`
-	TargetName       pgtype.Text        `json:"target_name"`
-	SenderAvatar     string             `json:"sender_avatar"`
-	MessageDirection string             `json:"message_direction"`
+	ID               int64       `json:"id"`
+	MessageType      string      `json:"message_type"`
+	SenderID         int64       `json:"sender_id"`
+	ActorID          pgtype.Int8 `json:"actor_id"`
+	TargetID         pgtype.Int8 `json:"target_id"`
+	EventType        pgtype.Text `json:"event_type"`
+	ConversationID   int64       `json:"conversation_id"`
+	Content          string      `json:"content"`
+	CreatedAt        time.Time   `json:"created_at"`
+	SenderName       string      `json:"sender_name"`
+	TargetName       pgtype.Text `json:"target_name"`
+	SenderAvatar     pgtype.Text `json:"sender_avatar"`
+	MessageDirection string      `json:"message_direction"`
 }
 
 func (q *Queries) GetMessagesByConversationId(ctx context.Context, arg GetMessagesByConversationIdParams) ([]GetMessagesByConversationIdRow, error) {
@@ -441,8 +441,8 @@ order by conv_name
 `
 
 type SearchConversationByNameParams struct {
-	UserID  int64  `json:"user_id"`
-	Column2 string `json:"column_2"`
+	UserID  int64       `json:"user_id"`
+	Column2 pgtype.Text `json:"column_2"`
 }
 
 type SearchConversationByNameRow struct {

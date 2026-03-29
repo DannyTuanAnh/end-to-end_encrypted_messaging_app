@@ -7,7 +7,6 @@ package sqlc
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -21,8 +20,8 @@ type CreateProfileParams struct {
 	UserID    int64       `json:"user_id"`
 	Name      string      `json:"name"`
 	Email     pgtype.Text `json:"email"`
-	Birthday  time.Time   `json:"birthday"`
-	AvatarUrl string      `json:"avatar_url"`
+	Birthday  pgtype.Date `json:"birthday"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
 }
 
 func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
@@ -102,10 +101,10 @@ RETURNING user_id, name, email, phone, birthday, avatar_url, updated_at
 type UpdateProfileByUserIdParams struct {
 	UserID    int64       `json:"user_id"`
 	Name      pgtype.Text `json:"name"`
-	Birthday  time.Time   `json:"birthday"`
+	Birthday  pgtype.Date `json:"birthday"`
 	Email     pgtype.Text `json:"email"`
 	Phone     pgtype.Text `json:"phone"`
-	AvatarUrl string      `json:"avatar_url"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
 }
 
 func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (Profile, error) {

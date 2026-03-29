@@ -39,7 +39,7 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	}
 
 	auth_repo := repository.NewAuthRepository(db)
-	auth_service := service.NewAuthService(auth_repo, user_client)
+	auth_service := service.NewAuthService(auth_repo, user_client, rdb)
 
 	s := grpc.NewServer()
 

@@ -15,13 +15,17 @@ func NewAuthRoutes(handler *handler.AuthHandler) Routes {
 	}
 }
 
-func (ar *AuthRoutes) Register(r *gin.RouterGroup) {
-	auths := r.Group("/auth")
+func (ar *AuthRoutes) RegisterPublic(r *gin.RouterGroup) {
+	auth := r.Group("/auth")
 	{
-		// auths.GET("", ur.Auth_handler.GetAllAuths)
-		// auths.GET("/:uuid", ur.Auth_handler.GetAuthByUUID)
-		auths.POST("/google/login", ar.auth_handler.LoginGoogle)
-		// auths.PUT("/:uuid", ur.Auth_handler.UpdateAuth)
-		// auths.DELETE("/:uuid", ur.Auth_handler.DeleteAuth)
+		auth.POST("/google/login", ar.auth_handler.LoginGoogle)
+	}
+}
+
+func (ar *AuthRoutes) Register(r *gin.RouterGroup) {
+	auth := r.Group("/auth")
+	{
+		auth.DELETE("/logout", ar.auth_handler.Logout)
+		// auth.DELETE("/logout/all", ar.auth_handler.LogoutAll)
 	}
 }

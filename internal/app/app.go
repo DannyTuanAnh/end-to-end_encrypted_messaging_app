@@ -31,7 +31,9 @@ type Application struct {
 	Clients *Clients
 }
 
-func NewApplication(ctx context.Context, cfg *config.Config, db sqlc.Querier, rdb *redis.Client) *Application {
+func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Application {
+	cfg := config.NewConfig()
+
 	// 1. Initialize the Gin router
 	r := gin.Default()
 
@@ -64,11 +66,15 @@ func NewApplication(ctx context.Context, cfg *config.Config, db sqlc.Querier, rd
 func (ac *Application) Run(ctx context.Context) (string, error) {
 	// 1. Start server with shut down gracefully
 	srv := &http.Server{
-		Addr:         ":" + ac.config.Server.Port,
-		Handler:      ac.route,
-		ReadTimeout:  ac.config.Server.ReadTimeout,
-		WriteTimeout: ac.config.Server.WriteTimeout,
-		IdleTimeout:  ac.config.Server.IdleTimeout,
+		Addr:    ":" + ac.config.Server.Port,
+		Handler: ac.route,
+
+		ReadTimeout:       ac.config.Server.ReadTimeout,
+		ReadHeaderTimeout: ac.config.Server.ReadHeaderTimeout,
+		WriteTimeout:      ac.config.Server.WriteTimeout,
+		IdleTimeout:       ac.config.Server.IdleTimeout,
+
+		MaxHeaderBytes: ac.config.Server.MaxHeaderBytes,
 	}
 
 	// 2. Create a channel to listen for server errors
@@ -78,6 +84,52 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 	go func() {
 		log.Printf("Server is running on port %s...", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errChan <- err
+		}
+	}()
+
+	// 4. Wait for an error or a shutdown signal
+	select {
+	case err := <-errChan:
+		return "Server error", err
+
+	case <-ctx.Done():
+		log.Println("Shutting down server...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), ac.config.Server.ShutdownTimeout)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return "Server forced to shutdown", err
+		}
+		return "Server exiting gracefully!", nil
+	}
+
+}
+
+func (ac *Application) RunTLS(ctx context.Context) (string, error) {
+	// 1. Start server with shut down gracefully
+	srv := &http.Server{
+		Addr:    ":" + ac.config.Server.Port,
+		Handler: ac.route,
+
+		ReadTimeout:       ac.config.Server.ReadTimeout,
+		ReadHeaderTimeout: ac.config.Server.ReadHeaderTimeout,
+		WriteTimeout:      ac.config.Server.WriteTimeout,
+		IdleTimeout:       ac.config.Server.IdleTimeout,
+
+		MaxHeaderBytes: ac.config.Server.MaxHeaderBytes,
+	}
+
+	// 2. Create a channel to listen for server errors
+	errChan := make(chan error, 1)
+
+	pathCert := "internal/certs/localhost+2.pem"
+	pathKey := "internal/certs/localhost+2-key.pem"
+
+	// 3. Listen and serve in a goroutine
+	go func() {
+		log.Printf("HTTPS Server is running on port %s...", srv.Addr)
+		if err := srv.ListenAndServeTLS(pathCert, pathKey); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		}
 	}()

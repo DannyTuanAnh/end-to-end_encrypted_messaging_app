@@ -7,6 +7,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
 type userService struct {
@@ -23,11 +24,19 @@ func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateP
 		return nil, fmt.Errorf("User ID is required")
 	}
 
-	s.user_repo.CreateProfile(ctx, sqlc.CreateProfileParams{
+	_, err := s.user_repo.CreateProfile(ctx, sqlc.CreateProfileParams{
 		UserID:    req.UserId,
 		Name:      req.Name,
-		AvatarUrl: req.AvatarUrl,
+		Email:     utils.ConvertToPgTypeText(req.Email),
+		AvatarUrl: utils.ConvertToPgTypeText(req.AvatarUrl),
+		Birthday:  utils.ConvertToPgTypeDate(req.Birthday),
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create profile: %w", err)
+	}
 
-	return nil, nil
+	return &user_proto.CreateProfileResponse{
+		Success: true,
+		Message: "Profile created successfully",
+	}, nil
 }

@@ -15,5 +15,5 @@ func NewUserRepository(db sqlc.Querier) UserRepository {
 }
 
 func (r *userRepository) CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error) {
-	return sqlc.Profile{}, nil
+	return r.user_repo.CreateProfile(ctx, arg)
 }

@@ -7,87 +7,104 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
-	// "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
-	// "github.com/google/uuid"
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/api/idtoken"
 )
 
 type authService struct {
 	auth_proto.UnimplementedAuthServiceServer
-	auth_repo   repository.AuthRepository
-	user_client *client.UserClient
+	auth_repo    repository.AuthRepository
+	user_client  *client.UserClient
+	redis_memory *redis.Client
 }
 
-func NewAuthService(auth_repo repository.AuthRepository, user_client *client.UserClient) *authService {
+func NewAuthService(auth_repo repository.AuthRepository, user_client *client.UserClient, rdb *redis.Client) *authService {
 	return &authService{
-		auth_repo:   auth_repo,
-		user_client: user_client,
+		auth_repo:    auth_repo,
+		user_client:  user_client,
+		redis_memory: rdb,
 	}
 }
 
 func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.LoginResponse, error) {
-	// tokenResp, err := s.ExchangeGoogleCode(req.AuthorCode)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// userInfo, err := s.VerifyIDGoogleToken(ctx, tokenResp.IdToken, tokenResp.AccessToken)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// deviceID, err := uuid.NewUUID()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Failed to generate device ID: %v", err)
-	// }
-
-	// name := fmt.Sprintf("%s %s", userInfo.Claims["family_name"].(string), userInfo.Claims["given_name"].(string))
-
-	// resp, err := s.auth_repo.Login(ctx, sqlc.OAuthLoginParams{
-	// 	PProvider:       "google",
-	// 	PProviderUserID: userInfo.Claims["sub"].(string),
-	// 	PEmail:          userInfo.Claims["email"].(string),
-	// 	PDisplayName:    name,
-	// 	PDeviceID:       deviceID,
-	// })
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Failed to login user: %v", err)
-	// }
-
-	// if !resp.ProfileExists {
-	// 	_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
-	// 		UserId:    resp.UserId,
-	// 		Name:      name,
-	// 		Email:     userInfo.Claims["email"].(string),
-	// 		Birthday:  userInfo.Claims["birthday"].(string),
-	// 		AvatarUrl: userInfo.Claims["picture"].(string),
-	// 	})
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("Failed to create user profile: %v", err)
-	// 	}
-
-	// 	resp.DeviceID = deviceID
-
-	// }
-	// return &auth_proto.LoginResponse{
-	// 	Session:  resp.SessionId.String(),
-	// 	UserId:   resp.UserId,
-	// 	DeviceId: resp.DeviceID.String(),
-	// }, nil
-	_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{})
+	tokenResp, err := s.ExchangeGoogleCode(req.AuthorCode)
 	if err != nil {
-		log.Printf("Failed to create profile: %v", err)
-		return nil, err
+		return nil, utils.WrapError(err, "Failed to exchange Google code", utils.ErrCodeInternal)
 	}
 
-	return nil, nil
+	userInfo, err := s.VerifyIDGoogleToken(ctx, tokenResp.IdToken, tokenResp.AccessToken)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to verify Google ID token", utils.ErrCodeInternal)
+	}
+
+	deviceID := uuid.New()
+
+	name := fmt.Sprintf("%s %s", userInfo.Claims["family_name"].(string), userInfo.Claims["given_name"].(string))
+
+	resp, err := s.auth_repo.Login(ctx, sqlc.OAuthLoginParams{
+		PProvider:       "google",
+		PProviderUserID: userInfo.Claims["sub"].(string),
+		PEmail:          userInfo.Claims["email"].(string),
+		PDisplayName:    name,
+		PDeviceID:       deviceID,
+	})
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to login with Google", utils.ErrCodeInternal)
+	}
+
+	if !resp.ProfileExists {
+		_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
+			UserId:    resp.UserId,
+			Name:      name,
+			Email:     userInfo.Claims["email"].(string),
+			Birthday:  userInfo.Claims["birthday"].(string),
+			AvatarUrl: userInfo.Claims["picture"].(string),
+		})
+		if err != nil {
+			return nil, utils.WrapError(err, "Failed to create user profile", utils.ErrCodeInternal)
+		}
+
+	}
+	resp.DeviceID = deviceID
+
+	_ = s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0)
+
+	version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), s.redis_memory)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to get session version from Redis", utils.ErrCodeInternal)
+	}
+
+	session := models.SessionRedis{
+		UserID:         resp.UserId,
+		DeviceID:       resp.DeviceID,
+		SessionVersion: version,
+	}
+
+	sessionJson, err := json.Marshal(session)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to marshal session data", utils.ErrCodeInternal)
+	}
+
+	err = s.redis_memory.Set(ctx, fmt.Sprintf("session:%s", resp.SessionId.String()), sessionJson, 24*7*time.Hour).Err()
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to store session in Redis", utils.ErrCodeInternal)
+	}
+
+	return &auth_proto.LoginResponse{
+		Session:  resp.SessionId.String(),
+		UserId:   resp.UserId,
+		DeviceId: resp.DeviceID.String(),
+	}, nil
 }
 
 func (s *authService) ExchangeGoogleCode(code string) (*models.GoogleTokenResponse, error) {
@@ -100,7 +117,6 @@ func (s *authService) ExchangeGoogleCode(code string) (*models.GoogleTokenRespon
 
 	resp, err := http.PostForm(utils.GetEnv("GOOGLE_TOKEN_URL", ""), data)
 	if err != nil {
-		log.Printf("Failed to exchange auth code for token: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -108,7 +124,6 @@ func (s *authService) ExchangeGoogleCode(code string) (*models.GoogleTokenRespon
 	var result models.GoogleTokenResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		log.Printf("Failed to decode token response: %v", err)
 		return nil, err
 	}
 
@@ -139,7 +154,6 @@ func (s *authService) VerifyIDGoogleToken(ctx context.Context, idToken string, a
 func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string) error {
 	req, err := http.NewRequest("GET", "https://people.googleapis.com/v1/people/me?personFields=birthdays", nil)
 	if err != nil {
-		log.Printf("Failed to create request for birthday: %v", err)
 		return err
 	}
 
@@ -149,7 +163,6 @@ func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string)
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Printf("Failed to get birthday: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -157,12 +170,10 @@ func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string)
 	var birthdayResp models.GoogleBirthdayResponse
 	err = json.NewDecoder(resp.Body).Decode(&birthdayResp)
 	if err != nil {
-		log.Printf("Failed to decode birthday response: %v", err)
 		return err
 	}
 
 	if len(birthdayResp.Birthdays) == 0 {
-		log.Println("No birthday information found for user")
 		return nil
 	}
 
@@ -170,4 +181,33 @@ func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string)
 	userInfo.Claims["birthday"] = fmt.Sprintf("%04d-%02d-%02d", b.Year, b.Month, b.Day)
 
 	return nil
+}
+
+func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
+	sessionId, err := uuid.Parse(req.SessionId)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to parse session ID", utils.ErrCodeUnauthorized)
+	}
+
+	deviceId, err := uuid.Parse(req.DeviceId)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to parse device ID", utils.ErrCodeUnauthorized)
+	}
+
+	params := sqlc.RevokeSessionParams{
+		SessionID: sessionId,
+		DeviceID:  deviceId,
+	}
+
+	err = s.auth_repo.Logout(ctx, params)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to logout", utils.ErrCodeInternal)
+	}
+
+	_ = s.redis_memory.Del(ctx, fmt.Sprintf("session:%s", req.SessionId))
+
+	return &auth_proto.LogoutResponse{
+		Success: true,
+		Message: "Logout successfully",
+	}, nil
 }

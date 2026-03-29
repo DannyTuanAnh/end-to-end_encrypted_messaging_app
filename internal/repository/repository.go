@@ -15,6 +15,7 @@ type APIKeyRepository interface {
 
 type AuthRepository interface {
 	Login(ctx context.Context, arg sqlc.OAuthLoginParams) (models.GoogleLoginResponse, error)
+	Logout(ctx context.Context, arg sqlc.RevokeSessionParams) error
 }
 
 type UserRepository interface {

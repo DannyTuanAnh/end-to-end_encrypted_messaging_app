@@ -78,10 +78,10 @@ order by coalesce(p.name, u.display_name)
 `
 
 type GetGroupMembersRow struct {
-	Uuid      uuid.UUID  `json:"uuid"`
-	Name      string     `json:"name"`
-	AvatarUrl string     `json:"avatar_url"`
-	Role      MemberRole `json:"role"`
+	Uuid      uuid.UUID   `json:"uuid"`
+	Name      string      `json:"name"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
+	Role      MemberRole  `json:"role"`
 }
 
 func (q *Queries) GetGroupMembers(ctx context.Context, conversationID int64) ([]GetGroupMembersRow, error) {
@@ -163,7 +163,7 @@ returning conversation_id, name, avatar_url, created_at
 type UpdateGroupInfoParams struct {
 	ConversationID int64       `json:"conversation_id"`
 	Name           pgtype.Text `json:"name"`
-	AvatarUrl      string      `json:"avatar_url"`
+	AvatarUrl      pgtype.Text `json:"avatar_url"`
 }
 
 func (q *Queries) UpdateGroupInfo(ctx context.Context, arg UpdateGroupInfoParams) (Group, error) {

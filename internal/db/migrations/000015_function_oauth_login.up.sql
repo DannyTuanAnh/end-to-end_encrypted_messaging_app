@@ -26,7 +26,7 @@ begin
 
     -- 2. if not found → create new user + identity 
     if v_user_id is null then
-        v_profile_exists := true;
+        v_profile_exists := false;
 
         begin
             -- create new user
@@ -53,12 +53,12 @@ begin
                     raise exception 'Race condition: could not find user after unique violation';
                 end if;
 
-            v_profile_exists := false;
+                v_profile_exists := true;
         end;
     end if;
 
     -- 3. check if user is active
-    if not exists (select 1 from users where user_id = v_user_id and is_active = true) then
+    if not exists (select 1 from users where users.user_id = v_user_id and users.is_active = true) then
         raise exception 'User account is deactivated or not found';
     end if;
 

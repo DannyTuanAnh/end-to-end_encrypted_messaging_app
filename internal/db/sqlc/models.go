@@ -193,30 +193,30 @@ type ApiKey struct {
 	ID        int64              `json:"id"`
 	KeyHash   string             `json:"key_hash"`
 	IsActive  bool               `json:"is_active"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	RevokedAt time.Time          `json:"revoked_at"`
+	CreatedAt time.Time          `json:"created_at"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 }
 
 type AuthIdentity struct {
-	ID             int64              `json:"id"`
-	UserID         int64              `json:"user_id"`
-	Provider       string             `json:"provider"`
-	ProviderUserID string             `json:"provider_user_id"`
-	Email          pgtype.Text        `json:"email"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ID             int64       `json:"id"`
+	UserID         int64       `json:"user_id"`
+	Provider       string      `json:"provider"`
+	ProviderUserID string      `json:"provider_user_id"`
+	Email          pgtype.Text `json:"email"`
+	CreatedAt      time.Time   `json:"created_at"`
 }
 
 type Conversation struct {
-	ID        int64              `json:"id"`
-	Type      ConversationType   `json:"type"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ID        int64            `json:"id"`
+	Type      ConversationType `json:"type"`
+	CreatedAt time.Time        `json:"created_at"`
 }
 
 type ConversationMember struct {
-	ConversationID int64              `json:"conversation_id"`
-	UserID         int64              `json:"user_id"`
-	Role           MemberRole         `json:"role"`
-	JoinedAt       pgtype.Timestamptz `json:"joined_at"`
+	ConversationID int64      `json:"conversation_id"`
+	UserID         int64      `json:"user_id"`
+	Role           MemberRole `json:"role"`
+	JoinedAt       time.Time  `json:"joined_at"`
 }
 
 type FriendRequest struct {
@@ -224,71 +224,71 @@ type FriendRequest struct {
 	SenderID   int64               `json:"sender_id"`
 	ReceiverID int64               `json:"receiver_id"`
 	Status     FriendRequestStatus `json:"status"`
-	SendAt     pgtype.Timestamptz  `json:"send_at"`
+	SendAt     time.Time           `json:"send_at"`
 }
 
 type Friendship struct {
-	User1ID       int64              `json:"user1_id"`
-	User2ID       int64              `json:"user2_id"`
-	EstablishedAt pgtype.Timestamptz `json:"established_at"`
+	User1ID       int64     `json:"user1_id"`
+	User2ID       int64     `json:"user2_id"`
+	EstablishedAt time.Time `json:"established_at"`
 }
 
 type Group struct {
-	ConversationID int64              `json:"conversation_id"`
-	Name           string             `json:"name"`
-	AvatarUrl      string             `json:"avatar_url"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ConversationID int64       `json:"conversation_id"`
+	Name           string      `json:"name"`
+	AvatarUrl      pgtype.Text `json:"avatar_url"`
+	CreatedAt      time.Time   `json:"created_at"`
 }
 
 type Message struct {
-	ID             int64              `json:"id"`
-	Uuid           uuid.UUID          `json:"uuid"`
-	ConversationID int64              `json:"conversation_id"`
-	SenderID       int64              `json:"sender_id"`
-	Content        string             `json:"content"`
-	SentAt         pgtype.Timestamptz `json:"sent_at"`
+	ID             int64     `json:"id"`
+	Uuid           uuid.UUID `json:"uuid"`
+	ConversationID int64     `json:"conversation_id"`
+	SenderID       int64     `json:"sender_id"`
+	Content        string    `json:"content"`
+	SentAt         time.Time `json:"sent_at"`
 }
 
 type MessageRead struct {
-	MessageID int64              `json:"message_id"`
-	UserID    int64              `json:"user_id"`
-	ReadAt    pgtype.Timestamptz `json:"read_at"`
+	MessageID int64     `json:"message_id"`
+	UserID    int64     `json:"user_id"`
+	ReadAt    time.Time `json:"read_at"`
 }
 
 type Profile struct {
-	UserID    int64              `json:"user_id"`
-	Name      string             `json:"name"`
-	Email     pgtype.Text        `json:"email"`
-	Phone     pgtype.Text        `json:"phone"`
-	Birthday  time.Time          `json:"birthday"`
-	AvatarUrl string             `json:"avatar_url"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	UserID    int64       `json:"user_id"`
+	Name      string      `json:"name"`
+	Email     pgtype.Text `json:"email"`
+	Phone     pgtype.Text `json:"phone"`
+	Birthday  pgtype.Date `json:"birthday"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
+	UpdatedAt time.Time   `json:"updated_at"`
 }
 
 type Session struct {
 	SessionID uuid.UUID          `json:"session_id"`
 	UserID    int64              `json:"user_id"`
 	Revoked   bool               `json:"revoked"`
-	RevokeAt  time.Time          `json:"revoke_at"`
+	RevokeAt  pgtype.Timestamptz `json:"revoke_at"`
 	DeviceID  uuid.UUID          `json:"device_id"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	CreatedAt time.Time          `json:"created_at"`
 }
 
 type SystemMessage struct {
-	ID             int64              `json:"id"`
-	Uuid           uuid.UUID          `json:"uuid"`
-	ConversationID int64              `json:"conversation_id"`
-	EventType      SystemEventType    `json:"event_type"`
-	ActorID        pgtype.Int8        `json:"actor_id"`
-	TargetID       pgtype.Int8        `json:"target_id"`
-	Content        string             `json:"content"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ID             int64           `json:"id"`
+	Uuid           uuid.UUID       `json:"uuid"`
+	ConversationID int64           `json:"conversation_id"`
+	EventType      SystemEventType `json:"event_type"`
+	ActorID        pgtype.Int8     `json:"actor_id"`
+	TargetID       pgtype.Int8     `json:"target_id"`
+	Content        pgtype.Text     `json:"content"`
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 type User struct {
-	UserID      int64              `json:"user_id"`
-	Uuid        uuid.UUID          `json:"uuid"`
-	DisplayName string             `json:"display_name"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	IsActive    bool               `json:"is_active"`
+	UserID      int64     `json:"user_id"`
+	Uuid        uuid.UUID `json:"uuid"`
+	DisplayName string    `json:"display_name"`
+	CreatedAt   time.Time `json:"created_at"`
+	IsActive    bool      `json:"is_active"`
 }

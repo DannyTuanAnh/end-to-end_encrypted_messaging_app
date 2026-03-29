@@ -3,6 +3,9 @@ package utils
 import (
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var (
@@ -33,4 +36,33 @@ func ConvertMapToSliceWithTransform[K comparable, V any, R any](m map[K]V, trans
 	}
 
 	return result
+}
+
+func ConvertToPgTypeText(input string) pgtype.Text {
+	return pgtype.Text{
+		String: input,
+		Valid:  input != "",
+	}
+}
+
+func ConvertToPgTypeDate(input string) pgtype.Date {
+	if input == "" {
+		return pgtype.Date{
+			Time:  time.Time{}, // Zero value for time
+			Valid: false,
+		}
+	}
+
+	t, err := time.Parse("2006-01-02", input)
+	if err != nil {
+		return pgtype.Date{
+			Time:  time.Time{}, // Zero value for time
+			Valid: false,
+		}
+	}
+
+	return pgtype.Date{
+		Time:  t, // Zero value for time
+		Valid: true,
+	}
 }

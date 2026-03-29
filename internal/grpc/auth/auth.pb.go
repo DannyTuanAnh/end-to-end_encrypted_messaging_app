@@ -125,6 +125,206 @@ func (x *LoginResponse) GetDeviceId() string {
 	return ""
 }
 
+type LogoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutRequest) Reset() {
+	*x = LogoutRequest{}
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutRequest) ProtoMessage() {}
+
+func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
+func (*LogoutRequest) Descriptor() ([]byte, []int) {
+	return file_internal_grpc_auth_auth_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *LogoutRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *LogoutRequest) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+type LogoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutResponse) Reset() {
+	*x = LogoutResponse{}
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutResponse) ProtoMessage() {}
+
+func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
+func (*LogoutResponse) Descriptor() ([]byte, []int) {
+	return file_internal_grpc_auth_auth_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *LogoutResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *LogoutResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type LogoutAllRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutAllRequest) Reset() {
+	*x = LogoutAllRequest{}
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutAllRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutAllRequest) ProtoMessage() {}
+
+func (x *LogoutAllRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutAllRequest.ProtoReflect.Descriptor instead.
+func (*LogoutAllRequest) Descriptor() ([]byte, []int) {
+	return file_internal_grpc_auth_auth_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LogoutAllRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type LogoutAllResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutAllResponse) Reset() {
+	*x = LogoutAllResponse{}
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutAllResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutAllResponse) ProtoMessage() {}
+
+func (x *LogoutAllResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_grpc_auth_auth_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutAllResponse.ProtoReflect.Descriptor instead.
+func (*LogoutAllResponse) Descriptor() ([]byte, []int) {
+	return file_internal_grpc_auth_auth_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *LogoutAllResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *LogoutAllResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_internal_grpc_auth_auth_proto protoreflect.FileDescriptor
 
 const file_internal_grpc_auth_auth_proto_rawDesc = "" +
@@ -136,9 +336,23 @@ const file_internal_grpc_auth_auth_proto_rawDesc = "" +
 	"\rLoginResponse\x12\x18\n" +
 	"\asession\x18\x01 \x01(\tR\asession\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1b\n" +
-	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId2G\n" +
+	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\"K\n" +
+	"\rLogoutRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
+	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\"D\n" +
+	"\x0eLogoutResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"+\n" +
+	"\x10LogoutAllRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"G\n" +
+	"\x11LogoutAllResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xbe\x01\n" +
 	"\vAuthService\x128\n" +
-	"\vLoginGoogle\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponseB\x1fZ\x1dinternal/grpc/auth;auth_protob\x06proto3"
+	"\vLoginGoogle\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponse\x125\n" +
+	"\x06Logout\x12\x14.proto.LogoutRequest\x1a\x15.proto.LogoutResponse\x12>\n" +
+	"\tLogoutAll\x12\x17.proto.LogoutAllRequest\x1a\x18.proto.LogoutAllResponseB\x1fZ\x1dinternal/grpc/auth;auth_protob\x06proto3"
 
 var (
 	file_internal_grpc_auth_auth_proto_rawDescOnce sync.Once
@@ -152,16 +366,24 @@ func file_internal_grpc_auth_auth_proto_rawDescGZIP() []byte {
 	return file_internal_grpc_auth_auth_proto_rawDescData
 }
 
-var file_internal_grpc_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_internal_grpc_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_internal_grpc_auth_auth_proto_goTypes = []any{
-	(*LoginRequest)(nil),  // 0: proto.LoginRequest
-	(*LoginResponse)(nil), // 1: proto.LoginResponse
+	(*LoginRequest)(nil),      // 0: proto.LoginRequest
+	(*LoginResponse)(nil),     // 1: proto.LoginResponse
+	(*LogoutRequest)(nil),     // 2: proto.LogoutRequest
+	(*LogoutResponse)(nil),    // 3: proto.LogoutResponse
+	(*LogoutAllRequest)(nil),  // 4: proto.LogoutAllRequest
+	(*LogoutAllResponse)(nil), // 5: proto.LogoutAllResponse
 }
 var file_internal_grpc_auth_auth_proto_depIdxs = []int32{
 	0, // 0: proto.AuthService.LoginGoogle:input_type -> proto.LoginRequest
-	1, // 1: proto.AuthService.LoginGoogle:output_type -> proto.LoginResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: proto.AuthService.Logout:input_type -> proto.LogoutRequest
+	4, // 2: proto.AuthService.LogoutAll:input_type -> proto.LogoutAllRequest
+	1, // 3: proto.AuthService.LoginGoogle:output_type -> proto.LoginResponse
+	3, // 4: proto.AuthService.Logout:output_type -> proto.LogoutResponse
+	5, // 5: proto.AuthService.LogoutAll:output_type -> proto.LogoutAllResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -178,7 +400,7 @@ func file_internal_grpc_auth_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_grpc_auth_auth_proto_rawDesc), len(file_internal_grpc_auth_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

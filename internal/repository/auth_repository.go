@@ -28,3 +28,12 @@ func (ar *authRepository) Login(ctx context.Context, arg sqlc.OAuthLoginParams) 
 	}, nil
 
 }
+
+func (ar *authRepository) Logout(ctx context.Context, arg sqlc.RevokeSessionParams) error {
+	err := ar.auth_repo.RevokeSession(ctx, arg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -22,7 +22,9 @@ type UserServer struct {
 	server *grpc.Server
 }
 
-func NewUserServer(ctx context.Context, cfg *config.Config, db sqlc.Querier) *UserServer {
+func NewUserServer(ctx context.Context, db sqlc.Querier) *UserServer {
+	cfg := config.NewConfigUserService()
+
 	user_repo := repository.NewUserRepository(db)
 	user_service := service.NewUserService(user_repo)
 

@@ -15,16 +15,22 @@ type Routes interface {
 
 func RegisterRoutes(ctx context.Context, r *gin.Engine, rdb *redis.Client, db sqlc.Querier, routes ...Routes) {
 	// Register middleware for all routes, including: logger, rate limiter, API key and authentication
-	r.Use(middleware.LoggerMiddleware(),
-		middleware.RateLimitMiddleware(ctx, rdb, 60, 100), // 100 requests per 60 seconds
+	r.Use(middleware.RateLimitMiddleware(ctx, rdb, 60, 100), // 100 requests per 60 seconds
+		middleware.LoggerMiddleware(),
 		middleware.CORSMiddleware(),
 		middleware.ApiKeyMiddleware(db, rdb),
-		middleware.AuthMiddleware(),
 	)
 
-	// Register all routes under the '/api' group
-	api := r.Group("/api/v1")
+	public := r.Group("/api/v1")
 	for _, route := range routes {
-		route.Register(api)
+		if publicRoute, ok := route.(interface{ RegisterPublic(r *gin.RouterGroup) }); ok {
+			publicRoute.RegisterPublic(public)
+		}
+	}
+
+	protect := r.Group("/api/v1")
+	protect.Use(middleware.AuthMiddleware(db, rdb))
+	for _, route := range routes {
+		route.Register(protect)
 	}
 }

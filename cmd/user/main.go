@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/server"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -28,11 +27,8 @@ func main() {
 	}
 	defer db.Close()
 
-	// 4. Initialize configuration
-	cfg := config.NewConfigUserService()
-
 	// 5. Initialize application
-	userServer := server.NewUserServer(ctx, cfg, db.DB)
+	userServer := server.NewUserServer(ctx, db.DB)
 
 	// 6. Run the application and capture any error message
 	msg, err := userServer.Run()

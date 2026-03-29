@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
@@ -26,7 +25,6 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 	var input dto.RequestLoginGoogle
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		log.Printf("Failed to bind JSON input: %v", err)
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(err))
 		return
 	}
@@ -37,15 +35,57 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 
 	resp, err := h.auth_client.Client.LoginGoogle(ctx, authReq)
 	if err != nil {
-		log.Printf("Failed to call LoginGoogle on AuthService: %v", err)
 		utils.ResponseError(ctx, err)
 		return
 	}
 
-	log.Println("Received response from AuthService LoginGoogle:", resp)
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_id",
+		Value:    resp.Session,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   utils.GetEnvInt("SESSION_ID_MAX_AGE", 168) * 3600,
+	})
 
-	respAuthDTO := dto.MapLoginGoogleResponseToDTO(resp)
+	utils.ResponseStatusCode(ctx, http.StatusOK)
+}
 
-	log.Println("Mapped AuthService response to DTO:", respAuthDTO)
-	utils.ResponseSuccess(ctx, http.StatusOK, respAuthDTO)
+func (h *AuthHandler) Logout(ctx *gin.Context) {
+	sessionID, exist := ctx.Get("session_id")
+	if !exist {
+		utils.ResponseError(ctx, utils.NewError("session_id not found in context", utils.ErrCodeUnauthorized))
+		return
+	}
+
+	if !utils.CheckUUID(sessionID.(string)) {
+		utils.ResponseError(ctx, utils.NewError("invalid session_id format", utils.ErrCodeUnauthorized))
+		return
+	}
+
+	deviceID, exist := ctx.Get("device_id")
+	if !exist {
+		utils.ResponseError(ctx, utils.NewError("device_id not found in context", utils.ErrCodeUnauthorized))
+		return
+	}
+
+	if !utils.CheckUUID(deviceID.(string)) {
+		utils.ResponseError(ctx, utils.NewError("invalid device_id format", utils.ErrCodeUnauthorized))
+		return
+	}
+
+	req := &auth_proto.LogoutRequest{
+		SessionId: sessionID.(string),
+		DeviceId:  deviceID.(string),
+	}
+
+	_, err := h.auth_client.Client.Logout(ctx, req)
+	if err != nil {
+		utils.ResponseError(ctx, err)
+		return
+	}
+
+	utils.ResponseStatusCode(ctx, http.StatusNoContent)
 }

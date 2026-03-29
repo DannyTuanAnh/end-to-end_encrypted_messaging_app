@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
@@ -25,19 +24,9 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 		hash := utils.HashAPIKey(apiKey)
 
-		gen, err := rdb.Get(ctx, "generation_api_key").Result()
+		genNum, err := utils.GetKeyRedisAndConvertToInt(ctx, "generation_api_key", rdb)
 		if err != nil {
-			if !errors.Is(err, redis.Nil) {
-				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check API key generation"})
-				return
-			}
-		}
-
-		log.Printf("Current API key generation: %s", gen)
-
-		genNum, err := strconv.Atoi(gen)
-		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid generation number"})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check API key generation"})
 			return
 		}
 

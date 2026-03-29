@@ -6,6 +6,8 @@ option go_package = "internal/grpc/auth;auth_proto";
 
 service AuthService {
   rpc LoginGoogle(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc LogoutAll(LogoutAllRequest) returns (LogoutAllResponse);
 }
 
 message LoginRequest {
@@ -16,6 +18,25 @@ message LoginResponse {
   string session = 1;
   int64 user_id = 2;
   string device_id =3;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+  string device_id = 2;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LogoutAllRequest {
+  string user_id = 1;
+}
+
+message LogoutAllResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 

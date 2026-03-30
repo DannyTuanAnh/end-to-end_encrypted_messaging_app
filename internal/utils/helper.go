@@ -113,9 +113,11 @@ func CheckUUID(id string) bool {
 func GetKeyRedisAndConvertToInt(ctx context.Context, key string, rdb *redis.Client) (int, error) {
 	result, err := rdb.Get(ctx, key).Result()
 	if err != nil {
-		if !errors.Is(err, redis.Nil) {
-			return 0, fmt.Errorf("Failed to get key from Redis: %v", err)
+		if errors.Is(err, redis.Nil) {
+			return 0, nil
 		}
+
+		return 0, fmt.Errorf("Failed to get key from Redis: %v", err)
 	}
 
 	resultNum, err := strconv.Atoi(result)

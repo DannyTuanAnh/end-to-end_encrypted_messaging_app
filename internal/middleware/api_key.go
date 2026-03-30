@@ -26,8 +26,7 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 		genNum, err := utils.GetKeyRedisAndConvertToInt(ctx, "generation_api_key", rdb)
 		if err != nil {
-			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to get API key generation number from Redis", utils.ErrCodeInternal))
-			return
+			log.Println("Error in get generation number of API key from Redis (in middleware layer): ", err)
 		}
 
 		cacheKey := fmt.Sprintf("api_key:%d:%s", genNum, hash)
@@ -36,8 +35,7 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 			ctx.Next()
 			return
 		} else if err != nil && !errors.Is(err, redis.Nil) {
-			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to check API key in Redis", utils.ErrCodeInternal))
-			return
+			log.Println("Error in check API key in Redis (in middleware layer): ", err)
 		}
 
 		// Check if the API key exists in the database

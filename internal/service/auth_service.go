@@ -80,12 +80,12 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 
 	version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), s.redis_memory)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to get session version from Redis", utils.ErrCodeInternal)
+		log.Println("Error in get session_version (in service layer): ", err)
 	}
 
 	if version == 0 {
 		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0).Err(); err != nil {
-			return nil, utils.WrapError(err, "Failed to set initial session version in Redis", utils.ErrCodeInternal)
+			log.Println("Error in create session_version if redis didn't exist session_version before (in service layer): ", err)
 		}
 	}
 
@@ -98,12 +98,12 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 
 	sessionJson, err := json.Marshal(session)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to marshal session data", utils.ErrCodeInternal)
+		log.Println("Error in marshal session data (in service layer): ", err)
 	}
 
 	err = s.redis_memory.Set(ctx, fmt.Sprintf("session:%s", resp.SessionId.String()), sessionJson, 24*7*time.Hour).Err()
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to store session in Redis", utils.ErrCodeInternal)
+		log.Println("Error in set session with marshal data in Redis (in service layer): ", err)
 	}
 
 	return &auth_proto.LoginResponse{
@@ -211,7 +211,7 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 	}
 
 	if err := s.redis_memory.Del(ctx, fmt.Sprintf("session:%s", req.SessionId)).Err(); err != nil {
-		return nil, utils.WrapError(err, "Failed to delete session from Redis", utils.ErrCodeInternal)
+		log.Println("Error in delete session in Redis (in service layer): ", err)
 	}
 
 	return &auth_proto.LogoutResponse{
@@ -236,7 +236,7 @@ func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRe
 	}
 
 	if err := s.redis_memory.Incr(ctx, fmt.Sprintf("user:%d:session_version", userIdInt)).Err(); err != nil {
-		return nil, utils.WrapError(err, "Failed to increment session version in Redis", utils.ErrCodeInternal)
+		log.Println("Error in increment session_version in Redis (in service layer): ", err)
 	}
 
 	return &auth_proto.LogoutAllResponse{

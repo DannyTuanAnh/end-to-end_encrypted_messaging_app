@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
@@ -24,14 +25,14 @@ var (
 	`)
 )
 
-func Allow(ctx context.Context, key string, rdb *redis.Client, timeTl int, maxReq int) bool {
+func Allow(ctx context.Context, key string, rdb *redis.Client, timeTl int, maxReq int) (bool, error) {
 	allowed, err := rateLimitScript.Run(ctx, rdb, []string{key}, timeTl, maxReq).Int()
 
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	return allowed == 1
+	return allowed == 1, nil
 }
 
 func getClientIP(ctx *gin.Context) string {
@@ -57,8 +58,14 @@ func RateLimitMiddleware(ctx context.Context, rdb *redis.Client, timeTl int, max
 	return func(c *gin.Context) {
 		key := GetRateLimitKey(c)
 
-		if !Allow(ctx, key, rdb, timeTl, maxReq) {
-			c.AbortWithStatusJSON(429, gin.H{"error": "Too many requests"})
+		allow, err := Allow(ctx, key, rdb, timeTl, maxReq)
+		if err != nil {
+			utils.ResponseErrorAbort(c, utils.WrapError(err, "Failed to check rate limit", utils.ErrCodeInternal))
+			return
+		}
+
+		if !allow {
+			utils.ResponseErrorAbort(c, utils.NewError("Rate limit exceeded", utils.ErrCodeTooManyRequests))
 			return
 		}
 

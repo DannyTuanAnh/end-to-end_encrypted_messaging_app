@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
@@ -35,7 +36,7 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 
 	resp, err := h.auth_client.Client.LoginGoogle(ctx, authReq)
 	if err != nil {
-		utils.ResponseError(ctx, err)
+		utils.ResponseErrorAbort(ctx, err)
 		return
 	}
 
@@ -50,29 +51,30 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 		MaxAge:   utils.GetEnvInt("SESSION_ID_MAX_AGE", 168) * 3600,
 	})
 
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "device_id",
+		Value:    resp.DeviceId,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   utils.GetEnvInt("DEVICE_ID_MAX_AGE", 168) * 3600,
+	})
+
 	utils.ResponseStatusCode(ctx, http.StatusOK)
 }
 
 func (h *AuthHandler) Logout(ctx *gin.Context) {
 	sessionID, exist := ctx.Get("session_id")
 	if !exist {
-		utils.ResponseError(ctx, utils.NewError("session_id not found in context", utils.ErrCodeUnauthorized))
-		return
-	}
-
-	if !utils.CheckUUID(sessionID.(string)) {
-		utils.ResponseError(ctx, utils.NewError("invalid session_id format", utils.ErrCodeUnauthorized))
+		utils.ResponseErrorAbort(ctx, utils.NewError("session_id not found in context", utils.ErrCodeUnauthorized))
 		return
 	}
 
 	deviceID, exist := ctx.Get("device_id")
 	if !exist {
-		utils.ResponseError(ctx, utils.NewError("device_id not found in context", utils.ErrCodeUnauthorized))
-		return
-	}
-
-	if !utils.CheckUUID(deviceID.(string)) {
-		utils.ResponseError(ctx, utils.NewError("invalid device_id format", utils.ErrCodeUnauthorized))
+		utils.ResponseErrorAbort(ctx, utils.NewError("device_id not found in context", utils.ErrCodeUnauthorized))
 		return
 	}
 
@@ -83,7 +85,33 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 
 	_, err := h.auth_client.Client.Logout(ctx, req)
 	if err != nil {
-		utils.ResponseError(ctx, err)
+		utils.ResponseErrorAbort(ctx, err)
+		return
+	}
+
+	utils.ResponseStatusCode(ctx, http.StatusNoContent)
+}
+
+func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
+	userID, exist := ctx.Get("user_id")
+	if !exist {
+		utils.ResponseErrorAbort(ctx, utils.NewError("user_id not found in context", utils.ErrCodeUnauthorized))
+		return
+	}
+
+	id, ok := userID.(int64)
+	if !ok {
+		utils.ResponseErrorAbort(ctx, utils.NewError("user_id in context has invalid type", utils.ErrCodeInternal))
+		return
+	}
+
+	req := &auth_proto.LogoutAllRequest{
+		UserId: strconv.FormatInt(id, 10),
+	}
+
+	_, err := h.auth_client.Client.LogoutAll(ctx, req)
+	if err != nil {
+		utils.ResponseErrorAbort(ctx, err)
 		return
 	}
 

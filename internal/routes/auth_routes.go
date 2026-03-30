@@ -26,6 +26,6 @@ func (ar *AuthRoutes) Register(r *gin.RouterGroup) {
 	auth := r.Group("/auth")
 	{
 		auth.DELETE("/logout", ar.auth_handler.Logout)
-		// auth.DELETE("/logout/all", ar.auth_handler.LogoutAll)
+		auth.DELETE("/logout/all", ar.auth_handler.LogoutAll)
 	}
 }

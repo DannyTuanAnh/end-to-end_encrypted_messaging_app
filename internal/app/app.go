@@ -41,10 +41,14 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 	err := validation.InitValidator()
 	if err != nil {
 		log.Fatalf("Failed to initialize validator: %v", err)
+		return nil
 	}
 
 	// 3. Set up initial data in Redis, such as API key generation counter
-	_ = rdb.Set(ctx, "generation_api_key", 1, 0)
+	if err := rdb.Set(ctx, "generation_api_key", 1, 0).Err(); err != nil {
+		log.Fatalf("Failed to set initial value in Redis: %v", err)
+		return nil
+	}
 
 	// 4. Initialize modules
 	modules := []ModelHTTP{

@@ -37,3 +37,12 @@ func (ar *authRepository) Logout(ctx context.Context, arg sqlc.RevokeSessionPara
 
 	return nil
 }
+
+func (ar *authRepository) LogoutAll(ctx context.Context, userId int64) error {
+	err := ar.auth_repo.RevokeAllSessions(ctx, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

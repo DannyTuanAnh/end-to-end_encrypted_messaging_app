@@ -18,7 +18,7 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		apiKey := ctx.GetHeader("X-API-KEY")
 		if apiKey == "" {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing X-API-KEY"})
+			utils.ResponseErrorAbort(ctx, utils.NewError("API key is required", utils.ErrCodeUnauthorized))
 			return
 		}
 
@@ -26,18 +26,18 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 		genNum, err := utils.GetKeyRedisAndConvertToInt(ctx, "generation_api_key", rdb)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check API key generation"})
+			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to get API key generation number from Redis", utils.ErrCodeInternal))
 			return
 		}
 
 		cacheKey := fmt.Sprintf("api_key:%d:%s", genNum, hash)
 		val, err := rdb.Get(ctx, cacheKey).Result()
 		if err == nil && val == "1" {
-			log.Println("API key found in cache")
 			ctx.Next()
 			return
 		} else if err != nil && !errors.Is(err, redis.Nil) {
-			log.Printf("redis get error: %v", err)
+			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to check API key in Redis", utils.ErrCodeInternal))
+			return
 		}
 
 		// Check if the API key exists in the database
@@ -56,8 +56,6 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Inactive API key"})
 			return
 		}
-
-		log.Println("API key found in database and is active")
 
 		// Cache the valid API key in Redis
 		if err := rdb.Set(ctx, cacheKey, "1", 24*7*time.Hour).Err(); err != nil {

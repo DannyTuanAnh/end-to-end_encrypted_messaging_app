@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
@@ -77,17 +78,22 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 	}
 	resp.DeviceID = deviceID
 
-	_ = s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0)
-
 	version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), s.redis_memory)
 	if err != nil {
 		return nil, utils.WrapError(err, "Failed to get session version from Redis", utils.ErrCodeInternal)
+	}
+
+	if version == 0 {
+		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0).Err(); err != nil {
+			return nil, utils.WrapError(err, "Failed to set initial session version in Redis", utils.ErrCodeInternal)
+		}
 	}
 
 	session := models.SessionRedis{
 		UserID:         resp.UserId,
 		DeviceID:       resp.DeviceID,
 		SessionVersion: version,
+		Valid:          true,
 	}
 
 	sessionJson, err := json.Marshal(session)
@@ -186,12 +192,12 @@ func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string)
 func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
 	sessionId, err := uuid.Parse(req.SessionId)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to parse session ID", utils.ErrCodeUnauthorized)
+		return nil, utils.WrapError(err, "Failed to parse session ID", utils.ErrCodeInternal)
 	}
 
 	deviceId, err := uuid.Parse(req.DeviceId)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to parse device ID", utils.ErrCodeUnauthorized)
+		return nil, utils.WrapError(err, "Failed to parse device ID", utils.ErrCodeInternal)
 	}
 
 	params := sqlc.RevokeSessionParams{
@@ -204,10 +210,37 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 		return nil, utils.WrapError(err, "Failed to logout", utils.ErrCodeInternal)
 	}
 
-	_ = s.redis_memory.Del(ctx, fmt.Sprintf("session:%s", req.SessionId))
+	if err := s.redis_memory.Del(ctx, fmt.Sprintf("session:%s", req.SessionId)).Err(); err != nil {
+		return nil, utils.WrapError(err, "Failed to delete session from Redis", utils.ErrCodeInternal)
+	}
 
 	return &auth_proto.LogoutResponse{
 		Success: true,
 		Message: "Logout successfully",
+	}, nil
+}
+
+func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRequest) (*auth_proto.LogoutAllResponse, error) {
+	if req.UserId == "" {
+		return nil, utils.NewError("Invalid user ID", utils.ErrCodeBadRequest)
+	}
+
+	userIdInt, err := strconv.ParseInt(req.UserId, 10, 64)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to parse user ID", utils.ErrCodeInternal)
+	}
+
+	err = s.auth_repo.LogoutAll(ctx, userIdInt)
+	if err != nil {
+		return nil, utils.WrapError(err, "Failed to logout all sessions", utils.ErrCodeInternal)
+	}
+
+	if err := s.redis_memory.Incr(ctx, fmt.Sprintf("user:%d:session_version", userIdInt)).Err(); err != nil {
+		return nil, utils.WrapError(err, "Failed to increment session version in Redis", utils.ErrCodeInternal)
+	}
+
+	return &auth_proto.LogoutAllResponse{
+		Success: true,
+		Message: "Logout all sessions successfully",
 	}, nil
 }

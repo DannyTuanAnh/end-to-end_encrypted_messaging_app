@@ -94,7 +94,20 @@ func SaveKeyToEnv(clientType, key string) error {
 
 func CheckUUID(id string) bool {
 	err := uuid.Validate(id)
-	return err == nil
+	if err != nil {
+		return false
+	}
+
+	idUuid, err := uuid.Parse(id)
+	if err != nil {
+		return false
+	}
+
+	if idUuid == uuid.Nil {
+		return false
+	}
+
+	return true
 }
 
 func GetKeyRedisAndConvertToInt(ctx context.Context, key string, rdb *redis.Client) (int, error) {

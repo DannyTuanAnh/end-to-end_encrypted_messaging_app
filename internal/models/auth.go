@@ -38,4 +38,5 @@ type SessionRedis struct {
 	UserID         int64     `json:"user_id"`
 	DeviceID       uuid.UUID `json:"device_id"`
 	SessionVersion int       `json:"session_version"`
+	Valid          bool      `json:"valid"`
 }

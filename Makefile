@@ -45,6 +45,9 @@ migrate-goto:
 sqlc:
 	sqlc generate
 
+buf:
+	buf dep update
+
 # Makefile for generating gRPC code from .proto files
 # Example: make gen-proto path=calculator/calculatorpb/calculator.proto
 # path is the path to your .proto file
@@ -60,4 +63,4 @@ run-auth:
 run-user:
 	go run cmd/user/main.go
 
-.PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto run-api run-auth run-user
+.PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto run-api run-auth run-user buf

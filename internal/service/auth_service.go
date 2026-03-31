@@ -10,16 +10,16 @@ import (
 	"strconv"
 	"time"
 
+	"cloud.google.com/go/auth/credentials/idtoken"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
-	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
-	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/user"
+	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
+	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"google.golang.org/api/idtoken"
 )
 
 type authService struct {
@@ -74,6 +74,8 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		if err != nil {
 			return nil, utils.WrapError(err, "Failed to create user profile", utils.ErrCodeInternal)
 		}
+
+		s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:profile_exists", resp.UserId), "true", 0)
 
 	}
 	resp.DeviceID = deviceID

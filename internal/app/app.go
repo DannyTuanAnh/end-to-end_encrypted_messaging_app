@@ -10,7 +10,7 @@ import (
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
-	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
+	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 )

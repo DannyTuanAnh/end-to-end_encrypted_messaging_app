@@ -9,14 +9,14 @@ import (
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
-	proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/user"
+	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"google.golang.org/grpc"
 )
 
 type UserServer struct {
-	proto.UnimplementedUserServiceServer
+	user_proto.UnimplementedUserServiceServer
 	ctx    context.Context
 	cfg    *config.Config
 	server *grpc.Server
@@ -30,7 +30,7 @@ func NewUserServer(ctx context.Context, db sqlc.Querier) *UserServer {
 
 	s := grpc.NewServer()
 
-	proto.RegisterUserServiceServer(s, user_service)
+	user_proto.RegisterUserServiceServer(s, user_service)
 
 	return &UserServer{
 		ctx:    ctx,

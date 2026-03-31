@@ -10,7 +10,8 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
-	proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/grpc/auth"
+	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
+
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"github.com/redis/go-redis/v9"
@@ -18,7 +19,7 @@ import (
 )
 
 type AuthServer struct {
-	proto.UnimplementedAuthServiceServer
+	auth_proto.UnimplementedAuthServiceServer
 	ctx    context.Context
 	cfg    *config.Config
 	server *grpc.Server
@@ -43,7 +44,7 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 
 	s := grpc.NewServer()
 
-	proto.RegisterAuthServiceServer(s, auth_service)
+	auth_proto.RegisterAuthServiceServer(s, auth_service)
 
 	return &AuthServer{
 		ctx:    ctx,

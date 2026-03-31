@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "internal/grpc/auth;auth_proto";
+option go_package = "internal/gen-proto/auth;auth_proto";
 
 service AuthService {
   rpc LoginGoogle(LoginRequest) returns (LoginResponse);

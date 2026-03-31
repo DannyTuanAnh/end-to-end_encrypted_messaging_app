@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "internal/grpc/user;user_proto";
+option go_package = "internal/gen-proto/user;user_proto";
 
 service UserService {
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);

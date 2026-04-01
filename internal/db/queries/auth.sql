@@ -4,7 +4,7 @@ select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean from oau
 -- name: CheckSession :one
 select s.user_id, s.revoked, s.revoke_at 
 from sessions as s 
-left join users as u on s.user_id = u.id
+join users as u on s.user_id = u.id
 where session_id = $1 and device_id = $2 and u.is_active = true;
 
 -- name: RevokeSession :exec

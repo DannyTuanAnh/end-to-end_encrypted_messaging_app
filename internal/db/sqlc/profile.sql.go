@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -46,12 +47,26 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 }
 
 const getProfileByUserId = `-- name: GetProfileByUserId :one
-SELECT user_id, name, email, phone, birthday, avatar_url, updated_at FROM profiles WHERE user_id = $1
+SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.updated_at, u.uuid
+FROM profiles p
+join users u on p.user_id = u.user_id
+WHERE p.user_id = $1
 `
 
-func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (Profile, error) {
+type GetProfileByUserIdRow struct {
+	UserID    int64       `json:"user_id"`
+	Name      string      `json:"name"`
+	Email     pgtype.Text `json:"email"`
+	Phone     pgtype.Text `json:"phone"`
+	Birthday  pgtype.Date `json:"birthday"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
+	UpdatedAt time.Time   `json:"updated_at"`
+	Uuid      uuid.UUID   `json:"uuid"`
+}
+
+func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error) {
 	row := q.db.QueryRow(ctx, getProfileByUserId, userID)
-	var i Profile
+	var i GetProfileByUserIdRow
 	err := row.Scan(
 		&i.UserID,
 		&i.Name,
@@ -60,29 +75,28 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (Profile
 		&i.Birthday,
 		&i.AvatarUrl,
 		&i.UpdatedAt,
+		&i.Uuid,
 	)
 	return i, err
 }
 
 const getProfilesByUserUUID = `-- name: GetProfilesByUserUUID :one
-SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.updated_at
+SELECT p.name, p.user_id, p.avatar_url
 FROM profiles p
 JOIN users u ON p.user_id = u.user_id
-WHERE u.uuid = $1
+WHERE u.uuid = $1 AND u.is_active = true
 `
 
-func (q *Queries) GetProfilesByUserUUID(ctx context.Context, argUuid uuid.UUID) (Profile, error) {
+type GetProfilesByUserUUIDRow struct {
+	Name      string      `json:"name"`
+	UserID    int64       `json:"user_id"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
+}
+
+func (q *Queries) GetProfilesByUserUUID(ctx context.Context, argUuid uuid.UUID) (GetProfilesByUserUUIDRow, error) {
 	row := q.db.QueryRow(ctx, getProfilesByUserUUID, argUuid)
-	var i Profile
-	err := row.Scan(
-		&i.UserID,
-		&i.Name,
-		&i.Email,
-		&i.Phone,
-		&i.Birthday,
-		&i.AvatarUrl,
-		&i.UpdatedAt,
-	)
+	var i GetProfilesByUserUUIDRow
+	err := row.Scan(&i.Name, &i.UserID, &i.AvatarUrl)
 	return i, err
 }
 

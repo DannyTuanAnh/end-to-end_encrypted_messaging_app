@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package proto;
 
+import "buf/validate/validate.proto";
+
 option go_package = "internal/gen-proto/auth;auth_proto";
 
 service AuthService {
@@ -11,7 +13,10 @@ service AuthService {
 }
 
 message LoginRequest {
-  string author_code = 1;
+  string author_code = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 10
+  ];
 }
 
 message LoginResponse {
@@ -21,8 +26,14 @@ message LoginResponse {
 }
 
 message LogoutRequest {
-  string session_id = 1;
-  string device_id = 2;
+  string session_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string device_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 message LogoutResponse {
@@ -31,7 +42,9 @@ message LogoutResponse {
 }
 
 message LogoutAllRequest {
-  string user_id = 1;
+  int64 user_id = 1 [
+    (buf.validate.field).required = true
+  ];
 }
 
 message LogoutAllResponse {

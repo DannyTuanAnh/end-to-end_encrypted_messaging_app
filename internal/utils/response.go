@@ -3,7 +3,11 @@ package utils
 import (
 	"net/http"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
+
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/status"
 )
 
 // ErrCode is a custom type for error codes used in the application.
@@ -27,7 +31,10 @@ type AppError struct {
 }
 
 func (ae *AppError) Error() string {
-	return ""
+	if ae.Err != nil {
+		return ae.Message + ": " + ae.Err.Error()
+	}
+	return ae.Message
 }
 
 // NewError creates a new AppError with the given message and error code.
@@ -77,6 +84,83 @@ func ResponseErrorAbort(ctx *gin.Context, err error) {
 	ctx.Abort()
 }
 
+func WriteGRPCErrorToGin(c *gin.Context, err error) {
+	st, ok := status.FromError(err)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	switch st.Code() {
+
+	case codes.InvalidArgument:
+
+		errors := map[string]string{}
+
+		for _, detail := range st.Details() {
+
+			switch d := detail.(type) {
+
+			case *errdetails.BadRequest:
+
+				for _, v := range d.FieldViolations {
+					errors[v.Field] = v.Description
+				}
+			}
+		}
+
+		if len(errors) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "VALIDATION_ERROR",
+				"message": st.Message(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "VALIDATION_ERROR",
+			"detail": errors,
+		})
+		return
+
+	case codes.Unavailable:
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":  "Service is currently unavailable. Please try again later.",
+			"detail": st.Message(),
+			"retry":  true,
+		})
+		return
+
+	case codes.Internal:
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "An internal server error occurred. Please try again later.",
+			"detail": st.Message(),
+		})
+		return
+
+	case codes.FailedPrecondition:
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Failed precondition. Please check your request and try again.",
+			"detail": st.Message(),
+		})
+		return
+
+	default:
+		c.JSON(httpStatusFromGrpcCode(st.Code()), gin.H{
+			"error":  st.Code().String(),
+			"detail": st.Message(),
+		})
+		return
+	}
+}
+
+func ResponseGRPCErrorAbort(ctx *gin.Context, err error) {
+	WriteGRPCErrorToGin(ctx, err)
+	ctx.Abort()
+}
+
 // httpStatusFromCode is a helper function that maps custom error codes to corresponding HTTP status codes.
 func httpStatusFromCode(code ErrCode) int {
 	switch code {
@@ -90,6 +174,30 @@ func httpStatusFromCode(code ErrCode) int {
 		return http.StatusUnauthorized
 	case ErrCodeTooManyRequests:
 		return http.StatusTooManyRequests
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// httpStatusFromGrpcCode maps gRPC codes to HTTP status codes.
+func httpStatusFromGrpcCode(code codes.Code) int {
+	switch code {
+	case codes.InvalidArgument, codes.FailedPrecondition, codes.OutOfRange:
+		return http.StatusBadRequest
+	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.Unauthenticated:
+		return http.StatusUnauthorized
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.AlreadyExists, codes.Aborted:
+		return http.StatusConflict
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
+	case codes.Unimplemented:
+		return http.StatusNotImplemented
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}

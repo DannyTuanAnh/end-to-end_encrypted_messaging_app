@@ -13,7 +13,10 @@ import (
 )
 
 const checkSession = `-- name: CheckSession :one
-select user_id, revoked, revoke_at from sessions where session_id = $1 and device_id = $2
+select s.user_id, s.revoked, s.revoke_at 
+from sessions as s 
+left join users as u on s.user_id = u.id
+where session_id = $1 and device_id = $2 and u.is_active = true
 `
 
 type CheckSessionParams struct {

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
@@ -37,7 +36,7 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 
 	resp, err := h.auth_client.Client.LoginGoogle(ctx, authReq)
 	if err != nil {
-		utils.ResponseErrorAbort(ctx, err)
+		utils.WriteGRPCErrorToGin(ctx, err)
 		return
 	}
 
@@ -86,7 +85,7 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 
 	_, err := h.auth_client.Client.Logout(ctx, req)
 	if err != nil {
-		utils.ResponseErrorAbort(ctx, err)
+		utils.WriteGRPCErrorToGin(ctx, err)
 		return
 	}
 
@@ -107,7 +106,7 @@ func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
 	}
 
 	req := &auth_proto.LogoutAllRequest{
-		UserId: strconv.FormatInt(id, 10),
+		UserId: id,
 	}
 
 	_, err := h.auth_client.Client.LogoutAll(ctx, req)

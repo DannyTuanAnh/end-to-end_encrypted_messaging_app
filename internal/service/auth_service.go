@@ -7,9 +7,10 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strconv"
+
 	"time"
 
+	"buf.build/go/protovalidate"
 	"cloud.google.com/go/auth/credentials/idtoken"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
@@ -18,8 +19,11 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type authService struct {
@@ -27,25 +31,36 @@ type authService struct {
 	auth_repo    repository.AuthRepository
 	user_client  *client.UserClient
 	redis_memory *redis.Client
+	validator    protovalidate.Validator
 }
 
 func NewAuthService(auth_repo repository.AuthRepository, user_client *client.UserClient, rdb *redis.Client) *authService {
+	v, err := protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create validator: %v", err))
+	}
+
 	return &authService{
 		auth_repo:    auth_repo,
 		user_client:  user_client,
 		redis_memory: rdb,
+		validator:    v,
 	}
 }
 
 func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.LoginResponse, error) {
+	if err := s.validator.Validate(req); err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
 	tokenResp, err := s.ExchangeGoogleCode(req.AuthorCode)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to exchange Google code", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to exchange Google code: %v", err)
 	}
 
 	userInfo, err := s.VerifyIDGoogleToken(ctx, tokenResp.IdToken, tokenResp.AccessToken)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to verify Google ID token", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to verify Google ID token: %v", err)
 	}
 
 	deviceID := uuid.New()
@@ -60,7 +75,7 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		PDeviceID:       deviceID,
 	})
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to login with Google", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to login with Google: %v", err)
 	}
 
 	if !resp.ProfileExists {
@@ -72,12 +87,22 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 			AvatarUrl: userInfo.Claims["picture"].(string),
 		})
 		if err != nil {
-			return nil, utils.WrapError(err, "Failed to create user profile", utils.ErrCodeInternal)
+			switch status.Code(err) {
+			case codes.InvalidArgument:
+				return nil, err
+			case codes.FailedPrecondition:
+				return nil, err
+			case codes.Unavailable:
+				return nil, validation.BuildServiceUnavailableError("user")
+			default:
+				return nil, status.Errorf(codes.Internal, "Failed to create user profile: %v", err)
+			}
 		}
 
 		s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:profile_exists", resp.UserId), "true", 0)
 
 	}
+
 	resp.DeviceID = deviceID
 
 	version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), s.redis_memory)
@@ -89,6 +114,7 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0).Err(); err != nil {
 			log.Println("Error in create session_version if redis didn't exist session_version before (in service layer): ", err)
 		}
+		version = 1
 	}
 
 	session := models.SessionRedis{
@@ -182,6 +208,7 @@ func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string)
 	}
 
 	if len(birthdayResp.Birthdays) == 0 {
+		userInfo.Claims["birthday"] = ""
 		return nil
 	}
 
@@ -192,14 +219,19 @@ func (s *authService) GetBirthday(userInfo *idtoken.Payload, accessToken string)
 }
 
 func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
+	err := s.validator.Validate(req)
+	if err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
 	sessionId, err := uuid.Parse(req.SessionId)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to parse session ID", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to parse session ID: %v", err)
 	}
 
 	deviceId, err := uuid.Parse(req.DeviceId)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to parse device ID", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to parse device ID: %v", err)
 	}
 
 	params := sqlc.RevokeSessionParams{
@@ -209,7 +241,7 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 
 	err = s.auth_repo.Logout(ctx, params)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to logout", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to logout: %v", err)
 	}
 
 	if err := s.redis_memory.Del(ctx, fmt.Sprintf("session:%s", req.SessionId)).Err(); err != nil {
@@ -223,21 +255,17 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 }
 
 func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRequest) (*auth_proto.LogoutAllResponse, error) {
-	if req.UserId == "" {
-		return nil, utils.NewError("Invalid user ID", utils.ErrCodeBadRequest)
-	}
-
-	userIdInt, err := strconv.ParseInt(req.UserId, 10, 64)
+	err := s.validator.Validate(req)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to parse user ID", utils.ErrCodeInternal)
+		return nil, validation.BuildValidationError(err)
 	}
 
-	err = s.auth_repo.LogoutAll(ctx, userIdInt)
+	err = s.auth_repo.LogoutAll(ctx, req.UserId)
 	if err != nil {
-		return nil, utils.WrapError(err, "Failed to logout all sessions", utils.ErrCodeInternal)
+		return nil, status.Errorf(codes.Internal, "Failed to logout all sessions: %v", err)
 	}
 
-	if err := s.redis_memory.Incr(ctx, fmt.Sprintf("user:%d:session_version", userIdInt)).Err(); err != nil {
+	if err := s.redis_memory.Incr(ctx, fmt.Sprintf("user:%d:session_version", req.UserId)).Err(); err != nil {
 		log.Println("Error in increment session_version in Redis (in service layer): ", err)
 	}
 

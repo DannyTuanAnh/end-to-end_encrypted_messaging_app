@@ -8,6 +8,7 @@ option go_package = "internal/gen-proto/user;user_proto";
 
 service UserService {
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
+  rpc DisableUserByUserID(DisableUserRequest) returns (DisableUserResponse);
 }
 
 message CreateProfileRequest {
@@ -33,6 +34,18 @@ message CreateProfileRequest {
 }
 
 message CreateProfileResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DisableUserRequest {
+  int64 user_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int64.gt = 0
+  ];
+}
+
+message DisableUserResponse {
   bool success = 1;
   string message = 2;
 }

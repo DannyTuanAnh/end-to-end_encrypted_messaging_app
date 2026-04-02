@@ -50,7 +50,7 @@ const getProfileByUserId = `-- name: GetProfileByUserId :one
 SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.updated_at, u.uuid
 FROM profiles p
 join users u on p.user_id = u.user_id
-WHERE p.user_id = $1
+WHERE p.user_id = $1 AND u.is_active = true
 `
 
 type GetProfileByUserIdRow struct {
@@ -77,26 +77,6 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProf
 		&i.UpdatedAt,
 		&i.Uuid,
 	)
-	return i, err
-}
-
-const getProfilesByUserUUID = `-- name: GetProfilesByUserUUID :one
-SELECT p.name, p.user_id, p.avatar_url
-FROM profiles p
-JOIN users u ON p.user_id = u.user_id
-WHERE u.uuid = $1 AND u.is_active = true
-`
-
-type GetProfilesByUserUUIDRow struct {
-	Name      string      `json:"name"`
-	UserID    int64       `json:"user_id"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-}
-
-func (q *Queries) GetProfilesByUserUUID(ctx context.Context, argUuid uuid.UUID) (GetProfilesByUserUUIDRow, error) {
-	row := q.db.QueryRow(ctx, getProfilesByUserUUID, argUuid)
-	var i GetProfilesByUserUUIDRow
-	err := row.Scan(&i.Name, &i.UserID, &i.AvatarUrl)
 	return i, err
 }
 

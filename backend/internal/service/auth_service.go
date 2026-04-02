@@ -87,20 +87,8 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 			AvatarUrl: userInfo.Claims["picture"].(string),
 		})
 		if err != nil {
-			switch status.Code(err) {
-			case codes.InvalidArgument:
-				return nil, err
-			case codes.FailedPrecondition:
-				return nil, err
-			case codes.Unavailable:
-				return nil, validation.BuildServiceUnavailableError("user")
-			default:
-				return nil, status.Errorf(codes.Internal, "Failed to create user profile: %v", err)
-			}
+			return nil, validation.MapUserServiceError(err, "user")
 		}
-
-		s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:profile_exists", resp.UserId), "true", 0)
-
 	}
 
 	resp.DeviceID = deviceID
@@ -135,6 +123,7 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 	}
 
 	return &auth_proto.LoginResponse{
+		Success:  true,
 		Session:  resp.SessionId.String(),
 		UserId:   resp.UserId,
 		DeviceId: resp.DeviceID.String(),
@@ -266,7 +255,7 @@ func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRe
 	}
 
 	if err := s.redis_memory.Incr(ctx, fmt.Sprintf("user:%d:session_version", req.UserId)).Err(); err != nil {
-		log.Println("Error in increment session_version in Redis (in service layer): ", err)
+		log.Println("Error in increment session_version in Redis (in auth service layer): ", err)
 	}
 
 	return &auth_proto.LogoutAllResponse{

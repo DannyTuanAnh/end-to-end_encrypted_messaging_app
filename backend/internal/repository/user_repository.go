@@ -17,3 +17,7 @@ func NewUserRepository(db sqlc.Querier) UserRepository {
 func (r *userRepository) CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error) {
 	return r.user_repo.CreateProfile(ctx, arg)
 }
+
+func (r *userRepository) DisableUserByUserID(ctx context.Context, userId int64) error {
+	return r.user_repo.DisableUser(ctx, userId)
+}

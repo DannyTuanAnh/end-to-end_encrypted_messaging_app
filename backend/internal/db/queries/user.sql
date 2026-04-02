@@ -38,3 +38,6 @@ SELECT uuid FROM users WHERE user_id = $1;
 
 -- name: CreateUser :one
 INSERT INTO users (display_name) VALUES ($1) RETURNING *;
+
+-- name: DisableUser :exec
+UPDATE users SET is_active = false, disable_at = now() WHERE user_id = $1;

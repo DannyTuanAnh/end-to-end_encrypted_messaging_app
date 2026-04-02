@@ -83,3 +83,20 @@ func BuildBusinessError(code, msg string) error {
 
 	return st.Err()
 }
+
+func MapUserServiceError(err error, service string) error {
+	switch status.Code(err) {
+
+	case codes.InvalidArgument:
+		return err
+
+	case codes.FailedPrecondition:
+		return err
+
+	case codes.Unavailable:
+		return BuildServiceUnavailableError(service)
+
+	default:
+		return status.Errorf(codes.Internal, "%s service error: %v", service, err)
+	}
+}

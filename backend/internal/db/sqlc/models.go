@@ -286,9 +286,10 @@ type SystemMessage struct {
 }
 
 type User struct {
-	UserID      int64     `json:"user_id"`
-	Uuid        uuid.UUID `json:"uuid"`
-	DisplayName string    `json:"display_name"`
-	CreatedAt   time.Time `json:"created_at"`
-	IsActive    bool      `json:"is_active"`
+	UserID      int64              `json:"user_id"`
+	Uuid        uuid.UUID          `json:"uuid"`
+	DisplayName string             `json:"display_name"`
+	CreatedAt   time.Time          `json:"created_at"`
+	IsActive    bool               `json:"is_active"`
+	DisableAt   pgtype.Timestamptz `json:"disable_at"`
 }

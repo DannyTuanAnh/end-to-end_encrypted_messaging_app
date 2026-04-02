@@ -58,8 +58,19 @@ begin
     end if;
 
     -- 3. check if user is active
-    if not exists (select 1 from users where users.user_id = v_user_id and users.is_active = true) then
+    update users set is_active = true, disable_at = null
+    where users.user_id = v_user_id
+    and (
+        is_active = true
+        or disable_at > now() - interval '30 days'
+    );
+
+    if not found then
         raise exception 'User account is deactivated or not found';
+    end if;
+
+    if not exists (select 1 from profiles where profiles.user_id = v_user_id) then
+        v_profile_exists := false;
     end if;
 
     -- 4. create session

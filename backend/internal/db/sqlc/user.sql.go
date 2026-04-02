@@ -12,7 +12,7 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (display_name) VALUES ($1) RETURNING user_id, uuid, display_name, created_at, is_active
+INSERT INTO users (display_name) VALUES ($1) RETURNING user_id, uuid, display_name, created_at, is_active, disable_at
 `
 
 func (q *Queries) CreateUser(ctx context.Context, displayName string) (User, error) {
@@ -24,8 +24,18 @@ func (q *Queries) CreateUser(ctx context.Context, displayName string) (User, err
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.IsActive,
+		&i.DisableAt,
 	)
 	return i, err
+}
+
+const disableUser = `-- name: DisableUser :exec
+UPDATE users SET is_active = false, disable_at = now() WHERE user_id = $1
+`
+
+func (q *Queries) DisableUser(ctx context.Context, userID int64) error {
+	_, err := q.db.Exec(ctx, disableUser, userID)
+	return err
 }
 
 const getUUIDByUserId = `-- name: GetUUIDByUserId :one

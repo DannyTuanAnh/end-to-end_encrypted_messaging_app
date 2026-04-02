@@ -23,13 +23,13 @@ type Querier interface {
 	CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error)
 	CreateSystemMessage(ctx context.Context, arg CreateSystemMessageParams) (CreateSystemMessageRow, error)
 	CreateUser(ctx context.Context, displayName string) (User, error)
+	DisableUser(ctx context.Context, userID int64) error
 	GetAllConversations(ctx context.Context, userID int64) ([]GetAllConversationsRow, error)
 	GetFriendsList(ctx context.Context, user2ID int64) ([]GetFriendsListRow, error)
 	GetGroupMembers(ctx context.Context, conversationID int64) ([]GetGroupMembersRow, error)
 	GetMessagesByConversationId(ctx context.Context, arg GetMessagesByConversationIdParams) ([]GetMessagesByConversationIdRow, error)
 	GetPendingFriendRequests(ctx context.Context, receiverID int64) ([]GetPendingFriendRequestsRow, error)
 	GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error)
-	GetProfilesByUserUUID(ctx context.Context, argUuid uuid.UUID) (GetProfilesByUserUUIDRow, error)
 	GetSentFriendRequests(ctx context.Context, senderID int64) ([]GetSentFriendRequestsRow, error)
 	GetUUIDByUserId(ctx context.Context, userID int64) (uuid.UUID, error)
 	// Get user info with friendship/friend request status

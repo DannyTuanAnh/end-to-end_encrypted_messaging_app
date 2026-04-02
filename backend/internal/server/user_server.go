@@ -7,11 +7,13 @@ import (
 	"net"
 	"time"
 
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 )
 
@@ -22,11 +24,22 @@ type UserServer struct {
 	server *grpc.Server
 }
 
-func NewUserServer(ctx context.Context, db sqlc.Querier) *UserServer {
-	cfg := config.NewConfigUserService()
+func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*UserServer, error) {
+	userCfg := config.NewConfigUserService()
+	authCfg := config.NewConfigAuthService()
+
+	cfg := &config.Config{}
+
+	cfg.Service.AuthServiceAddr = authCfg.Service.AuthServiceAddr
+	cfg.Service.UserServiceAddr = userCfg.Service.UserServiceAddr
+
+	auth_client, err := client.NewAuthClient(cfg.Service.AuthServiceAddr)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create auth client: %v", err)
+	}
 
 	user_repo := repository.NewUserRepository(db)
-	user_service := service.NewUserService(user_repo)
+	user_service := service.NewUserService(user_repo, rdb, auth_client)
 
 	s := grpc.NewServer()
 
@@ -34,9 +47,9 @@ func NewUserServer(ctx context.Context, db sqlc.Querier) *UserServer {
 
 	return &UserServer{
 		ctx:    ctx,
-		cfg:    cfg,
+		cfg:    userCfg,
 		server: s,
-	}
+	}, nil
 }
 
 func (as *UserServer) Run() (string, error) {

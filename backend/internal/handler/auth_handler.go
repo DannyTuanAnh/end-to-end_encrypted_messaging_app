@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
@@ -62,7 +63,7 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 		MaxAge:   utils.GetEnvInt("DEVICE_ID_MAX_AGE", 168) * 3600,
 	})
 
-	utils.ResponseStatusCode(ctx, http.StatusOK)
+	utils.ResponseSuccess(ctx, http.StatusOK)
 }
 
 func (h *AuthHandler) Logout(ctx *gin.Context) {
@@ -105,13 +106,18 @@ func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
 		return
 	}
 
+	if id <= 0 {
+		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("user_id must be greater than 0")))
+		return
+	}
+
 	req := &auth_proto.LogoutAllRequest{
 		UserId: id,
 	}
 
 	_, err := h.auth_client.Client.LogoutAll(ctx, req)
 	if err != nil {
-		utils.ResponseErrorAbort(ctx, err)
+		utils.WriteGRPCErrorToGin(ctx, err)
 		return
 	}
 

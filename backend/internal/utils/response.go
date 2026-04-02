@@ -205,10 +205,16 @@ func httpStatusFromGrpcCode(code codes.Code) int {
 
 // ResponseSuccess is a helper function that takes a Gin context, an HTTP status code, and any data,
 // and responds with a JSON object containing a "status" field set to "success" and a "data" field containing the provided data.
-func ResponseSuccess(ctx *gin.Context, status int, data any) {
+func ResponseSuccess(ctx *gin.Context, status int) {
 	ctx.JSON(status, gin.H{
-		"status": "success",
-		"data":   data,
+		"success": true,
+	})
+}
+
+func ResponseSuccessWithData(ctx *gin.Context, status int, data any) {
+	ctx.JSON(status, gin.H{
+		"success": true,
+		"data":    data,
 	})
 }
 

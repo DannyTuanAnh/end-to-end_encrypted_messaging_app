@@ -1,1 +1,6 @@
 /.env
+*.key
+*-key.pem
+*.pem
+
+/certs/

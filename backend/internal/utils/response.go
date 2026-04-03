@@ -147,6 +147,13 @@ func WriteGRPCErrorToGin(c *gin.Context, err error) {
 		})
 		return
 
+	case codes.PermissionDenied:
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":  "Permission denied.",
+			"detail": st.Message(),
+		})
+		return
+
 	default:
 		c.JSON(httpStatusFromGrpcCode(st.Code()), gin.H{
 			"error":  st.Code().String(),

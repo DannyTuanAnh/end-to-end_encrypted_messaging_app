@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
 )
 
 var (
@@ -126,4 +128,43 @@ func GetKeyRedisAndConvertToInt(ctx context.Context, key string, rdb *redis.Clie
 	}
 
 	return resultNum, nil
+}
+
+// grpc, mtls
+// func GetCaller(ctx context.Context) string {
+
+// 	p, _ := peer.FromContext(ctx)
+
+// 	tlsInfo := p.AuthInfo.(credentials.TLSInfo)
+
+// 	cert := tlsInfo.State.PeerCertificates[0]
+
+// 	return cert.Subject.CommonName
+// }
+
+func GetCaller(ctx context.Context) string {
+	p, ok := peer.FromContext(ctx)
+	if !ok || p == nil {
+		return "unknown"
+	}
+
+	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
+	if !ok {
+		return "unknown"
+	}
+
+	if len(tlsInfo.State.PeerCertificates) == 0 {
+		return "unknown"
+	}
+
+	cert := tlsInfo.State.PeerCertificates[0]
+
+	log.Println("DNSNames:", cert.DNSNames)
+	log.Println("CN:", cert.Subject.CommonName)
+
+	if len(cert.DNSNames) > 0 {
+		return cert.DNSNames[0]
+	}
+
+	return "unknown"
 }

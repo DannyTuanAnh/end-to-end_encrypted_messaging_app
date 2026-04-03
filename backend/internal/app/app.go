@@ -12,6 +12,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 )
 
@@ -127,8 +128,8 @@ func (ac *Application) RunTLS(ctx context.Context) (string, error) {
 	// 2. Create a channel to listen for server errors
 	errChan := make(chan error, 1)
 
-	pathCert := "internal/certs/localhost+2.pem"
-	pathKey := "internal/certs/localhost+2-key.pem"
+	pathCert := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
+	pathKey := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
 
 	// 3. Listen and serve in a goroutine
 	go func() {

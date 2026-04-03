@@ -49,6 +49,12 @@ func NewAuthService(auth_repo repository.AuthRepository, user_client *client.Use
 }
 
 func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.LoginResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != "api-gateway" {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only API Gateway can call LoginGoogle")
+	}
+
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -244,6 +250,12 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 }
 
 func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRequest) (*auth_proto.LogoutAllResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != "user-service" {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only user service can call Logout")
+	}
+
 	err := s.validator.Validate(req)
 	if err != nil {
 		return nil, validation.BuildValidationError(err)

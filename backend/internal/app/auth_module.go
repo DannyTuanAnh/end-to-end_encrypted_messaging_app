@@ -4,6 +4,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/handler"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
 type AuthModule struct {
@@ -11,8 +12,13 @@ type AuthModule struct {
 }
 
 func NewAuthModule(addr string) *AuthModule {
+	// Load TLS credentials for gRPC client
+	// Call by API Gateway, so use API Gateway's certs
+	authCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
+	authKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
+
 	// 1. Initialize repository
-	auth_client, err := client.NewAuthClient(addr)
+	auth_client, err := client.NewAuthClient(addr, authCertFile, authKeyFile)
 	if err != nil {
 		panic("Failed to initialize auth client: " + err.Error())
 	}

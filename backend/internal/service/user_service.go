@@ -43,6 +43,12 @@ func NewUserService(user_repo repository.UserRepository, rdb *redis.Client, auth
 }
 
 func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateProfileRequest) (*user_proto.CreateProfileResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != "auth-service" {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only auth service can call CreateProfile")
+	}
+
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}

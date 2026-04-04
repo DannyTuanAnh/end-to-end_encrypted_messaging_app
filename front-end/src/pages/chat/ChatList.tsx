@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { dataRoom } from "./dataRoom";
-
-const userId = "u1"; // hardcoded current user ID for demo
-const rooms = dataRoom.filter((r) => r.participants.includes(userId)); // in real app, fetch rooms for the user from server
+import { useChat } from "@/hooks/chat/useChat";
 
 export default function ChatList() {
+  const userId = "u1"; // hardcoded current user ID for demo
+  const { rooms } = useChat(userId);
   return (
     <aside className="h-full overflow-auto bg-card p-4">
       <div className="flex flex-col gap-3">

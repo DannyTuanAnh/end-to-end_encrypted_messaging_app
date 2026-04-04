@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { dataMessage } from "./dataMessage";
+import { useChat } from "@/hooks/chat/useChat";
+import { useMessages } from "@/hooks/chat/useMessages";
 
 export default function ChatPage() {
   const { id } = useParams();
   const currenUser = "u1"; // hardcoded current user ID for demo
-  const messages = dataMessage[String(id)]; // in real app, fetch messages for the room from server
+  const { sendMessage } = useChat(currenUser);
+  const messages = useMessages(String(id)); // reactive messages for the room
+  const [text, setText] = useState("");
   if (id === undefined)
     return (
       <div className="h-full flex items-center justify-center">
@@ -18,12 +22,12 @@ export default function ChatPage() {
       </div>
     );
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="h-full flex-1 flex flex-col gap-4 overflow-hidden">
       <div>
         <h1 className="text-2xl font-semibold">Chat #{id}</h1>
       </div>
 
-      <div className="w-full flex-1 overflow-auto flex flex-col gap-3 p-4 border rounded-lg">
+      <div className="w-full h-full flex-1 overflow-y-auto flex flex-col gap-2 p-4 border rounded-lg">
         {messages?.map((m) => (
           <div key={m.id} className={`p-3 rounded-lg flex space-x-2`}>
             {m.senderId !== currenUser && (
@@ -35,7 +39,7 @@ export default function ChatPage() {
             )}
 
             <Card
-              className={`p-4 mb-4 ${m.senderId === currenUser ? "bg-primary text-white w-1/2 ml-auto" : "bg-muted text-default w-1/2"}`}
+              className={`p-4 ${m.senderId === currenUser ? "bg-primary text-white w-1/2 ml-auto" : "bg-muted text-default w-1/2"}`}
             >
               <p className="text-base">{m.content}</p>
               <p className="text-xs">
@@ -48,8 +52,20 @@ export default function ChatPage() {
 
       <div className="mt-2">
         <div className="flex gap-2">
-          <Input placeholder="Type a message" />
-          <Button>Send</Button>
+          <Input
+            placeholder="Type a message"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <Button
+            onClick={() => {
+              if (!id || !text.trim()) return;
+              sendMessage(String(id), currenUser, text.trim());
+              setText("");
+            }}
+          >
+            Send
+          </Button>
         </div>
       </div>
     </div>

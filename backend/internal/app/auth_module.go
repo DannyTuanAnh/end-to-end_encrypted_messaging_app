@@ -14,11 +14,11 @@ type AuthModule struct {
 func NewAuthModule(addr string) *AuthModule {
 	// Load TLS credentials for gRPC client
 	// Call by API Gateway, so use API Gateway's certs
-	authCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
-	authKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
+	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
+	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
 
 	// 1. Initialize repository
-	auth_client, err := client.NewAuthClient(addr, authCertFile, authKeyFile)
+	auth_client, err := client.NewAuthClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
 	if err != nil {
 		panic("Failed to initialize auth client: " + err.Error())
 	}

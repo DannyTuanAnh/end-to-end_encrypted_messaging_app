@@ -16,6 +16,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -50,7 +51,6 @@ func NewAuthService(auth_repo repository.AuthRepository, user_client *client.Use
 
 func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.LoginResponse, error) {
 	caller := utils.GetCaller(ctx)
-
 	if caller != "api-gateway" {
 		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only API Gateway can call LoginGoogle")
 	}
@@ -85,6 +85,10 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 	}
 
 	if !resp.ProfileExists {
+		ctx := context.WithValue(ctx, interceptor.CtxCallerKey, "auth-service")
+		ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, resp.UserId)
+		ctx = context.WithValue(ctx, interceptor.CtxAudKey, "user-service")
+
 		_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
 			UserId:    resp.UserId,
 			Name:      name,
@@ -254,6 +258,14 @@ func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRe
 
 	if caller != "user-service" {
 		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only user service can call Logout")
+	}
+
+	if caller != ctx.Value(interceptor.CtxCallerKey) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if req.UserId != ctx.Value(interceptor.CtxUserIDKey) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
 	}
 
 	err := s.validator.Validate(req)

@@ -14,6 +14,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
@@ -22,6 +23,19 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
+
+var authPolicies = map[string][]string{
+	"/proto.AuthService/LoginGoogle": {
+		"api-gateway",
+	},
+	"/proto.AuthService/Logout": {
+		"api-gateway",
+	},
+	"/proto.AuthService/LogoutAll": {
+		"api-gateway",
+		"user-service",
+	},
+}
 
 type AuthServer struct {
 	auth_proto.UnimplementedAuthServiceServer
@@ -77,7 +91,13 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	auth_repo := repository.NewAuthRepository(db)
 	auth_service := service.NewAuthService(auth_repo, user_client, rdb)
 
-	s := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig)))
+	s := grpc.NewServer(
+		grpc.Creds(credentials.NewTLS(tlsConfig)),
+		grpc.ChainUnaryInterceptor(
+			interceptor.RBACInterceptor(authPolicies),
+			interceptor.AuthServerInterceptor(authCertFile),
+		),
+	)
 
 	auth_proto.RegisterAuthServiceServer(s, auth_service)
 

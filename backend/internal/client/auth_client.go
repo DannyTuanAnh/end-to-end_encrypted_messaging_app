@@ -3,10 +3,10 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"log"
 	"os"
 
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -25,8 +25,6 @@ func NewAuthClient(addr string, certFile string, keyFile string) (*AuthClient, e
 		return nil, err
 	}
 
-	log.Println("client cert:", certFile)
-
 	caCert, err := os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
 	if err != nil {
 		return nil, err
@@ -38,12 +36,13 @@ func NewAuthClient(addr string, certFile string, keyFile string) (*AuthClient, e
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caPool,
-		ServerName:   "auth-service",
 	}
 
-	log.Printf("NewAuthClient connecting to %s with cert=%s key=%s", addr, certFile, keyFile)
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	conn, err := grpc.NewClient(
+		addr,
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
+		grpc.WithUnaryInterceptor(interceptor.AuthClientInterceptor(utils.GetEnv("PATH_KEY_AUTH_SERVICE", ""))),
+	)
 
 	if err != nil {
 		return nil, err

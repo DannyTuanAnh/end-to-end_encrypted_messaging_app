@@ -12,6 +12,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -44,9 +45,16 @@ func NewUserService(user_repo repository.UserRepository, rdb *redis.Client, auth
 
 func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateProfileRequest) (*user_proto.CreateProfileResponse, error) {
 	caller := utils.GetCaller(ctx)
-
 	if caller != "auth-service" {
 		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only auth service can call CreateProfile")
+	}
+
+	if caller != ctx.Value(interceptor.CtxCallerKey) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if req.UserId != ctx.Value(interceptor.CtxUserIDKey) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
 	}
 
 	if err := s.validator.Validate(req); err != nil {
@@ -80,6 +88,19 @@ func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateP
 }
 
 func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.DisableUserRequest) (*user_proto.DisableUserResponse, error) {
+	caller := utils.GetCaller(ctx)
+	if caller != "api-gateway" {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Only API Gateway can call DisableUserByUserID")
+	}
+
+	if caller != ctx.Value(interceptor.CtxCallerKey) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if req.UserId != ctx.Value(interceptor.CtxUserIDKey) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
+	}
+
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -95,6 +116,10 @@ func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.D
 	reqLogoutAll := &auth_proto.LogoutAllRequest{
 		UserId: req.UserId,
 	}
+
+	ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, req.UserId)
+	ctx = context.WithValue(ctx, interceptor.CtxCallerKey, "user-service")
+	ctx = context.WithValue(ctx, interceptor.CtxAudKey, "auth-service")
 
 	_, err = s.auth_client.Client.LogoutAll(ctx, reqLogoutAll)
 	if err != nil {

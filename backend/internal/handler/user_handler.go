@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"github.com/gin-gonic/gin"
@@ -39,11 +41,39 @@ func (h *UserHandler) DisableUser(ctx *gin.Context) {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
 	}
 
-	_, err := h.user_client.Client.DisableUserByUserID(ctx, &user_proto.DisableUserRequest{UserId: userID})
+	baseCtx := ctx.Request.Context()
+
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
+	c = context.WithValue(c, interceptor.CtxAudKey, "user-service")
+
+	_, err := h.user_client.Client.DisableUserByUserID(c, &user_proto.DisableUserRequest{UserId: userID})
 	if err != nil {
 		utils.WriteGRPCErrorToGin(ctx, err)
 		return
 	}
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   -1,
+	})
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "device_id",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   -1,
+	})
 
 	utils.ResponseStatusCode(ctx, http.StatusNoContent)
 

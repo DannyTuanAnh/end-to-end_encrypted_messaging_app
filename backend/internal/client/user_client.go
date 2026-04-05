@@ -6,6 +6,7 @@ import (
 	"os"
 
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -37,7 +38,11 @@ func NewUserClient(addr string, certFile string, keyFile string) (*UserClient, e
 		RootCAs:      caPool,
 	}
 
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	conn, err := grpc.NewClient(
+		addr,
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
+		grpc.WithUnaryInterceptor(interceptor.AuthClientInterceptor(utils.GetEnv("PATH_KEY_USER_SERVICE", ""))),
+	)
 
 	if err != nil {
 		return nil, err

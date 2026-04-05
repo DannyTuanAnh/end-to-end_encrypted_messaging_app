@@ -159,9 +159,6 @@ func GetCaller(ctx context.Context) string {
 
 	cert := tlsInfo.State.PeerCertificates[0]
 
-	log.Println("DNSNames:", cert.DNSNames)
-	log.Println("CN:", cert.Subject.CommonName)
-
 	if len(cert.DNSNames) > 0 {
 		return cert.DNSNames[0]
 	}

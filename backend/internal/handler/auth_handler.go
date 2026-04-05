@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -90,6 +92,28 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 		return
 	}
 
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   -1,
+	})
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "device_id",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   -1,
+	})
+
 	utils.ResponseStatusCode(ctx, http.StatusNoContent)
 }
 
@@ -115,11 +139,39 @@ func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
 		UserId: id,
 	}
 
-	_, err := h.auth_client.Client.LogoutAll(ctx, req)
+	baseCtx := ctx.Request.Context()
+
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c = context.WithValue(c, interceptor.CtxUserIDKey, id)
+	c = context.WithValue(c, interceptor.CtxAudKey, "auth-service")
+
+	_, err := h.auth_client.Client.LogoutAll(c, req)
 	if err != nil {
 		utils.WriteGRPCErrorToGin(ctx, err)
 		return
 	}
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   -1,
+	})
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "device_id",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
+		Path:     "/",
+		MaxAge:   -1,
+	})
 
 	utils.ResponseStatusCode(ctx, http.StatusNoContent)
 }

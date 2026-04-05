@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
@@ -84,8 +85,37 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				utils.ResponseErrorAbort(ctx, utils.NewError("Session revoked", utils.ErrCodeUnauthorized))
 				return
 			}
-
 			userId = result.UserID
+
+			version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", userId), rdb)
+			if err != nil {
+				log.Println("Error in get session_version (in service layer): ", err)
+			}
+
+			if version == 0 {
+				if err := rdb.SetNX(ctx, fmt.Sprintf("user:%d:session_version", userId), 1, 0).Err(); err != nil {
+					log.Println("Error in create session_version if redis didn't exist session_version before (in service layer): ", err)
+				}
+				version = 1
+			}
+
+			sessionRedis := models.SessionRedis{
+				UserID:         userId,
+				DeviceID:       deviceId,
+				SessionVersion: version,
+				Valid:          result.Revoked,
+			}
+
+			sessionBytes, err := json.Marshal(sessionRedis)
+			if err != nil {
+				log.Println("Error in marshal session data (in service layer): ", err)
+			}
+
+			err = rdb.Set(ctx, fmt.Sprintf("session:%d", result.UserID), sessionBytes, 24*7*time.Hour).Err()
+			if err != nil {
+				log.Println("Error in set session with marshal data in Redis (in service layer): ", err)
+			}
+
 		} else {
 			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to get session from Redis", utils.ErrCodeInternal))
 			return

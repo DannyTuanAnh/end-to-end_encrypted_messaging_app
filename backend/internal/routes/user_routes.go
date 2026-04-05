@@ -19,7 +19,7 @@ func (ur *UserRoutes) Register(r *gin.RouterGroup) {
 	user := r.Group("/user")
 	{
 		// Users.GET("", ur.User_handler.GetAllUsers)
-		// Users.GET("/:uuid", ur.User_handler.GetUserByUUID)
+		user.GET("/profile", ur.user_handler.GetProfileByUserID)
 		user.DELETE("/disable", ur.user_handler.DisableUser)
 		// users.PUT("/profile", ur.user_handler.UpdateProfile)
 		// Users.PUT("/:uuid", ur.User_handler.UpdateUser)

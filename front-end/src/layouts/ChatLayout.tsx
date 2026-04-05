@@ -11,7 +11,7 @@ export default function ChatLayout() {
         <ChatList />
       </div>
 
-      <div className="w-3/5 min-h-screen p-6">
+      <div className="w-3/5 h-screen p-6 overflow-hidden">
         <div className="h-full p-0">
           <ChatPage />
         </div>

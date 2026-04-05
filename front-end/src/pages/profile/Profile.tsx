@@ -1,8 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Profile() {
+  const { user } = useAuth();
   return (
     <div className="min-w-sm w-full max-w-3xl">
       <h1 className="text-2xl font-semibold mb-4">Profile</h1>
@@ -13,9 +15,11 @@ export default function Profile() {
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
           <div>
-            <div className="text-lg font-medium">User Name</div>
+            <div className="text-lg font-medium">
+              {user?.name || "User Name"}
+            </div>
             <div className="text-sm text-muted-foreground">
-              user@example.com
+              {user?.email || "Email not available"}
             </div>
           </div>
         </div>

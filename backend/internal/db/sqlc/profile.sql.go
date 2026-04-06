@@ -80,6 +80,31 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProf
 	return i, err
 }
 
+const getProfileByUserUUID = `-- name: GetProfileByUserUUID :one
+SELECT p.name, p.avatar_url, p.birthday
+FROM profiles p
+join users u on p.user_id = u.user_id
+WHERE u.uuid = $1 AND u.is_active = true AND u.user_id <> $2
+`
+
+type GetProfileByUserUUIDParams struct {
+	Uuid   uuid.UUID `json:"uuid"`
+	UserID int64     `json:"user_id"`
+}
+
+type GetProfileByUserUUIDRow struct {
+	Name      string      `json:"name"`
+	AvatarUrl pgtype.Text `json:"avatar_url"`
+	Birthday  pgtype.Date `json:"birthday"`
+}
+
+func (q *Queries) GetProfileByUserUUID(ctx context.Context, arg GetProfileByUserUUIDParams) (GetProfileByUserUUIDRow, error) {
+	row := q.db.QueryRow(ctx, getProfileByUserUUID, arg.Uuid, arg.UserID)
+	var i GetProfileByUserUUIDRow
+	err := row.Scan(&i.Name, &i.AvatarUrl, &i.Birthday)
+	return i, err
+}
+
 const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
 UPDATE profiles SET 
     name = COALESCE($2, name),

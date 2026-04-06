@@ -20,6 +20,8 @@ type AuthRepository interface {
 }
 
 type UserRepository interface {
+	GetProfileByUserID(ctx context.Context, userId int64) (sqlc.GetProfileByUserIdRow, error)
+	GetProfileByUserUUID(ctx context.Context, arg sqlc.GetProfileByUserUUIDParams) (sqlc.GetProfileByUserUUIDRow, error)
 	CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error)
 	DisableUserByUserID(ctx context.Context, userId int64) error
 }

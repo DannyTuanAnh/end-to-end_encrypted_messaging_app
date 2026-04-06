@@ -30,6 +30,7 @@ type Querier interface {
 	GetMessagesByConversationId(ctx context.Context, arg GetMessagesByConversationIdParams) ([]GetMessagesByConversationIdRow, error)
 	GetPendingFriendRequests(ctx context.Context, receiverID int64) ([]GetPendingFriendRequestsRow, error)
 	GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error)
+	GetProfileByUserUUID(ctx context.Context, arg GetProfileByUserUUIDParams) (GetProfileByUserUUIDRow, error)
 	GetSentFriendRequests(ctx context.Context, senderID int64) ([]GetSentFriendRequestsRow, error)
 	GetUUIDByUserId(ctx context.Context, userID int64) (uuid.UUID, error)
 	// Get user info with friendship/friend request status

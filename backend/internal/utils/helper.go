@@ -130,18 +130,7 @@ func GetKeyRedisAndConvertToInt(ctx context.Context, key string, rdb *redis.Clie
 	return resultNum, nil
 }
 
-// grpc, mtls
-// func GetCaller(ctx context.Context) string {
-
-// 	p, _ := peer.FromContext(ctx)
-
-// 	tlsInfo := p.AuthInfo.(credentials.TLSInfo)
-
-// 	cert := tlsInfo.State.PeerCertificates[0]
-
-// 	return cert.Subject.CommonName
-// }
-
+// grpc, mtls, get caller service name from client certificate
 func GetCaller(ctx context.Context) string {
 	p, ok := peer.FromContext(ctx)
 	if !ok || p == nil {

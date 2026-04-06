@@ -19,8 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateProfile_FullMethodName       = "/proto.UserService/CreateProfile"
-	UserService_DisableUserByUserID_FullMethodName = "/proto.UserService/DisableUserByUserID"
+	UserService_CreateProfile_FullMethodName        = "/proto.UserService/CreateProfile"
+	UserService_DisableUserByUserID_FullMethodName  = "/proto.UserService/DisableUserByUserID"
+	UserService_GetProfileByUserID_FullMethodName   = "/proto.UserService/GetProfileByUserID"
+	UserService_GetProfileByUserUUID_FullMethodName = "/proto.UserService/GetProfileByUserUUID"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -29,6 +31,8 @@ const (
 type UserServiceClient interface {
 	CreateProfile(ctx context.Context, in *CreateProfileRequest, opts ...grpc.CallOption) (*CreateProfileResponse, error)
 	DisableUserByUserID(ctx context.Context, in *DisableUserRequest, opts ...grpc.CallOption) (*DisableUserResponse, error)
+	GetProfileByUserID(ctx context.Context, in *GetProfileByUserIDRequest, opts ...grpc.CallOption) (*GetProfileByUserIDResponse, error)
+	GetProfileByUserUUID(ctx context.Context, in *GetProfileByUserUUIDRequest, opts ...grpc.CallOption) (*GetProfileByUserUUIDResponse, error)
 }
 
 type userServiceClient struct {
@@ -59,12 +63,34 @@ func (c *userServiceClient) DisableUserByUserID(ctx context.Context, in *Disable
 	return out, nil
 }
 
+func (c *userServiceClient) GetProfileByUserID(ctx context.Context, in *GetProfileByUserIDRequest, opts ...grpc.CallOption) (*GetProfileByUserIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetProfileByUserIDResponse)
+	err := c.cc.Invoke(ctx, UserService_GetProfileByUserID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetProfileByUserUUID(ctx context.Context, in *GetProfileByUserUUIDRequest, opts ...grpc.CallOption) (*GetProfileByUserUUIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetProfileByUserUUIDResponse)
+	err := c.cc.Invoke(ctx, UserService_GetProfileByUserUUID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
 	CreateProfile(context.Context, *CreateProfileRequest) (*CreateProfileResponse, error)
 	DisableUserByUserID(context.Context, *DisableUserRequest) (*DisableUserResponse, error)
+	GetProfileByUserID(context.Context, *GetProfileByUserIDRequest) (*GetProfileByUserIDResponse, error)
+	GetProfileByUserUUID(context.Context, *GetProfileByUserUUIDRequest) (*GetProfileByUserUUIDResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -80,6 +106,12 @@ func (UnimplementedUserServiceServer) CreateProfile(context.Context, *CreateProf
 }
 func (UnimplementedUserServiceServer) DisableUserByUserID(context.Context, *DisableUserRequest) (*DisableUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DisableUserByUserID not implemented")
+}
+func (UnimplementedUserServiceServer) GetProfileByUserID(context.Context, *GetProfileByUserIDRequest) (*GetProfileByUserIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProfileByUserID not implemented")
+}
+func (UnimplementedUserServiceServer) GetProfileByUserUUID(context.Context, *GetProfileByUserUUIDRequest) (*GetProfileByUserUUIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProfileByUserUUID not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -138,6 +170,42 @@ func _UserService_DisableUserByUserID_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetProfileByUserID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileByUserIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetProfileByUserID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetProfileByUserID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetProfileByUserID(ctx, req.(*GetProfileByUserIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetProfileByUserUUID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileByUserUUIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetProfileByUserUUID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetProfileByUserUUID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetProfileByUserUUID(ctx, req.(*GetProfileByUserUUIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +220,14 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DisableUserByUserID",
 			Handler:    _UserService_DisableUserByUserID_Handler,
+		},
+		{
+			MethodName: "GetProfileByUserID",
+			Handler:    _UserService_GetProfileByUserID_Handler,
+		},
+		{
+			MethodName: "GetProfileByUserUUID",
+			Handler:    _UserService_GetProfileByUserUUID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

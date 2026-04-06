@@ -4,6 +4,12 @@ FROM profiles p
 join users u on p.user_id = u.user_id
 WHERE p.user_id = $1 AND u.is_active = true;
 
+-- name: GetProfileByUserUUID :one
+SELECT p.name, p.avatar_url, p.birthday
+FROM profiles p
+join users u on p.user_id = u.user_id
+WHERE u.uuid = $1 AND u.is_active = true AND u.user_id <> $2;
+
 -- name: CreateProfile :one
 INSERT INTO profiles (user_id, name, email, birthday, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING *;
 

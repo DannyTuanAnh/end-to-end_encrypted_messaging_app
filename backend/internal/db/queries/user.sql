@@ -5,7 +5,8 @@
 SELECT 
     u.user_id,
     u.uuid,
-    u.display_name,
+    p.name,
+    p.avatar_url,
     
     -- Friend request status (if exists)
     CASE
@@ -31,7 +32,10 @@ LEFT JOIN friend_requests fr
 LEFT JOIN friendships f
     ON (f.user1_id = LEAST($2, u.user_id) AND f.user2_id = GREATEST($2, u.user_id))
 
-WHERE u.uuid = $1; 
+LEFT JOIN profiles p
+    ON p.user_id = u.user_id
+
+WHERE u.uuid = $1 and u.is_active = true and u.user_id <> $2; 
 
 -- name: GetUUIDByUserId :one
 SELECT uuid FROM users WHERE user_id = $1;

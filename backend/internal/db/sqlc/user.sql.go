@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -53,7 +54,8 @@ const getUserByUUID = `-- name: GetUserByUUID :one
 SELECT 
     u.user_id,
     u.uuid,
-    u.display_name,
+    p.name,
+    p.avatar_url,
     
     -- Friend request status (if exists)
     CASE
@@ -77,7 +79,10 @@ LEFT JOIN friend_requests fr
 LEFT JOIN friendships f
     ON (f.user1_id = LEAST($2, u.user_id) AND f.user2_id = GREATEST($2, u.user_id))
 
-WHERE u.uuid = $1
+LEFT JOIN profiles p
+    ON p.user_id = u.user_id
+
+WHERE u.uuid = $1 and u.is_active = true and u.user_id <> $2
 `
 
 type GetUserByUUIDParams struct {
@@ -88,7 +93,8 @@ type GetUserByUUIDParams struct {
 type GetUserByUUIDRow struct {
 	UserID                 int64       `json:"user_id"`
 	Uuid                   uuid.UUID   `json:"uuid"`
-	DisplayName            string      `json:"display_name"`
+	Name                   pgtype.Text `json:"name"`
+	AvatarUrl              pgtype.Text `json:"avatar_url"`
 	FriendRequestDirection interface{} `json:"friend_request_direction"`
 	IsFriend               bool        `json:"is_friend"`
 }
@@ -104,7 +110,8 @@ func (q *Queries) GetUserByUUID(ctx context.Context, arg GetUserByUUIDParams) (G
 	err := row.Scan(
 		&i.UserID,
 		&i.Uuid,
-		&i.DisplayName,
+		&i.Name,
+		&i.AvatarUrl,
 		&i.FriendRequestDirection,
 		&i.IsFriend,
 	)

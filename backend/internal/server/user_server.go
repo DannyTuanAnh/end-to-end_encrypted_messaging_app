@@ -30,6 +30,12 @@ var userPolicies = map[string][]string{
 	"/proto.UserService/CreateProfile": {
 		"auth-service",
 	},
+	"/proto.UserService/GetProfileByUserID": {
+		"api-gateway",
+	},
+	"/proto.UserService/GetProfileByUserUUID": {
+		"api-gateway",
+	},
 }
 
 type UserServer struct {

@@ -23,6 +23,8 @@ func (ar *authRepository) Login(ctx context.Context, arg sqlc.OAuthLoginParams) 
 
 	return models.GoogleLoginResponse{
 		SessionId:     result.FSessionID,
+		UUID:          result.FUserUuid,
+		DeviceID:      arg.PDeviceID,
 		UserId:        result.FUserID,
 		ProfileExists: result.FProfileExists,
 	}, nil

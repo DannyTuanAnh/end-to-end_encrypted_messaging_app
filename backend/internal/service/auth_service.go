@@ -96,22 +96,21 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		}
 	}
 
-	resp.DeviceID = deviceID
-
 	version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), s.redis_memory)
 	if err != nil {
-		log.Println("Error in get session_version (in service layer): ", err)
+		log.Println("Error in get session_version (in auth service layer): ", err)
 	}
 
 	if version == 0 {
 		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0).Err(); err != nil {
-			log.Println("Error in create session_version if redis didn't exist session_version before (in service layer): ", err)
+			log.Println("Error in create session_version if redis didn't exist session_version before (in auth service layer): ", err)
 		}
 		version = 1
 	}
 
 	session := models.SessionRedis{
 		UserID:         resp.UserId,
+		UUID:           resp.UUID,
 		DeviceID:       resp.DeviceID,
 		SessionVersion: version,
 		Valid:          true,
@@ -119,12 +118,12 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 
 	sessionJson, err := json.Marshal(session)
 	if err != nil {
-		log.Println("Error in marshal session data (in service layer): ", err)
+		log.Println("Error in marshal session data (in auth service layer): ", err)
 	}
 
 	err = s.redis_memory.Set(ctx, fmt.Sprintf("session:%s", resp.SessionId.String()), sessionJson, 24*7*time.Hour).Err()
 	if err != nil {
-		log.Println("Error in set session with marshal data in Redis (in service layer): ", err)
+		log.Println("Error in set session with marshal data in Redis (in auth service layer): ", err)
 	}
 
 	return &auth_proto.LoginResponse{
@@ -239,7 +238,7 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 	}
 
 	if err := s.redis_memory.Del(ctx, fmt.Sprintf("session:%s", req.SessionId)).Err(); err != nil {
-		log.Println("Error in delete session in Redis (in service layer): ", err)
+		log.Println("Error in delete session in Redis (in auth service layer): ", err)
 	}
 
 	return &auth_proto.LogoutResponse{

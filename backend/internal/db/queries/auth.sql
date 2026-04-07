@@ -1,8 +1,8 @@
 -- name: OAuthLogin :one
-select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean from oauth_login($1, $2, $3, $4, $5) as f;
+select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean, f.user_uuid::uuid from oauth_login($1, $2, $3, $4, $5) as f;
 
 -- name: CheckSession :one
-select s.user_id, s.revoked, s.revoke_at 
+select s.user_id, u.uuid, s.revoked, s.revoke_at
 from sessions as s 
 join users as u on s.user_id = u.id
 where session_id = $1 and device_id = $2 and u.is_active = true;

@@ -19,6 +19,7 @@ import (
 func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var userId int64
+		var userUUID uuid.UUID
 
 		sessionId, err, errCode := ValidateSession(ctx)
 		if err != nil {
@@ -63,6 +64,7 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 			}
 
 			userId = valueSession.UserID
+			userUUID = valueSession.UUID
 
 		} else if errors.Is(err, redis.Nil) {
 			log.Println("Session not found in Redis, checking database...")
@@ -86,6 +88,7 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				return
 			}
 			userId = result.UserID
+			userUUID = result.Uuid
 
 			version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", userId), rdb)
 			if err != nil {
@@ -101,6 +104,7 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 			sessionRedis := models.SessionRedis{
 				UserID:         userId,
+				UUID:           userUUID,
 				DeviceID:       deviceId,
 				SessionVersion: version,
 				Valid:          result.Revoked,
@@ -122,6 +126,7 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 		}
 
 		ctx.Set("user_id", userId)
+		ctx.Set("user_uuid", userUUID.String())
 		ctx.Set("device_id", deviceId.String())
 		ctx.Set("session_id", sessionId.String())
 

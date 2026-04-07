@@ -7,6 +7,7 @@ create or replace function oauth_login(
 )
 returns table (
     user_id bigint,
+    user_uuid uuid,
     session_id uuid,
     profile_exists boolean
 )
@@ -72,6 +73,10 @@ begin
     if not exists (select 1 from profiles where profiles.user_id = v_user_id) then
         v_profile_exists := false;
     end if;
+
+    select u.uuid into user_uuid
+    from users u
+    where u.user_id = v_user_id;
 
     -- 4. create session
     insert into sessions (user_id, device_id)

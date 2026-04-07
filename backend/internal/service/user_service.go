@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"buf.build/go/protovalidate"
@@ -13,6 +15,7 @@ import (
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -59,6 +62,22 @@ func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.Ge
 		return nil, validation.BuildValidationError(err)
 	}
 
+	profileData, err := s.redis_memory.Get(ctx, fmt.Sprintf("user_profile:%d", req.UserId)).Bytes()
+	if err == nil && len(profileData) > 0 {
+		var cachedProfile models.ProfileRedis
+		if err := json.Unmarshal(profileData, &cachedProfile); err == nil {
+			log.Println("Profile data found in Redis in user-service for user ID: ", req.UserId)
+			return &user_proto.GetProfileByUserIDResponse{
+				Uuid:      cachedProfile.UserUUID.String(),
+				Name:      cachedProfile.Name,
+				Email:     cachedProfile.Email,
+				Phone:     cachedProfile.Phone,
+				AvatarUrl: cachedProfile.AvatarUrl,
+				Birthday:  cachedProfile.Birthday,
+			}, nil
+		}
+	}
+
 	data, err := s.user_repo.GetProfileByUserID(ctx, req.UserId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -67,6 +86,27 @@ func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.Ge
 
 		return nil, status.Errorf(codes.Internal, "Failed to get profile: %v", err)
 	}
+
+	profileRedis := models.ProfileRedis{
+		UserUUID:  data.Uuid,
+		Name:      data.Name,
+		Email:     data.Email.String,
+		Phone:     data.Phone.String,
+		AvatarUrl: data.AvatarUrl.String,
+		Birthday:  data.Birthday.Time.Format("2006-01-02"),
+	}
+
+	profileBytes, err := json.Marshal(profileRedis)
+	if err != nil {
+		log.Printf("Failed to marshal profile data (in user service layer): %v", err)
+	}
+
+	err = s.redis_memory.Set(ctx, fmt.Sprintf("user_profile:%d", req.UserId), profileBytes, 24*7*time.Hour).Err()
+	if err != nil {
+		log.Printf("Failed to set profile data in Redis (in user service layer): %v", err)
+	}
+
+	log.Println("Profile data cached in Redis for user ID: ", req.UserId)
 
 	return &user_proto.GetProfileByUserIDResponse{
 		Uuid:      data.Uuid.String(),

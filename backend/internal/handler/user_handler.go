@@ -2,26 +2,33 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 )
 
 type UserHandler struct {
-	user_client *client.UserClient
+	user_client  *client.UserClient
+	redis_memory *redis.Client
 }
 
-func NewUserHandler(user_client *client.UserClient) *UserHandler {
+func NewUserHandler(user_client *client.UserClient, rdb *redis.Client) *UserHandler {
 	return &UserHandler{
-		user_client: user_client,
+		user_client:  user_client,
+		redis_memory: rdb,
 	}
 }
 
@@ -41,6 +48,23 @@ func (h *UserHandler) GetProfile(ctx *gin.Context) {
 	if userID <= 0 {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
 		return
+	}
+
+	profileData, err := h.redis_memory.Get(ctx, fmt.Sprintf("user_profile:%d", userID)).Bytes()
+	if err == nil && len(profileData) > 0 {
+		var cachedProfile models.ProfileRedis
+		if err := json.Unmarshal(profileData, &cachedProfile); err == nil {
+			log.Println("Profile data found in Redis in api-gateway for user ID: ", userID)
+			utils.ResponseSuccessWithData(ctx, http.StatusOK, &user_proto.GetProfileByUserIDResponse{
+				Uuid:      cachedProfile.UserUUID.String(),
+				Name:      cachedProfile.Name,
+				Email:     cachedProfile.Email,
+				Phone:     cachedProfile.Phone,
+				AvatarUrl: cachedProfile.AvatarUrl,
+				Birthday:  cachedProfile.Birthday,
+			})
+			return
+		}
 	}
 
 	baseCtx := ctx.Request.Context()
@@ -80,6 +104,16 @@ func (h *UserHandler) GetProfileByUserUUID(ctx *gin.Context) {
 	if userID <= 0 {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
 		return
+	}
+
+	user_uuid, exist := ctx.Get("user_uuid")
+	if exist {
+		if userUUIDStr, ok := user_uuid.(string); ok {
+			if userUUIDStr == params.UUID {
+				utils.ResponseErrorAbort(ctx, utils.NewError("You can't find your profile", utils.ErrCodeNotFound))
+				return
+			}
+		}
 	}
 
 	baseCtx := ctx.Request.Context()

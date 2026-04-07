@@ -5,13 +5,14 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/handler"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 type UserModule struct {
 	routes routes.Routes
 }
 
-func NewUserModule(addr string) *UserModule {
+func NewUserModule(addr string, rdb *redis.Client) *UserModule {
 	// Load TLS credentials for gRPC client
 	// Call by API Gateway, so use API Gateway's certs
 	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
@@ -24,7 +25,7 @@ func NewUserModule(addr string) *UserModule {
 	}
 
 	// 2. Initialize handler
-	user_handler := handler.NewUserHandler(user_client)
+	user_handler := handler.NewUserHandler(user_client, rdb)
 
 	// 3. Initialize routes
 	user_routes := routes.NewUserRoutes(user_handler)

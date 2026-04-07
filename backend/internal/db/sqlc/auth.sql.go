@@ -13,7 +13,7 @@ import (
 )
 
 const checkSession = `-- name: CheckSession :one
-select s.user_id, s.revoked, s.revoke_at 
+select s.user_id, u.uuid, s.revoked, s.revoke_at
 from sessions as s 
 join users as u on s.user_id = u.id
 where session_id = $1 and device_id = $2 and u.is_active = true
@@ -26,6 +26,7 @@ type CheckSessionParams struct {
 
 type CheckSessionRow struct {
 	UserID   int64              `json:"user_id"`
+	Uuid     uuid.UUID          `json:"uuid"`
 	Revoked  bool               `json:"revoked"`
 	RevokeAt pgtype.Timestamptz `json:"revoke_at"`
 }
@@ -33,7 +34,12 @@ type CheckSessionRow struct {
 func (q *Queries) CheckSession(ctx context.Context, arg CheckSessionParams) (CheckSessionRow, error) {
 	row := q.db.QueryRow(ctx, checkSession, arg.SessionID, arg.DeviceID)
 	var i CheckSessionRow
-	err := row.Scan(&i.UserID, &i.Revoked, &i.RevokeAt)
+	err := row.Scan(
+		&i.UserID,
+		&i.Uuid,
+		&i.Revoked,
+		&i.RevokeAt,
+	)
 	return i, err
 }
 
@@ -57,7 +63,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, keyHash string) error {
 }
 
 const oAuthLogin = `-- name: OAuthLogin :one
-select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean from oauth_login($1, $2, $3, $4, $5) as f
+select f.user_id::bigint, f.session_id::uuid, f.profile_exists::boolean, f.user_uuid::uuid from oauth_login($1, $2, $3, $4, $5) as f
 `
 
 type OAuthLoginParams struct {
@@ -72,6 +78,7 @@ type OAuthLoginRow struct {
 	FUserID        int64     `json:"f_user_id"`
 	FSessionID     uuid.UUID `json:"f_session_id"`
 	FProfileExists bool      `json:"f_profile_exists"`
+	FUserUuid      uuid.UUID `json:"f_user_uuid"`
 }
 
 func (q *Queries) OAuthLogin(ctx context.Context, arg OAuthLoginParams) (OAuthLoginRow, error) {
@@ -83,7 +90,12 @@ func (q *Queries) OAuthLogin(ctx context.Context, arg OAuthLoginParams) (OAuthLo
 		arg.PDeviceID,
 	)
 	var i OAuthLoginRow
-	err := row.Scan(&i.FUserID, &i.FSessionID, &i.FProfileExists)
+	err := row.Scan(
+		&i.FUserID,
+		&i.FSessionID,
+		&i.FProfileExists,
+		&i.FUserUuid,
+	)
 	return i, err
 }
 

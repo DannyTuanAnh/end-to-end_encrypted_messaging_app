@@ -84,7 +84,7 @@ func BuildBusinessError(code, msg string) error {
 	return st.Err()
 }
 
-func MapUserServiceError(err error, service string) error {
+func MapServiceError(err error, service string) error {
 	switch status.Code(err) {
 
 	case codes.InvalidArgument:

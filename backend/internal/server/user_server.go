@@ -10,6 +10,10 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/storage"
+	vision "cloud.google.com/go/vision/apiv1"
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
@@ -19,6 +23,8 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -34,6 +40,15 @@ var userPolicies = map[string][]string{
 		"api-gateway",
 	},
 	"/proto.UserService/GetProfileByUserUUID": {
+		"api-gateway",
+	},
+	"/proto.UserService/UpdateProfile": {
+		"api-gateway",
+	},
+	"/proto.UserService/VerifyIDTokenOTP": {
+		"api-gateway",
+	},
+	"/proto.UserService/ReportUserImage": {
 		"api-gateway",
 	},
 }
@@ -88,8 +103,18 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 		return nil, fmt.Errorf("Failed to create auth client: %v", err)
 	}
 
+	vision_client, err := vision.NewImageAnnotatorClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create Vision API client: %v", err)
+	}
+
+	compute_service, err := compute.NewService(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compute service: %v", err)
+	}
+
 	user_repo := repository.NewUserRepository(db)
-	user_service := service.NewUserService(user_repo, rdb, auth_client)
+	user_service := service.NewUserService(user_repo, rdb, auth_client, connectAuthFirebase(ctx), vision_client, compute_service, connectGCS(ctx))
 
 	s := grpc.NewServer(
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
@@ -144,4 +169,40 @@ func (as *UserServer) Run() (string, error) {
 		}
 		return "User server stopped gracefully", nil
 	}
+}
+
+func connectGCS(ctx context.Context) *storage.Client {
+	serviceAccountKey := utils.GetEnv("GOOGLE_CLOUD_STORAGE_CREDENTIALS", "")
+
+	var storage_client *storage.Client
+	var err error
+	if serviceAccountKey != "" {
+		storage_client, err = storage.NewClient(ctx, option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey))
+	} else {
+		storage_client, err = storage.NewClient(ctx)
+	}
+
+	if err != nil {
+		panic("Failed to initialize Google Cloud Storage client: " + err.Error())
+	}
+
+	return storage_client
+}
+
+func connectAuthFirebase(ctx context.Context) *auth.Client {
+	// Initialize Firebase app for verify otp
+	serviceAccountKey := utils.GetEnv("GOOGLE_APPLICATION_FIREBASE_CREDENTIALS", "")
+	opt := option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
+
+	app, err := firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		panic("Failed to initialize Firebase app: " + err.Error())
+	}
+
+	auth_client_firebase, err := app.Auth(ctx)
+	if err != nil {
+		panic("Failed to initialize Firebase Auth client: " + err.Error())
+	}
+
+	return auth_client_firebase
 }

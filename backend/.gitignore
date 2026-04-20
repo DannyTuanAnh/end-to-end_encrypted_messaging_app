@@ -3,4 +3,6 @@
 *-key.pem
 *.pem
 
+*serviceAccount.json
+
 /certs/

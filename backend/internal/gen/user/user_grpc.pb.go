@@ -23,6 +23,10 @@ const (
 	UserService_DisableUserByUserID_FullMethodName  = "/proto.UserService/DisableUserByUserID"
 	UserService_GetProfileByUserID_FullMethodName   = "/proto.UserService/GetProfileByUserID"
 	UserService_GetProfileByUserUUID_FullMethodName = "/proto.UserService/GetProfileByUserUUID"
+	UserService_VerifyIDTokenOTP_FullMethodName     = "/proto.UserService/VerifyIDTokenOTP"
+	UserService_UpdateProfile_FullMethodName        = "/proto.UserService/UpdateProfile"
+	UserService_UpdateAvatar_FullMethodName         = "/proto.UserService/UpdateAvatar"
+	UserService_ReportUserImage_FullMethodName      = "/proto.UserService/ReportUserImage"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -33,6 +37,10 @@ type UserServiceClient interface {
 	DisableUserByUserID(ctx context.Context, in *DisableUserRequest, opts ...grpc.CallOption) (*DisableUserResponse, error)
 	GetProfileByUserID(ctx context.Context, in *GetProfileByUserIDRequest, opts ...grpc.CallOption) (*GetProfileByUserIDResponse, error)
 	GetProfileByUserUUID(ctx context.Context, in *GetProfileByUserUUIDRequest, opts ...grpc.CallOption) (*GetProfileByUserUUIDResponse, error)
+	VerifyIDTokenOTP(ctx context.Context, in *VerifyIDTokenOTPRequest, opts ...grpc.CallOption) (*VerifyIDTokenOTPResponse, error)
+	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
+	UpdateAvatar(ctx context.Context, in *UpdateAvatarRequest, opts ...grpc.CallOption) (*UpdateAvatarResponse, error)
+	ReportUserImage(ctx context.Context, in *ReportUserImageRequest, opts ...grpc.CallOption) (*ReportUserImageResponse, error)
 }
 
 type userServiceClient struct {
@@ -83,6 +91,46 @@ func (c *userServiceClient) GetProfileByUserUUID(ctx context.Context, in *GetPro
 	return out, nil
 }
 
+func (c *userServiceClient) VerifyIDTokenOTP(ctx context.Context, in *VerifyIDTokenOTPRequest, opts ...grpc.CallOption) (*VerifyIDTokenOTPResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyIDTokenOTPResponse)
+	err := c.cc.Invoke(ctx, UserService_VerifyIDTokenOTP_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateProfileResponse)
+	err := c.cc.Invoke(ctx, UserService_UpdateProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) UpdateAvatar(ctx context.Context, in *UpdateAvatarRequest, opts ...grpc.CallOption) (*UpdateAvatarResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAvatarResponse)
+	err := c.cc.Invoke(ctx, UserService_UpdateAvatar_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) ReportUserImage(ctx context.Context, in *ReportUserImageRequest, opts ...grpc.CallOption) (*ReportUserImageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportUserImageResponse)
+	err := c.cc.Invoke(ctx, UserService_ReportUserImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -91,6 +139,10 @@ type UserServiceServer interface {
 	DisableUserByUserID(context.Context, *DisableUserRequest) (*DisableUserResponse, error)
 	GetProfileByUserID(context.Context, *GetProfileByUserIDRequest) (*GetProfileByUserIDResponse, error)
 	GetProfileByUserUUID(context.Context, *GetProfileByUserUUIDRequest) (*GetProfileByUserUUIDResponse, error)
+	VerifyIDTokenOTP(context.Context, *VerifyIDTokenOTPRequest) (*VerifyIDTokenOTPResponse, error)
+	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
+	UpdateAvatar(context.Context, *UpdateAvatarRequest) (*UpdateAvatarResponse, error)
+	ReportUserImage(context.Context, *ReportUserImageRequest) (*ReportUserImageResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -112,6 +164,18 @@ func (UnimplementedUserServiceServer) GetProfileByUserID(context.Context, *GetPr
 }
 func (UnimplementedUserServiceServer) GetProfileByUserUUID(context.Context, *GetProfileByUserUUIDRequest) (*GetProfileByUserUUIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProfileByUserUUID not implemented")
+}
+func (UnimplementedUserServiceServer) VerifyIDTokenOTP(context.Context, *VerifyIDTokenOTPRequest) (*VerifyIDTokenOTPResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyIDTokenOTP not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateProfile not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateAvatar(context.Context, *UpdateAvatarRequest) (*UpdateAvatarResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAvatar not implemented")
+}
+func (UnimplementedUserServiceServer) ReportUserImage(context.Context, *ReportUserImageRequest) (*ReportUserImageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReportUserImage not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -206,6 +270,78 @@ func _UserService_GetProfileByUserUUID_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_VerifyIDTokenOTP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyIDTokenOTPRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).VerifyIDTokenOTP(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_VerifyIDTokenOTP_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).VerifyIDTokenOTP(ctx, req.(*VerifyIDTokenOTPRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateProfile(ctx, req.(*UpdateProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UpdateAvatar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAvatarRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateAvatar(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateAvatar_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateAvatar(ctx, req.(*UpdateAvatarRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_ReportUserImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportUserImageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ReportUserImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ReportUserImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ReportUserImage(ctx, req.(*ReportUserImageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +364,22 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProfileByUserUUID",
 			Handler:    _UserService_GetProfileByUserUUID_Handler,
+		},
+		{
+			MethodName: "VerifyIDTokenOTP",
+			Handler:    _UserService_VerifyIDTokenOTP_Handler,
+		},
+		{
+			MethodName: "UpdateProfile",
+			Handler:    _UserService_UpdateProfile_Handler,
+		},
+		{
+			MethodName: "UpdateAvatar",
+			Handler:    _UserService_UpdateAvatar_Handler,
+		},
+		{
+			MethodName: "ReportUserImage",
+			Handler:    _UserService_ReportUserImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

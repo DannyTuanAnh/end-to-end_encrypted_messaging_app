@@ -24,4 +24,5 @@ type UserRepository interface {
 	GetProfileByUserUUID(ctx context.Context, arg sqlc.GetProfileByUserUUIDParams) (sqlc.GetProfileByUserUUIDRow, error)
 	CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error)
 	DisableUserByUserID(ctx context.Context, userId int64) error
+	UpdateProfile(ctx context.Context, arg sqlc.UpdateProfileByUserIdParams) (sqlc.UpdateProfileByUserIdRow, error)
 }

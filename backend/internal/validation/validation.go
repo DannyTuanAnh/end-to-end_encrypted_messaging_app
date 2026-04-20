@@ -88,6 +88,10 @@ func HandleValidationErrors(err error) gin.H {
 			case "strong_password":
 				special := "!@#$%^&*()_+-=[]{},;.:|<>?/~'`" + `"`
 				errors[fieldPath] = fmt.Sprintf("%s phải bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (%s)", fieldPath, special)
+			case "not_blank":
+				errors[fieldPath] = fmt.Sprintf("%s không chấp nhận chỉ có khoảng trắng", fieldPath)
+			case "is_phone_mobile":
+				errors[fieldPath] = fmt.Sprintf("%s phải là số điện thoại di động hợp lệ của Việt Nam", fieldPath)
 			default:
 				errors[fieldPath] = fmt.Sprintf("%s không hợp lệ", fieldPath)
 			}

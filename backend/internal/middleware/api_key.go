@@ -24,7 +24,7 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 		hash := utils.HashAPIKey(apiKey)
 
-		genNum, err := utils.GetKeyRedisAndConvertToInt(ctx, "generation_api_key", rdb)
+		genNum, err := rdb.Get(ctx, "generation_api_key").Int()
 		if err != nil {
 			log.Println("Error in get generation number of API key from Redis (in middleware layer): ", err)
 		}
@@ -45,6 +45,7 @@ func ApiKeyMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid API key"})
 				return
 			}
+			log.Println("Error in check API key in database (in middleware layer): ", err)
 
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check API key"})
 			return

@@ -26,6 +26,10 @@ func (r *userRepository) CreateProfile(ctx context.Context, arg sqlc.CreateProfi
 	return r.user_repo.CreateProfile(ctx, arg)
 }
 
+func (r *userRepository) UpdateProfile(ctx context.Context, arg sqlc.UpdateProfileByUserIdParams) (sqlc.UpdateProfileByUserIdRow, error) {
+	return r.user_repo.UpdateProfileByUserId(ctx, arg)
+}
+
 func (r *userRepository) DisableUserByUserID(ctx context.Context, userId int64) error {
 	return r.user_repo.DisableUser(ctx, userId)
 }

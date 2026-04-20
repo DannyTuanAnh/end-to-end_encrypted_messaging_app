@@ -256,13 +256,14 @@ type MessageRead struct {
 }
 
 type Profile struct {
-	UserID    int64       `json:"user_id"`
-	Name      string      `json:"name"`
-	Email     pgtype.Text `json:"email"`
-	Phone     pgtype.Text `json:"phone"`
-	Birthday  pgtype.Date `json:"birthday"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	UserID        int64       `json:"user_id"`
+	Name          string      `json:"name"`
+	Email         pgtype.Text `json:"email"`
+	Phone         pgtype.Text `json:"phone"`
+	Birthday      pgtype.Date `json:"birthday"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	AvatarVersion int32       `json:"avatar_version"`
+	UpdatedAt     time.Time   `json:"updated_at"`
 }
 
 type Session struct {

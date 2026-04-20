@@ -46,7 +46,7 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 	}
 
 	// 3. Set up initial data in Redis, such as API key generation counter
-	if err := rdb.Set(ctx, "generation_api_key", 1, 0).Err(); err != nil {
+	if err := rdb.SetNX(ctx, "generation_api_key", 1, 0).Err(); err != nil {
 		log.Fatalf("Failed to set initial value in Redis: %v", err)
 		return nil
 	}
@@ -54,7 +54,7 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 	// 4. Initialize modules
 	modules := []ModelHTTP{
 		NewAuthModule(cfg.Service.AuthServiceAddr),
-		NewUserModule(cfg.Service.UserServiceAddr, rdb),
+		NewUserModule(cfg.Service.UserServiceAddr, ctx, rdb),
 	}
 
 	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module

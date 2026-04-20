@@ -1,21 +1,21 @@
 package validation
 
 import (
+	"log"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/go-playground/validator/v10"
+	"github.com/nyaruka/phonenumbers"
 )
 
 func RegisterCustomValidations(v *validator.Validate) {
-	var blockedDomains = map[string]bool{
-		"blacklist.com": true,
-		"edu.vn":        true,
-		"abc.com":       true,
-	}
+	var blockedDomainsEnv = utils.GetEnvList("BLOCK_EMAIL_DOMAINS", []string{})
+	blockedDomains := utils.SetListBoolean(blockedDomainsEnv)
 	v.RegisterValidation("email_advanced", func(fl validator.FieldLevel) bool {
 		email := fl.Field().String()
 		parts := strings.Split(email, "@")
@@ -26,6 +26,38 @@ func RegisterCustomValidations(v *validator.Validate) {
 		domain := utils.NormalizeString(parts[1])
 
 		return !blockedDomains[domain]
+	})
+
+	v.RegisterValidation("not_blank", func(fl validator.FieldLevel) bool {
+		field := reflect.Indirect(fl.Field())
+
+		switch field.Kind() {
+		case reflect.String:
+			return len(strings.TrimSpace(field.String())) > 0
+		case reflect.Slice, reflect.Array:
+			return field.Len() > 0
+		default:
+			return true
+		}
+	})
+
+	v.RegisterValidation("is_phone_mobile", func(fl validator.FieldLevel) bool {
+		phone := fl.Field().String()
+
+		num, err := phonenumbers.Parse(phone, "VN")
+		if err != nil {
+			return false
+		}
+
+		if !phonenumbers.IsValidNumber(num) || phonenumbers.GetNumberType(num) != phonenumbers.MOBILE {
+			return false
+		}
+
+		e164 := phonenumbers.Format(num, phonenumbers.E164)
+		fl.Field().SetString(e164)
+		log.Println("Phone number in E.164 format: ", e164)
+
+		return true
 	})
 
 	var slugRegex = regexp.MustCompile(`^[a-z0-9]+(?:[-.][a-z0-9]+)*$`)

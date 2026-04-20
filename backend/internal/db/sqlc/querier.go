@@ -52,7 +52,8 @@ type Querier interface {
 	SearchConversationByName(ctx context.Context, arg SearchConversationByNameParams) ([]SearchConversationByNameRow, error)
 	SearchFriendByName(ctx context.Context, arg SearchFriendByNameParams) ([]SearchFriendByNameRow, error)
 	UpdateGroupInfo(ctx context.Context, arg UpdateGroupInfoParams) (Group, error)
-	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (Profile, error)
+	UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (UpdateProfileAvatarByUserIdRow, error)
+	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (UpdateProfileByUserIdRow, error)
 	ValidateAPIKey(ctx context.Context, keyHash string) (bool, error)
 }
 

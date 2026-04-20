@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
+	"github.com/nyaruka/phonenumbers"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
@@ -64,6 +63,27 @@ func GetEnvInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
+func GetEnvList(key string, defaultValue []string) []string {
+	if value := os.Getenv(key); value != "" {
+		valTrim := strings.TrimSpace(value)
+		if valTrim == "" {
+			return defaultValue
+		}
+		return strings.Split(valTrim, ",")
+	}
+
+	return defaultValue
+}
+
+func SetListBoolean(blocked []string) map[string]bool {
+	blockedDomains := make(map[string]bool)
+	for _, domain := range blocked {
+		blockedDomains[NormalizeString(domain)] = true
+	}
+
+	return blockedDomains
+}
+
 func WriteEnv(key string, value string) error {
 	// Append to .env
 	envLine := fmt.Sprintf("\n%s=%s\n", key, value)
@@ -112,24 +132,6 @@ func CheckUUID(id string) bool {
 	return true
 }
 
-func GetKeyRedisAndConvertToInt(ctx context.Context, key string, rdb *redis.Client) (int, error) {
-	result, err := rdb.Get(ctx, key).Result()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return 0, nil
-		}
-
-		return 0, fmt.Errorf("Failed to get key from Redis: %v", err)
-	}
-
-	resultNum, err := strconv.Atoi(result)
-	if err != nil {
-		return 0, fmt.Errorf("Failed to convert Redis value to int: %v", err)
-	}
-
-	return resultNum, nil
-}
-
 // grpc, mtls, get caller service name from client certificate
 func GetCaller(ctx context.Context) string {
 	p, ok := peer.FromContext(ctx)
@@ -153,4 +155,18 @@ func GetCaller(ctx context.Context) string {
 	}
 
 	return "unknown"
+}
+
+func IsPhoneNumber(phone *string) (string, bool) {
+	num, err := phonenumbers.Parse(*phone, "VN")
+	if err != nil {
+		return "", false
+	}
+
+	if !phonenumbers.IsValidNumber(num) || phonenumbers.GetNumberType(num) != phonenumbers.MOBILE {
+		return "", false
+	}
+
+	e164 := phonenumbers.Format(num, phonenumbers.E164)
+	return e164, true
 }

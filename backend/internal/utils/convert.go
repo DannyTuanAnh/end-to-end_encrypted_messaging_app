@@ -39,16 +39,34 @@ func ConvertMapToSliceWithTransform[K comparable, V any, R any](m map[K]V, trans
 }
 
 func ConvertToPgTypeText(input string) pgtype.Text {
+	if strings.TrimSpace(input) == "" {
+		return pgtype.Text{
+			Valid: false,
+		}
+	}
+
 	return pgtype.Text{
 		String: input,
-		Valid:  input != "",
+		Valid:  true,
+	}
+}
+
+func ConvertToPgTypeTextPtr(input *string) pgtype.Text {
+	if input == nil || strings.TrimSpace(*input) == "" {
+		return pgtype.Text{
+			Valid: false,
+		}
+	}
+
+	return pgtype.Text{
+		String: *input,
+		Valid:  true,
 	}
 }
 
 func ConvertToPgTypeDate(input string) pgtype.Date {
-	if input == "" {
+	if strings.TrimSpace(input) == "" {
 		return pgtype.Date{
-			Time:  time.Time{}, // Zero value for time
 			Valid: false,
 		}
 	}
@@ -56,13 +74,32 @@ func ConvertToPgTypeDate(input string) pgtype.Date {
 	t, err := time.Parse("2006-01-02", input)
 	if err != nil {
 		return pgtype.Date{
-			Time:  time.Time{}, // Zero value for time
 			Valid: false,
 		}
 	}
 
 	return pgtype.Date{
-		Time:  t, // Zero value for time
+		Time:  t,
+		Valid: true,
+	}
+}
+
+func ConvertToPgTypeDatePtr(input *string) pgtype.Date {
+	if input == nil || strings.TrimSpace(*input) == "" {
+		return pgtype.Date{
+			Valid: false,
+		}
+	}
+
+	t, err := time.Parse("2006-01-02", *input)
+	if err != nil {
+		return pgtype.Date{
+			Valid: false,
+		}
+	}
+
+	return pgtype.Date{
+		Time:  t,
 		Valid: true,
 	}
 }

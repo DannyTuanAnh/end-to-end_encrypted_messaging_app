@@ -92,11 +92,11 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 			AvatarUrl: userInfo.Claims["picture"].(string),
 		})
 		if err != nil {
-			return nil, validation.MapUserServiceError(err, "user")
+			return nil, validation.MapServiceError(err, "user")
 		}
 	}
 
-	version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), s.redis_memory)
+	version, err := s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId)).Int()
 	if err != nil {
 		log.Println("Error in get session_version (in auth service layer): ", err)
 	}
@@ -105,7 +105,11 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0).Err(); err != nil {
 			log.Println("Error in create session_version if redis didn't exist session_version before (in auth service layer): ", err)
 		}
-		version = 1
+		version, err = s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId)).Int()
+		if err != nil {
+			log.Println("Error in get session_version after setNX (in auth service layer): ", err)
+			version = 1
+		}
 	}
 
 	session := models.SessionRedis{

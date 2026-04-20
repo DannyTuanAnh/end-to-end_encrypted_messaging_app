@@ -14,7 +14,7 @@ import (
 )
 
 const createProfile = `-- name: CreateProfile :one
-INSERT INTO profiles (user_id, name, email, birthday, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, name, email, phone, birthday, avatar_url, updated_at
+INSERT INTO profiles (user_id, name, email, birthday, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, name, email, phone, birthday, avatar_url, avatar_version, updated_at
 `
 
 type CreateProfileParams struct {
@@ -41,27 +41,29 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
+		&i.AvatarVersion,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getProfileByUserId = `-- name: GetProfileByUserId :one
-SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.updated_at, u.uuid
+SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.avatar_version, p.updated_at, u.uuid
 FROM profiles p
 join users u on p.user_id = u.user_id
 WHERE p.user_id = $1 AND u.is_active = true
 `
 
 type GetProfileByUserIdRow struct {
-	UserID    int64       `json:"user_id"`
-	Name      string      `json:"name"`
-	Email     pgtype.Text `json:"email"`
-	Phone     pgtype.Text `json:"phone"`
-	Birthday  pgtype.Date `json:"birthday"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	UpdatedAt time.Time   `json:"updated_at"`
-	Uuid      uuid.UUID   `json:"uuid"`
+	UserID        int64       `json:"user_id"`
+	Name          string      `json:"name"`
+	Email         pgtype.Text `json:"email"`
+	Phone         pgtype.Text `json:"phone"`
+	Birthday      pgtype.Date `json:"birthday"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	AvatarVersion int32       `json:"avatar_version"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+	Uuid          uuid.UUID   `json:"uuid"`
 }
 
 func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error) {
@@ -74,6 +76,7 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProf
 		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
+		&i.AvatarVersion,
 		&i.UpdatedAt,
 		&i.Uuid,
 	)
@@ -81,7 +84,7 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProf
 }
 
 const getProfileByUserUUID = `-- name: GetProfileByUserUUID :one
-SELECT p.name, p.avatar_url, p.birthday
+SELECT p.name, p.avatar_url, p.birthday, p.avatar_version
 FROM profiles p
 join users u on p.user_id = u.user_id
 WHERE u.uuid = $1 AND u.is_active = true AND u.user_id <> $2
@@ -93,56 +96,126 @@ type GetProfileByUserUUIDParams struct {
 }
 
 type GetProfileByUserUUIDRow struct {
-	Name      string      `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	Birthday  pgtype.Date `json:"birthday"`
+	Name          string      `json:"name"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	Birthday      pgtype.Date `json:"birthday"`
+	AvatarVersion int32       `json:"avatar_version"`
 }
 
 func (q *Queries) GetProfileByUserUUID(ctx context.Context, arg GetProfileByUserUUIDParams) (GetProfileByUserUUIDRow, error) {
 	row := q.db.QueryRow(ctx, getProfileByUserUUID, arg.Uuid, arg.UserID)
 	var i GetProfileByUserUUIDRow
-	err := row.Scan(&i.Name, &i.AvatarUrl, &i.Birthday)
+	err := row.Scan(
+		&i.Name,
+		&i.AvatarUrl,
+		&i.Birthday,
+		&i.AvatarVersion,
+	)
 	return i, err
 }
 
-const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
-UPDATE profiles SET 
-    name = COALESCE($2, name),
-    birthday = COALESCE($3, birthday),
-    email = COALESCE($4, email),
-    phone = COALESCE($5, phone),
-    avatar_url = COALESCE($6, avatar_url),
+const updateProfileAvatarByUserId = `-- name: UpdateProfileAvatarByUserId :one
+WITH old AS (
+    SELECT avatar_url FROM profiles WHERE user_id = $1
+)
+
+UPDATE profiles p
+SET
+    avatar_url = $2,
+    avatar_version = p.avatar_version + CASE
+        WHEN old.avatar_url IS DISTINCT FROM $2 THEN 1
+        ELSE 0
+    END,
     updated_at = now()
-WHERE user_id = $1 
-RETURNING user_id, name, email, phone, birthday, avatar_url, updated_at
+
+FROM old
+JOIN users u ON p.user_id = u.user_id AND u.is_active = true
+WHERE p.user_id = $1
+RETURNING p.user_id, u.uuid, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.avatar_version, p.updated_at
 `
 
-type UpdateProfileByUserIdParams struct {
+type UpdateProfileAvatarByUserIdParams struct {
 	UserID    int64       `json:"user_id"`
-	Name      pgtype.Text `json:"name"`
-	Birthday  pgtype.Date `json:"birthday"`
-	Email     pgtype.Text `json:"email"`
-	Phone     pgtype.Text `json:"phone"`
 	AvatarUrl pgtype.Text `json:"avatar_url"`
 }
 
-func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (Profile, error) {
-	row := q.db.QueryRow(ctx, updateProfileByUserId,
-		arg.UserID,
-		arg.Name,
-		arg.Birthday,
-		arg.Email,
-		arg.Phone,
-		arg.AvatarUrl,
-	)
-	var i Profile
+type UpdateProfileAvatarByUserIdRow struct {
+	UserID        int64       `json:"user_id"`
+	Uuid          uuid.UUID   `json:"uuid"`
+	Name          string      `json:"name"`
+	Email         pgtype.Text `json:"email"`
+	Phone         pgtype.Text `json:"phone"`
+	Birthday      pgtype.Date `json:"birthday"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	AvatarVersion int32       `json:"avatar_version"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+}
+
+func (q *Queries) UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (UpdateProfileAvatarByUserIdRow, error) {
+	row := q.db.QueryRow(ctx, updateProfileAvatarByUserId, arg.UserID, arg.AvatarUrl)
+	var i UpdateProfileAvatarByUserIdRow
 	err := row.Scan(
 		&i.UserID,
+		&i.Uuid,
 		&i.Name,
 		&i.Email,
 		&i.Phone,
 		&i.Birthday,
 		&i.AvatarUrl,
+		&i.AvatarVersion,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
+UPDATE profiles p
+SET 
+    name = COALESCE($2, p.name),
+    birthday = COALESCE($3, p.birthday),
+    phone = COALESCE($4, p.phone),
+    updated_at = now()
+FROM users u 
+WHERE p.user_id = u.user_id AND p.user_id = $1 AND u.is_active = true
+RETURNING p.user_id, u.uuid, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.avatar_version, p.updated_at
+`
+
+type UpdateProfileByUserIdParams struct {
+	UserID   int64       `json:"user_id"`
+	Name     pgtype.Text `json:"name"`
+	Birthday pgtype.Date `json:"birthday"`
+	Phone    pgtype.Text `json:"phone"`
+}
+
+type UpdateProfileByUserIdRow struct {
+	UserID        int64       `json:"user_id"`
+	Uuid          uuid.UUID   `json:"uuid"`
+	Name          string      `json:"name"`
+	Email         pgtype.Text `json:"email"`
+	Phone         pgtype.Text `json:"phone"`
+	Birthday      pgtype.Date `json:"birthday"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	AvatarVersion int32       `json:"avatar_version"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+}
+
+func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (UpdateProfileByUserIdRow, error) {
+	row := q.db.QueryRow(ctx, updateProfileByUserId,
+		arg.UserID,
+		arg.Name,
+		arg.Birthday,
+		arg.Phone,
+	)
+	var i UpdateProfileByUserIdRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Uuid,
+		&i.Name,
+		&i.Email,
+		&i.Phone,
+		&i.Birthday,
+		&i.AvatarUrl,
+		&i.AvatarVersion,
 		&i.UpdatedAt,
 	)
 	return i, err

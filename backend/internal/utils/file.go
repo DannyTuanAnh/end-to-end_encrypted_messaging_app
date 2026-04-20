@@ -1,97 +1,105 @@
 package utils
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"github.com/h2non/filetype"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+
+	_ "github.com/gen2brain/avif"
+	_ "golang.org/x/image/webp"
+
 	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/h2non/filetype"
+
 	"github.com/google/uuid"
 )
 
 var (
-	allowExts = map[string]bool{
-		".jpg":  true,
-		".jpeg": true,
-		".png":  true,
-	}
+	allowExtsEnv = GetEnvList("ALLOWED_EXTENSIONS", []string{})
+	allowExts    = SetListBoolean(allowExtsEnv)
 
-	allowMimeTypes = map[string]bool{
-		"image/jpeg": true,
-		"image/png":  true,
-	}
-	allowFormats = map[string]bool{
-		"jpeg": true,
-		"png":  true,
-		"jpg":  true,
-	}
+	allowMimeTypesEnv = GetEnvList("ALLOWED_MIME_TYPES", []string{})
+	allowMimeTypes    = SetListBoolean(allowMimeTypesEnv)
+
+	allowFormatsEnv = GetEnvList("ALLOWED_FORMATS", []string{})
+	allowFormats    = SetListBoolean(allowFormatsEnv)
 )
 
-const maxFileSize = 5 << 20 // 5 MB
+var maxImageFileSize = int64(GetEnvInt("MAX_IMAGE_SIZE", 5)) << 20 // 5 MB
 
-func ValidateAndSaveFile(fileHeader *multipart.FileHeader, uploadDir string) (string, error) {
-	// 1. Validate filename - chặn path traversal và các ký tự đặc biệt
-	// Chặn path separator (cả / và \)
+func ValidateAndReturnObjNameImage(fileHeader *multipart.FileHeader) (multipart.File, string, error) {
+	// 1. Validate filename - prevent path traversal and invalid characters
+	// Prevent path separator (both / and \)
 	if strings.ContainsAny(fileHeader.Filename, "/\\") {
-		return "", errors.New("filename contains path separator characters")
+		return nil, "", errors.New("filename contains path separator characters")
 	}
 
-	// Chặn path traversal
+	// Prevent path traversal
 	if strings.Contains(fileHeader.Filename, "..") {
-		return "", errors.New("filename contains path traversal sequences")
+		return nil, "", errors.New("filename contains path traversal sequences")
 	}
 
-	// Chặn các ký tự đặc biệt khác
+	// Prevent special characters that can cause issues in file systems
 	if strings.ContainsAny(fileHeader.Filename, `<>:"|?*`) {
-		return "", errors.New("filename contains invalid special characters")
+		return nil, "", errors.New("filename contains invalid special characters")
 	}
 
 	// 2. Check extension in file name
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if !allowExts[ext] {
-		return "", fmt.Errorf("unsupported file extension: (%s)", ext)
+		return nil, "", fmt.Errorf("unsupported file extension: (%s)", ext)
 	}
 
 	// 3. Check file size
-	if fileHeader.Size > maxFileSize {
-		return "", errors.New("File is too large (less than 5 MB)")
+	if fileHeader.Size > maxImageFileSize {
+		return nil, "", errors.New("File is too large (less than 5 MB)")
 	}
 
 	// 4. Open file
 	file, err := fileHeader.Open()
 	if err != nil {
-		return "", fmt.Errorf(`unable to open file: %v`, err)
+		return nil, "", fmt.Errorf(`unable to open file: %v`, err)
 	}
 	defer file.Close()
 
 	// 5. Read file content
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		return "", fmt.Errorf(`unable to read file: %v`, err)
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+
+	if err != nil && err != io.EOF {
+		return nil, "", fmt.Errorf("unable to read file: %v", err)
+	}
+
+	if n == 0 {
+		return nil, "", errors.New("file is empty")
 	}
 
 	// 6. Validate image content
-	kind, err := filetype.Match(fileBytes)
+	kind, err := filetype.Match(buffer[:n])
 	if err != nil {
-		return "", fmt.Errorf("cannot detect file type: %v", err)
+		return nil, "", fmt.Errorf("cannot detect file type: %v", err)
+	}
+
+	if kind.MIME.Type != "image" {
+		return nil, "", fmt.Errorf("file is not an image (detected MIME type: %s)", kind.MIME.Value)
 	}
 
 	// Check nếu không detect được định dạng
 	if kind == filetype.Unknown {
-		return "", errors.New("unknown file type")
+		return nil, "", errors.New("unknown file type")
 	}
 
 	// 7. Validate MIME type
 	if !allowMimeTypes[kind.MIME.Value] {
-		return "", fmt.Errorf("unsupported MIME type: %s (detected: %s)", kind.MIME.Value, kind.Extension)
+		return nil, "", fmt.Errorf("unsupported MIME type: %s (detected: %s)", kind.MIME.Value, kind.Extension)
 	}
 
 	// 8. Validate image true
@@ -100,35 +108,33 @@ func ValidateAndSaveFile(fileHeader *multipart.FileHeader, uploadDir string) (st
 	// If the image is valid, it returns nil.
 	// If the image is corrupted or invalid, it returns an error.
 	// This step is important to ensure that the uploaded file is a valid image.
-	if err := validateImageTrue(fileBytes); err != nil {
-		return "", fmt.Errorf("corrupted or invalid image file: %v", err)
+
+	// Reset file pointer to the beginning before validating the image content
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, "", fmt.Errorf("cannot reset file pointer for validating: %v", err)
+	}
+	if err := validateImageTrue(file); err != nil {
+		return nil, "", fmt.Errorf("corrupted or invalid image file: %v", err)
 	}
 
 	// Change file name
-	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+	objectName := fmt.Sprintf("%s", uuid.New().String())
 
-	// Create folder
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		return "", errors.New("cannot create upload folder")
+	// 9. Return multipart.File and objectName
+	// Reset file pointer to the beginning before saving the file
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, "", fmt.Errorf("cannot reset file pointer for saving: %v", err)
 	}
 
-	//uploadDir "./uploads" + filename "abc.jpg"
-	savePath := filepath.Join(uploadDir, filename)
-
-	// Save file
-	if err := saveFile(fileHeader, savePath); err != nil {
-		return "", fmt.Errorf("cannot save uploaded file: %v", err)
-	}
-
-	return filename, nil
+	return file, objectName, nil
 }
 
 // validateImageTrue func checks if the image data is a valid image format.
 // It decodes the image and checks if the format is allowed.
 // If the image cannot be decoded or the format is not allowed, it returns an error.
 // If the image is valid, it returns nil.
-func validateImageTrue(data []byte) error {
-	_, format, err := image.Decode(bytes.NewReader(data))
+func validateImageTrue(r io.Reader) error {
+	_, format, err := image.Decode(r)
 
 	if err != nil {
 		return fmt.Errorf("cannot decode image: %v", err)
@@ -142,13 +148,7 @@ func validateImageTrue(data []byte) error {
 }
 
 // saveFile func saves the uploaded file to the specified destination.
-func saveFile(fileHeader *multipart.FileHeader, destination string) error {
-	src, err := fileHeader.Open()
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
+func saveFile(src io.Reader, destination string) error {
 	out, err := os.Create(destination)
 	if err != nil {
 		return err

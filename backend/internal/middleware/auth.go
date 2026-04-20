@@ -42,7 +42,7 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				return
 			}
 
-			version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", valueSession.UserID), rdb)
+			version, err := rdb.Get(ctx, fmt.Sprintf("user:%d:session_version", valueSession.UserID)).Int()
 			if err != nil {
 				utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to get session version from Redis", utils.ErrCodeInternal))
 				return
@@ -90,7 +90,7 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 			userId = result.UserID
 			userUUID = result.Uuid
 
-			version, err := utils.GetKeyRedisAndConvertToInt(ctx, fmt.Sprintf("user:%d:session_version", userId), rdb)
+			version, err := rdb.Get(ctx, fmt.Sprintf("user:%d:session_version", userId)).Int()
 			if err != nil {
 				log.Println("Error in get session_version (in service layer): ", err)
 			}
@@ -99,7 +99,11 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				if err := rdb.SetNX(ctx, fmt.Sprintf("user:%d:session_version", userId), 1, 0).Err(); err != nil {
 					log.Println("Error in create session_version if redis didn't exist session_version before (in service layer): ", err)
 				}
-				version = 1
+				version, err = rdb.Get(ctx, fmt.Sprintf("user:%d:session_version", userId)).Int()
+				if err != nil {
+					log.Println("Error in get session_version after setNX (in service layer): ", err)
+					version = 1
+				}
 			}
 
 			sessionRedis := models.SessionRedis{

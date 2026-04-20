@@ -154,6 +154,13 @@ func WriteGRPCErrorToGin(c *gin.Context, err error) {
 		})
 		return
 
+	case codes.Unauthenticated:
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":  "Unauthenticated. Please provide valid credentials.",
+			"detail": st.Message(),
+		})
+		return
+
 	default:
 		c.JSON(httpStatusFromGrpcCode(st.Code()), gin.H{
 			"error":  st.Code().String(),
@@ -222,6 +229,13 @@ func ResponseSuccessWithData(ctx *gin.Context, status int, data any) {
 	ctx.JSON(status, gin.H{
 		"success": true,
 		"data":    data,
+	})
+}
+
+func ResponseSuccessWithMessage(ctx *gin.Context, status int, message string) {
+	ctx.JSON(status, gin.H{
+		"success": true,
+		"message": message,
 	})
 }
 

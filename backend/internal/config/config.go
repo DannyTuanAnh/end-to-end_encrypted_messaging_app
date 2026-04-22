@@ -55,9 +55,6 @@ type ServiceConfig struct {
 
 	UserServiceAddr       string
 	UserServiceListenAddr string
-
-	NotifyServiceAddr       string
-	NotifyServiceListenAddr string
 }
 
 type RedisGCPConfig struct {
@@ -140,9 +137,14 @@ func NewConfigRedis() *Config {
 }
 
 func NewConfigServer() *Config {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // default port if not set
+	}
+
 	return &Config{
 		Server: ServerConfig{
-			Port:              os.Getenv("PORT"),
+			Port:              port,                                                      // cổng mà server sẽ lắng nghe
 			ReadTimeout:       utils.GetEnvTime("SV_READTIMEOUT", 5) * time.Second,       // thời gian tối đa để đọc yêu cầu từ client
 			ReadHeaderTimeout: utils.GetEnvTime("SV_READHEADERTIMEOUT", 3) * time.Second, // thời gian tối đa để đọc header của yêu cầu từ client
 			WriteTimeout:      utils.GetEnvTime("SV_WRITETIMEOUT", 10) * time.Second,     // thời gian tối đa để gửi phản hồi cho một yêu cầu
@@ -168,15 +170,6 @@ func NewConfigUserService() *Config {
 		Service: ServiceConfig{
 			UserServiceAddr:       utils.GetEnv("USER_SERVICE_ADDR", ":50052"),
 			UserServiceListenAddr: utils.GetEnv("USER_SERVICE_LISTEN_ADDR", ":50052"),
-		},
-	}
-}
-
-func NewConfigNotifyService() *Config {
-	return &Config{
-		Service: ServiceConfig{
-			NotifyServiceAddr:       utils.GetEnv("NOTIFY_SERVICE_ADDR", ":50053"),
-			NotifyServiceListenAddr: utils.GetEnv("NOTIFY_SERVICE_LISTEN_ADDR", ":50053"),
 		},
 	}
 }

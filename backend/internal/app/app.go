@@ -59,7 +59,7 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 	modules := []ModelHTTP{
 		NewAuthModule(cfg.Service.AuthServiceAddr),
 		NewUserModule(cfg.Service.UserServiceAddr, ctx, rdb),
-		NewNotifyModule(cfg.Service.NotifyServiceAddr),
+		NewNotifyModule(cfg.Service.UserServiceAddr),
 	}
 
 	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module

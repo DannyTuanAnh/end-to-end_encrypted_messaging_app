@@ -13,12 +13,12 @@ import (
 )
 
 type NotifyHandler struct {
-	notify_client *client.NotifyClient
+	user_client *client.UserClient
 }
 
-func NewNotifyHandler(notify_client *client.NotifyClient) *NotifyHandler {
+func NewNotifyHandler(user_client *client.UserClient) *NotifyHandler {
 	return &NotifyHandler{
-		notify_client: notify_client,
+		user_client: user_client,
 	}
 }
 

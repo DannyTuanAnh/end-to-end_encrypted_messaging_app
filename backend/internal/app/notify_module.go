@@ -18,7 +18,7 @@ func NewNotifyModule(addr string) *NotifyModule {
 	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
 
 	// 1. Initialize repository
-	notify_client, err := client.NewNotifyClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
+	notify_client, err := client.NewUserClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
 	if err != nil {
 		panic("Failed to initialize notify client: " + err.Error())
 	}

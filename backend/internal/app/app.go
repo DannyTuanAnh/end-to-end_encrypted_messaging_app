@@ -86,6 +86,7 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 
 		MaxHeaderBytes: ac.config.Server.MaxHeaderBytes,
 	}
+	log.Printf("Server is running on port %s...", srv.Addr)
 
 	// 2. Create a channel to listen for server errors
 	errChan := make(chan error, 1)

@@ -26,3 +26,6 @@ type UserRepository interface {
 	DisableUserByUserID(ctx context.Context, userId int64) error
 	UpdateProfile(ctx context.Context, arg sqlc.UpdateProfileByUserIdParams) (sqlc.UpdateProfileByUserIdRow, error)
 }
+
+type NotifyRepository interface {
+}

@@ -125,11 +125,15 @@ func NewConfigGCPRedis() *Config {
 }
 
 func NewConfigRedis() *Config {
+	host := utils.GetEnv("REDIS_GCP_HOST", "")
+	port := utils.GetEnv("REDIS_GCP_PORT", "")
+	addr := fmt.Sprintf("%s:%s", host, port)
+
 	return &Config{
 		Redis: RedisConfig{
-			Addr:     utils.GetEnv("REDIS_ADDR", "localhost:6379"),
-			Password: utils.GetEnv("REDIS_PASSWORD", ""),
-			DB:       utils.GetEnvInt("REDIS_DB", 0),
+			Addr:     addr,
+			Password: utils.GetEnv("REDIS_GCP_PASSWORD", ""),
+			DB:       utils.GetEnvInt("REDIS_GCP_DB", 0),
 			Options:  NewConfigRedisOptions(),
 		},
 	}

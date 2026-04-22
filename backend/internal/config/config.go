@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -137,7 +138,7 @@ func NewConfigRedis() *Config {
 func NewConfigServer() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port:              utils.GetEnv("SV_PORT", "8080"),
+			Port:              os.Getenv("PORT"),
 			ReadTimeout:       utils.GetEnvTime("SV_READTIMEOUT", 5) * time.Second,       // thời gian tối đa để đọc yêu cầu từ client
 			ReadHeaderTimeout: utils.GetEnvTime("SV_READHEADERTIMEOUT", 3) * time.Second, // thời gian tối đa để đọc header của yêu cầu từ client
 			WriteTimeout:      utils.GetEnvTime("SV_WRITETIMEOUT", 10) * time.Second,     // thời gian tối đa để gửi phản hồi cho một yêu cầu

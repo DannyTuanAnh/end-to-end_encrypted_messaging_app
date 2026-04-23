@@ -8,7 +8,7 @@ steps:
         "gcr.io/$PROJECT_ID/api-gateway",
         "-f",
         "backend/Dockerfile.api",
-        ".",
+        "backend",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
@@ -41,7 +41,7 @@ steps:
         "gcr.io/$PROJECT_ID/auth-service",
         "-f",
         "backend/Dockerfile.auth",
-        ".",
+        "backend",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
@@ -74,7 +74,7 @@ steps:
         "gcr.io/$PROJECT_ID/user-service",
         "-f",
         "backend/Dockerfile.user",
-        ".",
+        "backend",
       ]
 
   - name: "gcr.io/cloud-builders/docker"

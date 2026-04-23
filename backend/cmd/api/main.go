@@ -14,13 +14,13 @@ import (
 )
 
 func main() {
+	log.Println("Start app")
 	// Initialize original context for the application
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	// 1. Load environment variables from .env file
 	// utils.LoadEnv()
-	log.Println("Start app")
 
 	log.Println("Init DB...")
 	// 2. Initialize database connection

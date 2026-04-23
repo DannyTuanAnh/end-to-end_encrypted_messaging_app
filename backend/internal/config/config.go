@@ -193,10 +193,10 @@ func (c *Config) DB_DNS() string {
 	// Kiểm tra nếu là môi trường Cloud (Host chứa Connection Name)
 	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
 	if strings.Contains(c.DB.Host, ":") {
-		// Ép sử dụng Unix Socket qua tham số host
-		// QUAN TRỌNG: Không để cổng (port) ở đây
-		return fmt.Sprintf("host=%s user=%s port=%s password=%s dbname=%s sslmode=disable",
-			c.DB.Host, c.DB.User, c.DB.Port, c.DB.Password, c.DB.DBName)
+		// ĐỊNH DẠNG URL SOCKET: postgres://user:pass@/dbname?host=/cloudsql/CONNECTION_NAME
+		// Lưu ý dấu "/" ngay sau dấu "@"
+		return fmt.Sprintf("postgres://%s:%s@/%s?host=/cloudsql/%s&sslmode=disable",
+			c.DB.User, c.DB.Password, c.DB.DBName, c.DB.Host)
 	}
 
 	log.Println("DEBUG: Using TCP/IP format")

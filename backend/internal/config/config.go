@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -188,5 +189,13 @@ func NewConfigDB() *Config {
 }
 
 func (c *Config) DB_DNS() string {
+	// Kiểm tra nếu là môi trường Cloud (Host chứa Connection Name)
+	if strings.Contains(c.DB.Host, ":") {
+		// Ép sử dụng Unix Socket qua tham số host
+		// QUAN TRỌNG: Không để cổng (port) ở đây
+		return fmt.Sprintf("host=%s user=%s password=%s database=%s sslmode=disable",
+			c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
+	}
+
 	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 }

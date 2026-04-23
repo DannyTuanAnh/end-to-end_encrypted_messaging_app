@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -74,9 +75,14 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 }
 
 func (ac *Application) Run(ctx context.Context) (string, error) {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	// 1. Start server with shut down gracefully
 	srv := &http.Server{
-		Addr:    ":" + ac.config.Server.Port,
+		Addr:    ":" + port,
 		Handler: ac.route,
 
 		ReadTimeout:       ac.config.Server.ReadTimeout,

@@ -190,6 +190,7 @@ func NewConfigDB() *Config {
 
 func (c *Config) DB_DNS() string {
 	// Kiểm tra nếu là môi trường Cloud (Host chứa Connection Name)
+	log.Printf("")
 	if strings.Contains(c.DB.Host, ":") {
 		// Ép sử dụng Unix Socket qua tham số host
 		// QUAN TRỌNG: Không để cổng (port) ở đây
@@ -197,5 +198,6 @@ func (c *Config) DB_DNS() string {
 			c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
 	}
 
+	log.Println("DEBUG: Using TCP/IP format")
 	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 }

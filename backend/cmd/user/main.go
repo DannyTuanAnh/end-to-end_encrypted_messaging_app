@@ -10,7 +10,7 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/server"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	// "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	defer stop()
 
 	// 1. Load environment variables from .env file
-	utils.LoadEnv()
+	// utils.LoadEnv()
 
 	// 2. Initialize database connection
 	if err := db.InitDB(); err != nil {

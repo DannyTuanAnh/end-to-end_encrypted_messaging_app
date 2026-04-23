@@ -11,7 +11,7 @@ import-db:
 
 # export database
 export-db:
-	docker exec -i postgres-db pg_dump -U root -d master-golang > ./backupdb-master-master-golang.sql
+	docker exec -i postgres-db-chat-app pg_dump -U root -d chat-app > ./backupdb-master-master-golang.sql
 
 # create new migration file (Example: make migrate-create name=profiles)
 migrate-create:

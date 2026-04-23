@@ -331,7 +331,7 @@ func (h *UserHandler) ReportUserImage(ctx *gin.Context) {
 
 	resp, err := h.user_client.Client.ReportUserImage(ctx, &user_proto.ReportUserImageRequest{
 		Uuid:   req.UUID,
-		Bucket: req.Bucket,
+		Bucket: utils.GetEnv("GOOGLE_CLOUD_STORAGE_BUCKET_PROCESSED", ""),
 		Name:   req.Name,
 	})
 	if err != nil {

@@ -1,0 +1,98 @@
+steps:
+  # ================= API GATEWAY =================
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/api-gateway",
+        "-f",
+        "backend/Dockerfile.api",
+        ".",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/api-gateway"]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    args:
+      [
+        "gcloud",
+        "run",
+        "deploy",
+        "api-gateway",
+        "--image",
+        "gcr.io/$PROJECT_ID/api-gateway",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+      ]
+
+  # ================= AUTH SERVICE =================
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/auth-service",
+        "-f",
+        "backend/Dockerfile.auth",
+        ".",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/auth-service"]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    args:
+      [
+        "gcloud",
+        "run",
+        "deploy",
+        "auth-service",
+        "--image",
+        "gcr.io/$PROJECT_ID/auth-service",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+      ]
+
+  # ================= USER SERVICE =================
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/user-service",
+        "-f",
+        "backend/Dockerfile.user",
+        ".",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/user-service"]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    args:
+      [
+        "gcloud",
+        "run",
+        "deploy",
+        "user-service",
+        "--image",
+        "gcr.io/$PROJECT_ID/user-service",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+      ]
+
+images:
+  - "gcr.io/$PROJECT_ID/api-gateway"
+  - "gcr.io/$PROJECT_ID/auth-service"
+  - "gcr.io/$PROJECT_ID/user-service"

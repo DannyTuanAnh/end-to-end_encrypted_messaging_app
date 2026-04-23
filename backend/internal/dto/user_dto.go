@@ -15,7 +15,6 @@ type VerifyIDTokenOTP struct {
 }
 
 type ReportUserImageRequest struct {
-	UUID   string `json:"uuid" binding:"required,uuid"`
-	Bucket string `json:"bucket" binding:"required,min=1,not_blank"`
-	Name   string `json:"name" binding:"required,min=1,not_blank,uuid"`
+	UUID string `json:"uuid" binding:"required,uuid"`
+	Name string `json:"name" binding:"required,min=1,not_blank,uuid"`
 }

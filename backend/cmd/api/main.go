@@ -10,17 +10,19 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	// "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 )
 
 func main() {
+	log.Println("Start app")
 	// Initialize original context for the application
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	// 1. Load environment variables from .env file
-	utils.LoadEnv()
+	// utils.LoadEnv()
 
+	log.Println("Init DB...")
 	// 2. Initialize database connection
 	if err := db.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -28,6 +30,7 @@ func main() {
 	}
 	defer db.Close()
 
+	log.Println("Init Redis...")
 	// 3. Initialize Redis connection
 	rdb, err := redis_memory.InitRedis()
 	if err != nil {
@@ -36,9 +39,15 @@ func main() {
 	}
 	defer rdb.CloseRedis()
 
+	log.Println("Create app...")
 	// 4. Initialize application
 	application := app.NewApplication(ctx, db.DB, rdb.RDB)
 
+	log.Println("Start Redis listener...")
+	// Start a goroutine to listen for Redis messages and handle them in the background
+	go app.StartRedisListener(ctx, rdb.Redis_GCP)
+
+	log.Println("Run server...")
 	// 5. Run the application and capture any error messages
 	// Check if the application is running in development mode by checking the ENV environment variable
 	if ENV := os.Getenv("ENV"); ENV == "development" {
@@ -58,5 +67,4 @@ func main() {
 
 		log.Println(msg)
 	}
-
 }

@@ -2,16 +2,21 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/sse"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 )
@@ -55,6 +60,7 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 	modules := []ModelHTTP{
 		NewAuthModule(cfg.Service.AuthServiceAddr),
 		NewUserModule(cfg.Service.UserServiceAddr, ctx, rdb),
+		NewNotifyModule(cfg.Service.UserServiceAddr),
 	}
 
 	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
@@ -69,9 +75,16 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 }
 
 func (ac *Application) Run(ctx context.Context) (string, error) {
+	log.Println("ENV PORT:", os.Getenv("PORT"))
+	log.Println("CONFIG PORT:", ac.config.Server.Port)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	// 1. Start server with shut down gracefully
 	srv := &http.Server{
-		Addr:    ":" + ac.config.Server.Port,
+		Addr:    ":" + port,
 		Handler: ac.route,
 
 		ReadTimeout:       ac.config.Server.ReadTimeout,
@@ -81,6 +94,7 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 
 		MaxHeaderBytes: ac.config.Server.MaxHeaderBytes,
 	}
+	log.Printf("Server is running on port %s...", srv.Addr)
 
 	// 2. Create a channel to listen for server errors
 	errChan := make(chan error, 1)
@@ -155,6 +169,48 @@ func (ac *Application) RunTLS(ctx context.Context) (string, error) {
 		return "Server exiting gracefully!", nil
 	}
 
+}
+
+func StartRedisListener(ctx context.Context, redisClient *redis.Client) {
+	pubsub := redisClient.Subscribe(ctx, "image-processing-results")
+	ch := pubsub.Channel()
+
+	redisKey := utils.GetEnv("REDIS_KEY_PAYLOAD", "")
+
+	for msg := range ch {
+		var data struct {
+			UserID string `json:"user_id"`
+			Status string `json:"status"`
+			URL    string `json:"file_path"`
+		}
+
+		token, err := jwt.ParseWithClaims(msg.Payload, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+
+			return []byte(redisKey), nil
+		})
+
+		if err != nil {
+			log.Printf("Failed to parse JWT: %v", err)
+			continue
+		}
+
+		if !token.Valid {
+			log.Printf("Invalid JWT token: %s", msg.Payload)
+			continue
+		}
+
+		json.Unmarshal([]byte(msg.Payload), &data)
+
+		// Tìm đúng User đang kết nối SSE để gửi
+		sse.MainBroker.Mu.RLock()
+		if userChan, ok := sse.MainBroker.Clients[data.UserID]; ok {
+			userChan <- msg.Payload // Đẩy dữ liệu qua channel SSE
+		}
+		sse.MainBroker.Mu.RUnlock()
+	}
 }
 
 // getModuleRoutes is a helper function that takes a slice of Model interfaces

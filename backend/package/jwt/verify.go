@@ -4,18 +4,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"os"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func VerifyJWT(certPath string, tokenString string) (*jwt.Token, error) {
-	certData, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(certData)
+func VerifyJWT(certPEM string, tokenString string) (*jwt.Token, error) {
+	block, _ := pem.Decode([]byte(certPEM))
 	if block == nil {
 		return nil, fmt.Errorf("invalid cert")
 	}

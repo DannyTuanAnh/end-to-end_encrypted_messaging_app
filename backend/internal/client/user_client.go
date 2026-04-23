@@ -1,15 +1,8 @@
 package client
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"os"
-
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 type UserClient struct {
@@ -17,33 +10,8 @@ type UserClient struct {
 }
 
 func NewUserClient(addr string, certFile string, keyFile string) (*UserClient, error) {
-	cert, err := tls.LoadX509KeyPair(
-		certFile,
-		keyFile,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	caCert, err := os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
-	if err != nil {
-		return nil, err
-	}
-
-	caPool := x509.NewCertPool()
-	caPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caPool,
-	}
-
-	conn, err := grpc.NewClient(
-		addr,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-		grpc.WithUnaryInterceptor(interceptor.AuthClientInterceptor(utils.GetEnv("PATH_KEY_USER_SERVICE", ""))),
-	)
-
+	keyClient := utils.GetEnv("PATH_KEY_USER_SERVICE", "")
+	conn, err := NewGRPCConn(addr, certFile, keyFile, keyClient)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -27,11 +28,7 @@ type ServerConfig struct {
 	MaxHeaderBytes int
 }
 
-type RedisConfig struct {
-	Addr     string
-	Password string
-	DB       int
-
+type RedisOptions struct {
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
@@ -44,12 +41,28 @@ type RedisConfig struct {
 	MinIdleConns int
 	PoolTimeout  time.Duration
 }
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+
+	Options RedisOptions
+}
 
 type ServiceConfig struct {
 	AuthServiceAddr       string
 	AuthServiceListenAddr string
+
 	UserServiceAddr       string
 	UserServiceListenAddr string
+}
+
+type RedisGCPConfig struct {
+	Addr     string
+	Password string
+	DB       int
+
+	Options RedisOptions
 }
 
 type Config struct {
@@ -57,6 +70,8 @@ type Config struct {
 	Server  ServerConfig
 	Service ServiceConfig
 	Redis   RedisConfig
+
+	RedisGCP RedisGCPConfig
 }
 
 func NewConfig() *Config {
@@ -77,29 +92,59 @@ func NewConfig() *Config {
 	return cfg
 }
 
+func NewConfigRedisOptions() RedisOptions {
+	return RedisOptions{
+		DialTimeout:     utils.GetEnvTime("REDIS_DIALTIMEOUT", 5) * time.Second,
+		ReadTimeout:     utils.GetEnvTime("REDIS_READTIMEOUT", 3) * time.Second,
+		WriteTimeout:    utils.GetEnvTime("REDIS_WRITETIMEOUT", 3) * time.Second,
+		MaxRetries:      utils.GetEnvInt("REDIS_MAXRETRIES", 3),
+		MinRetryBackOff: utils.GetEnvTime("REDIS_MINRETRYBACKOFF", 50) * time.Millisecond,
+		MaxRetryBackOff: utils.GetEnvTime("REDIS_MAXRETRYBACKOFF", 500) * time.Millisecond,
+		PoolSize:        utils.GetEnvInt("REDIS_POOLSIZE", 100),
+		MinIdleConns:    utils.GetEnvInt("REDIS_MINIDLECONNS", 50),
+		PoolTimeout:     utils.GetEnvTime("REDIS_POOLTIMEOUT", 6) * time.Second,
+	}
+}
+
+func NewConfigGCPRedis() *Config {
+	host := utils.GetEnv("REDIS_GCP_HOST", "")
+	port := utils.GetEnv("REDIS_GCP_PORT", "")
+	addr := fmt.Sprintf("%s:%s", host, port)
+
+	return &Config{
+		RedisGCP: RedisGCPConfig{
+			Addr:     addr,
+			Password: utils.GetEnv("REDIS_GCP_PASSWORD", ""),
+			DB:       utils.GetEnvInt("REDIS_GCP_DB", 0),
+			Options:  NewConfigRedisOptions(),
+		},
+	}
+}
+
 func NewConfigRedis() *Config {
+	host := utils.GetEnv("REDIS_GCP_HOST", "")
+	port := utils.GetEnv("REDIS_GCP_PORT", "")
+	addr := fmt.Sprintf("%s:%s", host, port)
+
 	return &Config{
 		Redis: RedisConfig{
-			Addr:            utils.GetEnv("REDIS_ADDR", "localhost:6379"),
-			Password:        utils.GetEnv("REDIS_PASSWORD", ""),
-			DB:              utils.GetEnvInt("REDIS_DB", 0),
-			DialTimeout:     utils.GetEnvTime("REDIS_DIALTIMEOUT", 5) * time.Second,
-			ReadTimeout:     utils.GetEnvTime("REDIS_READTIMEOUT", 3) * time.Second,
-			WriteTimeout:    utils.GetEnvTime("REDIS_WRITETIMEOUT", 3) * time.Second,
-			MaxRetries:      utils.GetEnvInt("REDIS_MAXRETRIES", 3),
-			MinRetryBackOff: utils.GetEnvTime("REDIS_MINRETRYBACKOFF", 50) * time.Millisecond,
-			MaxRetryBackOff: utils.GetEnvTime("REDIS_MAXRETRYBACKOFF", 500) * time.Millisecond,
-			PoolSize:        utils.GetEnvInt("REDIS_POOLSIZE", 100),
-			MinIdleConns:    utils.GetEnvInt("REDIS_MINIDLECONNS", 50),
-			PoolTimeout:     utils.GetEnvTime("REDIS_POOLTIMEOUT", 6) * time.Second,
+			Addr:     addr,
+			Password: utils.GetEnv("REDIS_GCP_PASSWORD", ""),
+			DB:       utils.GetEnvInt("REDIS_GCP_DB", 0),
+			Options:  NewConfigRedisOptions(),
 		},
 	}
 }
 
 func NewConfigServer() *Config {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // default port if not set
+	}
+
 	return &Config{
 		Server: ServerConfig{
-			Port:              utils.GetEnv("SV_PORT", "8080"),
+			Port:              port,                                                      // cổng mà server sẽ lắng nghe
 			ReadTimeout:       utils.GetEnvTime("SV_READTIMEOUT", 5) * time.Second,       // thời gian tối đa để đọc yêu cầu từ client
 			ReadHeaderTimeout: utils.GetEnvTime("SV_READHEADERTIMEOUT", 3) * time.Second, // thời gian tối đa để đọc header của yêu cầu từ client
 			WriteTimeout:      utils.GetEnvTime("SV_WRITETIMEOUT", 10) * time.Second,     // thời gian tối đa để gửi phản hồi cho một yêu cầu

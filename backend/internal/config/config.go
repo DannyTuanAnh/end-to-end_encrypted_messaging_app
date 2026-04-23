@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -190,7 +191,7 @@ func NewConfigDB() *Config {
 
 func (c *Config) DB_DNS() string {
 	// Kiểm tra nếu là môi trường Cloud (Host chứa Connection Name)
-	log.Printf("")
+	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
 	if strings.Contains(c.DB.Host, ":") {
 		// Ép sử dụng Unix Socket qua tham số host
 		// QUAN TRỌNG: Không để cổng (port) ở đây

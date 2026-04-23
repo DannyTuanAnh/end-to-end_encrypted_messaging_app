@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -191,16 +192,13 @@ func NewConfigDB() *Config {
 func (c *Config) DB_DNS() string {
 	// Kiểm tra nếu là môi trường Cloud (Host chứa Connection Name)
 	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
-	// if strings.Contains(c.DB.Host, ":") {
-	// 	// Ép sử dụng Unix Socket qua tham số host
-	// 	// QUAN TRỌNG: Không để cổng (port) ở đây
-	// 	return fmt.Sprintf("host=%s user=%s port=%s password=%s dbname=%s sslmode=disable",
-	// 		c.DB.Host, c.DB.User, c.DB.Port, c.DB.Password, c.DB.DBName)
-	// }
+	if strings.Contains(c.DB.Host, ":") {
+		// Ép sử dụng Unix Socket qua tham số host
+		// QUAN TRỌNG: Không để cổng (port) ở đây
+		return fmt.Sprintf("host=%s user=%s port=%s password=%s dbname=%s sslmode=disable",
+			c.DB.Host, c.DB.User, c.DB.Port, c.DB.Password, c.DB.DBName)
+	}
 
-	// log.Println("DEBUG: Using TCP/IP format")
-	// return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
-
-	return fmt.Sprintf("host=%s user=%s port=%s password=%s dbname=%s sslmode=disable",
-		c.DB.Host, c.DB.User, c.DB.Port, c.DB.Password, c.DB.DBName)
+	log.Println("DEBUG: Using TCP/IP format")
+	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 }

@@ -5,14 +5,18 @@ steps:
       [
         "build",
         "-t",
-        "gcr.io/$PROJECT_ID/api-gateway",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway",
         "-f",
         "backend/Dockerfile.api",
         "backend",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/api-gateway"]
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway",
+      ]
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     args:
@@ -22,7 +26,7 @@ steps:
         "deploy",
         "chat-app-api-gateway",
         "--image",
-        "gcr.io/$PROJECT_ID/api-gateway",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway",
         "--region",
         "us-central1",
         "--platform",
@@ -38,14 +42,18 @@ steps:
       [
         "build",
         "-t",
-        "gcr.io/$PROJECT_ID/auth-service",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service",
         "-f",
         "backend/Dockerfile.auth",
         "backend",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/auth-service"]
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service",
+      ]
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     args:
@@ -55,7 +63,7 @@ steps:
         "deploy",
         "chat-app-auth-service",
         "--image",
-        "gcr.io/$PROJECT_ID/auth-service",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service",
         "--region",
         "us-central1",
         "--platform",
@@ -71,14 +79,18 @@ steps:
       [
         "build",
         "-t",
-        "gcr.io/$PROJECT_ID/user-service",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service",
         "-f",
         "backend/Dockerfile.user",
         "backend",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/user-service"]
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service",
+      ]
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     args:
@@ -88,7 +100,7 @@ steps:
         "deploy",
         "chat-app-user-service",
         "--image",
-        "gcr.io/$PROJECT_ID/user-service",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service",
         "--region",
         "us-central1",
         "--platform",
@@ -99,9 +111,9 @@ steps:
       ]
 
 images:
-  - "gcr.io/$PROJECT_ID/api-gateway"
-  - "gcr.io/$PROJECT_ID/auth-service"
-  - "gcr.io/$PROJECT_ID/user-service"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service"
 
 options:
   logging: CLOUD_LOGGING_ONLY

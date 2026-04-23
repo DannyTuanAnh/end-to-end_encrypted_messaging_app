@@ -67,10 +67,10 @@ func InitDB() error {
 		return fmt.Errorf("error creating DB pool: %w", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close() // Đóng pool nếu ping thất bại
-		return fmt.Errorf("error pinging DB: %w", err)
-	}
+	// if err := pool.Ping(ctx); err != nil {
+	// 	pool.Close() // Đóng pool nếu ping thất bại
+	// 	return fmt.Errorf("error pinging DB: %w", err)
+	// }
 
 	// Gán pool và khởi tạo sqlc.Queries
 	DBPool = pool

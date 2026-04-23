@@ -201,8 +201,8 @@ func (c *Config) DB_DNS() string {
 	// log.Println("DEBUG: Using TCP/IP format")
 	// return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 
-	log.Printf("user=%s password=%s database=%s sslmode=disable",
+	log.Printf("user=%s password=%s database=%s sslmode=require",
 		c.DB.User, c.DB.Password, c.DB.DBName)
-	return fmt.Sprintf("user=%s password=%s database=%s sslmode=disable",
+	return fmt.Sprintf("user=%s password=%s database=%s sslmode=require",
 		c.DB.User, c.DB.Password, c.DB.DBName)
 }

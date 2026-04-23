@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -64,18 +63,15 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 	userCertFile := utils.GetEnv("PATH_CERT_USER_SERVICE", "")
 	userKeyFile := utils.GetEnv("PATH_KEY_USER_SERVICE", "")
 
-	cert, err := tls.LoadX509KeyPair(
-		userCertFile,
-		userKeyFile,
-	)
+	userCertPEM := []byte(userCertFile)
+	userKeyPEM := []byte(userKeyFile)
+
+	cert, err := tls.X509KeyPair(userCertPEM, userKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load user service TLS credentials: %v", err)
 	}
 
-	caCert, err := os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read CA certificate: %v", err)
-	}
+	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
 
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(caCert)

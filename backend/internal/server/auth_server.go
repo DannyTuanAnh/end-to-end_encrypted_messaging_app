@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
@@ -48,19 +47,16 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	authCertFile := utils.GetEnv("PATH_CERT_AUTH_SERVICE", "")
 	authKeyFile := utils.GetEnv("PATH_KEY_AUTH_SERVICE", "")
 
-	cert, err := tls.LoadX509KeyPair(
-		authCertFile,
-		authKeyFile,
-	)
+	authCertPEM := []byte(authCertFile)
+	authKeyPEM := []byte(authKeyFile)
+
+	cert, err := tls.X509KeyPair(authCertPEM, authKeyPEM)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load auth service TLS credentials: %v", err)
 	}
 
-	caCert, err := os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read CA certificate: %v", err)
-	}
+	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
 
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(caCert)

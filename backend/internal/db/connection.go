@@ -38,6 +38,7 @@ func InitDB() error {
 
 	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
 	if strings.Contains(connDB.DB.Host, ":") {
+		log.Printf("Using Cloud SQL Connector for: %s", connDB.DB.Host)
 		d, err := cloudsqlconn.NewDialer(ctx)
 		if err != nil {
 			return err
@@ -57,7 +58,7 @@ func InitDB() error {
 		conf.ConnConfig.Port = uint16(p)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	pool, err := pgxpool.NewWithConfig(ctx, conf)

@@ -89,7 +89,6 @@ func (r *Redis) CloseRedis() {
 		}
 
 		log.Println("Redis client closed")
-		return
 	}
 
 	if r.Redis_GCP != nil {
@@ -98,6 +97,5 @@ func (r *Redis) CloseRedis() {
 		}
 
 		log.Println("GCP Redis client closed")
-		return
 	}
 }

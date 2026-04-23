@@ -20,7 +20,7 @@ steps:
         "gcloud",
         "run",
         "deploy",
-        "api-gateway",
+        "chat-app-api-gateway",
         "--image",
         "gcr.io/$PROJECT_ID/api-gateway",
         "--region",
@@ -28,6 +28,8 @@ steps:
         "--platform",
         "managed",
         "--allow-unauthenticated",
+        "--command",
+        "./main",
       ]
 
   # ================= AUTH SERVICE =================
@@ -51,7 +53,7 @@ steps:
         "gcloud",
         "run",
         "deploy",
-        "auth-service",
+        "chat-app-auth-service",
         "--image",
         "gcr.io/$PROJECT_ID/auth-service",
         "--region",
@@ -59,6 +61,8 @@ steps:
         "--platform",
         "managed",
         "--allow-unauthenticated",
+        "--command",
+        "./main",
       ]
 
   # ================= USER SERVICE =================
@@ -82,7 +86,7 @@ steps:
         "gcloud",
         "run",
         "deploy",
-        "user-service",
+        "chat-app-user-service",
         "--image",
         "gcr.io/$PROJECT_ID/user-service",
         "--region",
@@ -90,6 +94,8 @@ steps:
         "--platform",
         "managed",
         "--allow-unauthenticated",
+        "--command",
+        "./main",
       ]
 
 images:

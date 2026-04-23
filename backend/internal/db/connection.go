@@ -39,7 +39,7 @@ func InitDB() error {
 	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
 	if strings.Contains(connDB.DB.Host, ":") {
 		log.Printf("Using Cloud SQL Connector for: %s", connDB.DB.Host)
-		d, err := cloudsqlconn.NewDialer(ctx)
+		d, err := cloudsqlconn.NewDialer(context.Background())
 		if err != nil {
 			return err
 		}

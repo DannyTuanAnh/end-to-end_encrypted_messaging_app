@@ -31,7 +31,6 @@ steps:
         "us-central1",
         "--platform",
         "managed",
-        "--allow-unauthenticated",
         "--command",
         "./main",
       ]
@@ -68,7 +67,6 @@ steps:
         "us-central1",
         "--platform",
         "managed",
-        "--allow-unauthenticated",
         "--command",
         "./main",
       ]
@@ -105,7 +103,6 @@ steps:
         "us-central1",
         "--platform",
         "managed",
-        "--allow-unauthenticated",
         "--command",
         "./main",
       ]

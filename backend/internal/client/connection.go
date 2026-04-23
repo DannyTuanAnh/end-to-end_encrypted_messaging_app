@@ -3,7 +3,6 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"os"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -12,15 +11,15 @@ import (
 )
 
 func NewGRPCConn(addr, certFile, keyFile, keyClient string) (*grpc.ClientConn, error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	certPEM := []byte(certFile)
+	keyPEM := []byte(keyFile)
+
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
 		return nil, err
 	}
 
-	caCert, err := os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
-	if err != nil {
-		return nil, err
-	}
+	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
 
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(caCert)

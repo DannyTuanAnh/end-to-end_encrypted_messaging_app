@@ -75,6 +75,8 @@ func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Ap
 }
 
 func (ac *Application) Run(ctx context.Context) (string, error) {
+	log.Println("ENV PORT:", os.Getenv("PORT"))
+	log.Println("CONFIG PORT:", ac.config.Server.Port)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

@@ -193,7 +193,7 @@ func (c *Config) DB_DNS() string {
 	if strings.Contains(c.DB.Host, ":") {
 		// Ép sử dụng Unix Socket qua tham số host
 		// QUAN TRỌNG: Không để cổng (port) ở đây
-		return fmt.Sprintf("host=/cloudsql/%s user=%s password=%s dbname=%s sslmode=disable",
+		return fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
 			c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
 	}
 

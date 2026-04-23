@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 export type User = {
   email?: string;
   name?: string;
+  uid: string;
 };
 
 export type AuthReturn = {
@@ -13,8 +14,10 @@ export type AuthReturn = {
   isAuthenticated: boolean;
 };
 
+const AuthContext = createContext<AuthReturn | undefined>(undefined);
+
 // Demo auth hook: keeps state in React and mirrors to localStorage.
-export function useAuth(): AuthReturn {
+function useAuth(): AuthReturn {
   const [token, setToken] = useState<string | null>(() => {
     try {
       return localStorage.getItem("token");
@@ -26,7 +29,13 @@ export function useAuth(): AuthReturn {
   const [user, setUser] = useState<User | null>(() => {
     try {
       const raw = localStorage.getItem("user");
-      return raw ? JSON.parse(raw) : null;
+      const u = raw ? JSON.parse(raw) : null;
+      if (u.uid === "") {
+        return console.log(
+          "Invalid user data in localStorage: uid is empty string",
+        );
+      }
+      return u;
     } catch {
       return null;
     }
@@ -43,12 +52,19 @@ export function useAuth(): AuthReturn {
   }, []);
 
   const login = (email: string, _password?: string) => {
-    const demoToken = "demo-token";
-    const u: User = { email };
+    const demoToken = email && _password ? `token-for-${email}` : null;
+    const u: User = {
+      email,
+      name: email.split("@")[0],
+      uid: `u_${email.split("@")[0]}`,
+    };
+    if (!demoToken) return;
     try {
       localStorage.setItem("token", demoToken);
       localStorage.setItem("user", JSON.stringify(u));
-    } catch {}
+    } catch (error) {
+      console.error("Failed to save auth data to localStorage", error);
+    }
     setToken(demoToken);
     setUser(u);
   };
@@ -57,7 +73,9 @@ export function useAuth(): AuthReturn {
     try {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-    } catch {}
+    } catch (error) {
+      console.error("Failed to remove auth data from localStorage", error);
+    }
     setToken(null);
     setUser(null);
   };
@@ -71,19 +89,14 @@ export function useAuth(): AuthReturn {
   };
 }
 
-// Context and provider
-export const AuthContext = createContext<AuthReturn | undefined>(undefined);
-
-export function useAuthContext(): AuthReturn {
-  const ctx = useContext(AuthContext);
-  if (!ctx)
-    throw new Error("useAuthContext must be used within an AuthProvider");
-  return ctx;
-}
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const auth = useAuth();
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 };
 
-export default AuthProvider;
+export function useAuthContext() {
+  const ctx = useContext(AuthContext);
+  if (!ctx)
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  return ctx;
+}

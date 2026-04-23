@@ -7,11 +7,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useChat } from "@/hooks/chat/useChat";
 import { useMessages } from "@/hooks/chat/useMessages";
 import QRCode from "@/components/common/QRCode";
+import { useAuthContext } from "@/context/AuthContext";
 
 export default function ChatPage() {
   const { id } = useParams();
-  const uid = "user_123456"; // hardcoded user ID for demo
-  const currenUser = "u1"; // hardcoded current user ID for demo
+  const { user } = useAuthContext();
+
+  const currenUser = user?.uid || null;
   const { sendMessage } = useChat(currenUser);
   const messages = useMessages(String(id)); // reactive messages for the room
   const [text, setText] = useState("");
@@ -25,7 +27,7 @@ export default function ChatPage() {
         <p className="text-sm text-muted-foreground">
           Scan this QR code to add me as a contact.
         </p>
-        <QRCode uid={uid} />
+        <QRCode uid={user?.uid} />
       </div>
     );
   return (

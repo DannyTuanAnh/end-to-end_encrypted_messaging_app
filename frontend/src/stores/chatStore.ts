@@ -11,7 +11,11 @@ type ChatState = {
   messages: MessagesMap;
 
   setRooms: (rooms: Room[]) => void;
-  sendMessage: (roomId: string, senderId: string, content: string) => void;
+  sendMessage: (
+    roomId: string,
+    senderId: string | null,
+    content: string,
+  ) => void;
 };
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -21,6 +25,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setRooms: (rooms) => set({ rooms }),
 
   sendMessage: (roomId, senderId, content) => {
+    if (!senderId) return;
     const newMessage: Message = {
       id: `m${Date.now()}`,
       roomId,

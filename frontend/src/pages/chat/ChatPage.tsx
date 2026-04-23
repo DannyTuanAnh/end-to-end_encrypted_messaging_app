@@ -6,19 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useChat } from "@/hooks/chat/useChat";
 import { useMessages } from "@/hooks/chat/useMessages";
+import QRCode from "@/components/common/QRCode";
 
 export default function ChatPage() {
   const { id } = useParams();
+  const uid = "user_123456"; // hardcoded user ID for demo
   const currenUser = "u1"; // hardcoded current user ID for demo
   const { sendMessage } = useChat(currenUser);
   const messages = useMessages(String(id)); // reactive messages for the room
   const [text, setText] = useState("");
   if (id === undefined)
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">
           Select a chat to start messaging
         </p>
+        <h3 className="text-lg font-medium">Your QR Code</h3>
+        <p className="text-sm text-muted-foreground">
+          Scan this QR code to add me as a contact.
+        </p>
+        <QRCode uid={uid} />
       </div>
     );
   return (

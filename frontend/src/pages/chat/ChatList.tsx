@@ -7,7 +7,7 @@ export default function ChatList() {
   const userId = "u1"; // hardcoded current user ID for demo
   const { rooms } = useChat(userId);
   return (
-    <aside className="h-full overflow-auto bg-card p-4">
+    <aside className="h-full overflow-auto bg-card p-4 mt-16">
       <div className="flex flex-col gap-3">
         {rooms.map((r) => (
           <Link to={`/chat/${r.id}`} key={r.id} className="no-underline">

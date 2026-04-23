@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { MessageCircle, User } from "lucide-react";
 
 export default function Home() {
   return (
@@ -11,10 +12,16 @@ export default function Home() {
         <p className="mb-3">This is the home page. Quick links:</p>
         <div className="flex gap-2">
           <Link to="/chat">
-            <Button>Open Chat</Button>
+            <Button variant="default">
+              <MessageCircle className="h-4 w-4" />
+              Open Chat
+            </Button>
           </Link>
           <Link to="/profile">
-            <Button variant="outline">Profile</Button>
+            <Button variant="outline">
+              <User className="h-4 w-4" />
+              Profile
+            </Button>
           </Link>
         </div>
       </Card>

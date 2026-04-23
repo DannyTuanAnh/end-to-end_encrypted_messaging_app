@@ -4,9 +4,9 @@ import { Outlet } from "react-router-dom";
 
 export default function MainLayout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <Header />
-      <main className="flex-1 p-4 bg-background overflow-auto flex justify-center items-center">
+      <main className="mt-16 p-8 bg-background overflow-auto flex justify-center items-start h-[calc(100vh-4rem)]">
         <Outlet />
       </main>
       <Footer />

@@ -102,3 +102,6 @@ images:
   - "gcr.io/$PROJECT_ID/api-gateway"
   - "gcr.io/$PROJECT_ID/auth-service"
   - "gcr.io/$PROJECT_ID/user-service"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

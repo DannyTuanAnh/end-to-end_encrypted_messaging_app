@@ -48,6 +48,7 @@ func InitDB() error {
 			return d.Dial(ctx, connDB.DB.Host)
 		}
 	} else {
+		log.Println("Using standard TCP/IP connection for database")
 		// Chạy Local thì gán Host/Port bình thường
 		conf.ConnConfig.Host = connDB.DB.Host
 

@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
+	"strconv"
+	"strings"
 	"time"
 
+	"cloud.google.com/go/cloudsqlconn"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,9 +21,11 @@ var (
 )
 
 func InitDB() error {
-	connStr := config.NewConfigDB().DB_DNS()
+	ctx := context.Background()
+	connDB := config.NewConfigDB()
+	dsn := connDB.DB_DNS()
 
-	conf, err := pgxpool.ParseConfig(connStr)
+	conf, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return fmt.Errorf("error parsing DB config: %w", err)
 	}
@@ -29,6 +35,27 @@ func InitDB() error {
 	conf.MaxConnLifetime = 30 * time.Minute
 	conf.MaxConnIdleTime = 5 * time.Minute
 	conf.HealthCheckPeriod = 1 * time.Minute
+
+	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
+	if strings.Contains(connDB.DB.Host, ":") {
+		d, err := cloudsqlconn.NewDialer(ctx)
+		if err != nil {
+			return err
+		}
+		// Ép thư viện dùng bộ quay số tự động của Google
+		conf.ConnConfig.DialFunc = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return d.Dial(ctx, connDB.DB.Host)
+		}
+	} else {
+		// Chạy Local thì gán Host/Port bình thường
+		conf.ConnConfig.Host = connDB.DB.Host
+
+		p, err := strconv.ParseUint(connDB.DB.Port, 10, 16)
+		if err != nil {
+			return fmt.Errorf("invalid db port %q: %w", connDB.DB.Port, err)
+		}
+		conf.ConnConfig.Port = uint16(p)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

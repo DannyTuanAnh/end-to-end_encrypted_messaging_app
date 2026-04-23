@@ -188,5 +188,12 @@ func NewConfigDB() *Config {
 }
 
 func (c *Config) DB_DNS() string {
+	// Nếu Host bắt đầu bằng dấu "/", nghĩa là đang dùng Unix Socket (Cloud Run)
+	if len(c.DB.Host) > 0 && c.DB.Host[0] == '/' {
+		// Định dạng chuẩn cho Socket: bỏ Port và đưa Host vào tham số query
+		return fmt.Sprintf("postgresql://%s:%s@/%s?host=%s&sslmode=%s",
+			c.DB.User, c.DB.Password, c.DB.DBName, c.DB.Host, c.DB.SSLMode)
+	}
+
 	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 }

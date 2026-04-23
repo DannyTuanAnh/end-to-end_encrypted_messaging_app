@@ -188,7 +188,7 @@ func connectGCS(ctx context.Context) *storage.Client {
 func connectAuthFirebase(ctx context.Context) *auth.Client {
 	// Initialize Firebase app for verify otp
 	serviceAccountKey := utils.GetEnv("GOOGLE_APPLICATION_FIREBASE_CREDENTIALS", "")
-	opt := option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
+	opt := option.WithAuthCredentialsJSON(option.ServiceAccount, []byte(serviceAccountKey))
 
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {

@@ -2,9 +2,13 @@
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
+
+COPY go.mod go.sum ./
+# Tải thư viện về trước (Layer này sẽ được cache nếu go.mod không đổi)
+RUN go mod download
+
 COPY . .
 
-RUN go mod tidy
 RUN go build -o main ./cmd/user
 
 # Stage 2: run

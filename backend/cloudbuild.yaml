@@ -1,6 +1,13 @@
 steps:
   # ================= API GATEWAY =================
   - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker pull us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:latest || exit 0
+
+  - name: "gcr.io/cloud-builders/docker"
     args:
       [
         "build",
@@ -39,6 +46,13 @@ steps:
 
   # ================= AUTH SERVICE =================
   - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker pull us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:latest || exit 0
+
+  - name: "gcr.io/cloud-builders/docker"
     args:
       [
         "build",
@@ -76,6 +90,13 @@ steps:
       ]
 
   # ================= USER SERVICE =================
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker pull us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:latest || exit 0
+
   - name: "gcr.io/cloud-builders/docker"
     args:
       [

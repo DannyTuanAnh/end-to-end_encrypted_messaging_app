@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -24,11 +25,17 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(caCert)
 
+	if ok := caPool.AppendCertsFromPEM(caCert); !ok {
+		// Nếu thất bại, có thể do thiếu dấu xuống dòng, hãy thử log ra để check
+		return nil, fmt.Errorf("failed to append CA certificates")
+	}
+
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caPool,
 
-		ServerName: serverName,
+		ServerName:         serverName,
+		InsecureSkipVerify: true,
 	}
 
 	conn, err := grpc.NewClient(

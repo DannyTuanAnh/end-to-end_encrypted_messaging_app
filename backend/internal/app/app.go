@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
@@ -85,7 +87,7 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 	// 1. Start server with shut down gracefully
 	srv := &http.Server{
 		Addr:    ":" + port,
-		Handler: ac.route,
+		Handler: h2c.NewHandler(ac.route, &http2.Server{}),
 
 		ReadTimeout:       ac.config.Server.ReadTimeout,
 		ReadHeaderTimeout: ac.config.Server.ReadHeaderTimeout,

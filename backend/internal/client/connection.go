@@ -49,7 +49,7 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 	}
 
 	// Tách lấy host từ addr (bỏ port)
-	log.Printf("DEBUG: Attempting to connect to gRPC server at %s with TLS. ServerName: %s, Host: %s", addr, serverName, host)
+	log.Printf("DEBUG: Attempting to connect to gRPC server at %s with TLS. ServerName: %s, Host: %s", addr, host, host)
 
 	conn, err := grpc.NewClient(
 		addr,

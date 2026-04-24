@@ -79,9 +79,12 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 
-		ClientAuth: tls.RequireAndVerifyClientCert,
+		// ClientAuth: tls.RequireAndVerifyClientCert,
 
-		ClientCAs: caPool,
+		// ClientCAs: caPool,
+
+		ClientAuth: tls.VerifyClientCertIfGiven,
+		ClientCAs:  caPool,
 	}
 
 	userCfg := config.NewConfigUserService()

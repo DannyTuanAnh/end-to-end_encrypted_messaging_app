@@ -72,6 +72,8 @@ func InitDB() error {
 		return fmt.Errorf("error pinging DB: %w", err)
 	}
 
+	log.Println("Database connection established successfully. Ping successful.")
+
 	// Gán pool và khởi tạo sqlc.Queries
 	DBPool = pool
 	DB = sqlc.New(DBPool)

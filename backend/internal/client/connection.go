@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -21,7 +22,11 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		return nil, err
 	}
 
-	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
+	caCertStr := utils.GetEnv("PATH_CERT_CA", "")
+	// Ép chuỗi "\n" thành dấu xuống dòng thực sự để gRPC đọc được định dạng PEM
+	caCertStr = strings.ReplaceAll(caCertStr, "\\n", "\n")
+
+	caCert := []byte(caCertStr)
 
 	caPool := x509.NewCertPool()
 	// caPool.AppendCertsFromPEM(caCert)

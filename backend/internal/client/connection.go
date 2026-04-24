@@ -42,7 +42,7 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caPool,
 
-		ServerName:         serverName,
+		// ServerName:         serverName,
 		InsecureSkipVerify: true,
 	}
 

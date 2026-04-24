@@ -59,7 +59,7 @@ func InitDB() error {
 		conf.ConnConfig.Port = uint16(p)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	pool, err := pgxpool.NewWithConfig(ctx, conf)

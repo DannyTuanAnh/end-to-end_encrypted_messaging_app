@@ -123,15 +123,11 @@ func NewConfigGCPRedis() *Config {
 }
 
 func NewConfigRedis() *Config {
-	host := utils.GetEnv("REDIS_GCP_HOST", "")
-	port := utils.GetEnv("REDIS_GCP_PORT", "")
-	addr := fmt.Sprintf("%s:%s", host, port)
-
 	return &Config{
 		Redis: RedisConfig{
-			Addr:     addr,
-			Password: utils.GetEnv("REDIS_GCP_PASSWORD", ""),
-			DB:       utils.GetEnvInt("REDIS_GCP_DB", 0),
+			Addr:     utils.GetEnv("REDIS_ADDR", ""),
+			Password: utils.GetEnv("REDIS_PASSWORD", ""),
+			DB:       utils.GetEnvInt("REDIS_DB", 0),
 			Options:  NewConfigRedisOptions(),
 		},
 	}
@@ -189,20 +185,7 @@ func NewConfigDB() *Config {
 }
 
 func (c *Config) DB_DNS() string {
-	// Kiểm tra nếu là môi trường Cloud (Host chứa Connection Name)
-	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName)
-	// if strings.Contains(c.DB.Host, ":") {
-	// 	// ĐỊNH DẠNG URL SOCKET: postgres://user:pass@/dbname?host=/cloudsql/CONNECTION_NAME
-	// 	// Lưu ý dấu "/" ngay sau dấu "@"
-	// 	return fmt.Sprintf("postgres://%s:%s@/%s?host=/cloudsql/%s&sslmode=disable",
-	// 		c.DB.User, c.DB.Password, c.DB.DBName, c.DB.Host)
-	// }
+	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s, SSLMode: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName, c.DB.SSLMode)
 
-	// log.Println("DEBUG: Using TCP/IP format")
-	// return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
-
-	log.Printf("user=%s password=%s database=%s sslmode=require",
-		c.DB.User, c.DB.Password, c.DB.DBName)
-	return fmt.Sprintf("user=%s password=%s database=%s sslmode=require",
-		c.DB.User, c.DB.Password, c.DB.DBName)
+	return fmt.Sprintf("user=%s password=%s database=%s sslmode=%s", c.DB.User, c.DB.Password, c.DB.DBName, c.DB.SSLMode)
 }

@@ -15,34 +15,46 @@ type Redis struct {
 }
 
 func InitRedis() (*Redis, error) {
-	v_redis := config.NewConfigRedis().Redis
+	// rdb, err := connectRedisLocal()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     v_redis.Addr,
-		Password: v_redis.Password,
-		DB:       v_redis.DB,
-
-		PoolSize:     v_redis.Options.PoolSize,
-		MinIdleConns: v_redis.Options.MinIdleConns,
-
-		DialTimeout:  v_redis.Options.DialTimeout,
-		ReadTimeout:  v_redis.Options.ReadTimeout,
-		WriteTimeout: v_redis.Options.WriteTimeout,
-
-		MaxRetries:      v_redis.Options.MaxRetries,
-		MinRetryBackoff: v_redis.Options.MinRetryBackOff,
-		MaxRetryBackoff: v_redis.Options.MaxRetryBackOff,
-	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
+	redis_gcp, err := connectRedisCloud()
+	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Connecting to redis successfully")
+	return &Redis{
+		// RDB: rdb,
+		Redis_GCP: redis_gcp,
+	}, nil
+}
 
+func (r *Redis) CloseRedis() {
+	if r == nil {
+		log.Println("Redis struct is nil, no need to close")
+		return
+	}
+
+	if r.RDB != nil {
+		if err := r.RDB.Close(); err != nil {
+			log.Printf("Failed to close Redis client: %v\n", err)
+		}
+
+		log.Println("Redis client closed")
+	}
+
+	if r.Redis_GCP != nil {
+		if err := r.Redis_GCP.Close(); err != nil {
+			log.Printf("Failed to close GCP Redis client: %v\n", err)
+		}
+
+		log.Println("GCP Redis client closed")
+	}
+}
+
+func connectRedisCloud() (*redis.Client, error) {
 	v_redis_gcp := config.NewConfigGCPRedis().RedisGCP
 
 	redis_gcp := redis.NewClient(&redis.Options{
@@ -71,31 +83,37 @@ func InitRedis() (*Redis, error) {
 
 	log.Println("Connecting to GCP redis successfully")
 
-	return &Redis{
-		RDB:       rdb,
-		Redis_GCP: redis_gcp,
-	}, nil
+	return redis_gcp, nil
 }
 
-func (r *Redis) CloseRedis() {
-	if r == nil {
-		log.Println("Redis struct is nil, no need to close")
-		return
+func connectRedisLocal() (*redis.Client, error) {
+	v_redis := config.NewConfigRedis().Redis
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     v_redis.Addr,
+		Password: v_redis.Password,
+		DB:       v_redis.DB,
+
+		PoolSize:     v_redis.Options.PoolSize,
+		MinIdleConns: v_redis.Options.MinIdleConns,
+
+		DialTimeout:  v_redis.Options.DialTimeout,
+		ReadTimeout:  v_redis.Options.ReadTimeout,
+		WriteTimeout: v_redis.Options.WriteTimeout,
+
+		MaxRetries:      v_redis.Options.MaxRetries,
+		MinRetryBackoff: v_redis.Options.MinRetryBackOff,
+		MaxRetryBackoff: v_redis.Options.MaxRetryBackOff,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		return nil, err
 	}
 
-	if r.RDB != nil {
-		if err := r.RDB.Close(); err != nil {
-			log.Printf("Failed to close Redis client: %v\n", err)
-		}
+	log.Println("Connecting to redis successfully")
 
-		log.Println("Redis client closed")
-	}
-
-	if r.Redis_GCP != nil {
-		if err := r.Redis_GCP.Close(); err != nil {
-			log.Printf("Failed to close GCP Redis client: %v\n", err)
-		}
-
-		log.Println("GCP Redis client closed")
-	}
+	return rdb, nil
 }

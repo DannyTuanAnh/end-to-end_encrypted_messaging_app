@@ -59,7 +59,7 @@ func InitDB() error {
 		conf.ConnConfig.Port = uint16(p)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	pool, err := pgxpool.NewWithConfig(ctx, conf)
@@ -67,10 +67,10 @@ func InitDB() error {
 		return fmt.Errorf("error creating DB pool: %w", err)
 	}
 
-	// if err := pool.Ping(ctx); err != nil {
-	// 	pool.Close() // Đóng pool nếu ping thất bại
-	// 	return fmt.Errorf("error pinging DB: %w", err)
-	// }
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close() // Đóng pool nếu ping thất bại
+		return fmt.Errorf("error pinging DB: %w", err)
+	}
 
 	// Gán pool và khởi tạo sqlc.Queries
 	DBPool = pool

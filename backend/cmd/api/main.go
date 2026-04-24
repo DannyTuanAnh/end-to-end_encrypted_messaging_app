@@ -41,7 +41,7 @@ func main() {
 
 	log.Println("Create app...")
 	// 4. Initialize application
-	application := app.NewApplication(ctx, db.DB, rdb.RDB)
+	application := app.NewApplication(ctx, db.DB, rdb.Redis_GCP)
 
 	log.Println("Start Redis listener...")
 	// Start a goroutine to listen for Redis messages and handle them in the background

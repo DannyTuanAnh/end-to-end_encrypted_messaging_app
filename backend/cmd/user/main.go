@@ -45,6 +45,7 @@ func main() {
 
 	// 6. Run the application and capture any error message
 	msg, err := userServer.Run()
+
 	if err != nil {
 		log.Fatalf("%s: %v\n", msg, err)
 	}

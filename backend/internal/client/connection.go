@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
@@ -45,10 +46,16 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		InsecureSkipVerify: true,
 	}
 
+	// Tách lấy host từ addr (bỏ port)
+	host, _, _ := net.SplitHostPort(addr)
+	log.Printf("DEBUG: Attempting to connect to gRPC server at %s with TLS. ServerName: %s, Host: %s", addr, serverName, host)
+
 	conn, err := grpc.NewClient(
 		addr,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 		grpc.WithUnaryInterceptor(interceptor.AuthClientInterceptor(keyClient)),
+		// QUAN TRỌNG: Ép authority là URL thực tế của Cloud Run
+		grpc.WithAuthority(host),
 	)
 
 	if err != nil {

@@ -38,16 +38,17 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		return nil, fmt.Errorf("failed to append CA certificates")
 	}
 
+	host, _, _ := net.SplitHostPort(addr)
+
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caPool,
 
-		// ServerName:         serverName,
+		ServerName:         host,
 		InsecureSkipVerify: true,
 	}
 
 	// Tách lấy host từ addr (bỏ port)
-	host, _, _ := net.SplitHostPort(addr)
 	log.Printf("DEBUG: Attempting to connect to gRPC server at %s with TLS. ServerName: %s, Host: %s", addr, serverName, host)
 
 	conn, err := grpc.NewClient(

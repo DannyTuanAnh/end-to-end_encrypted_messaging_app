@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -26,6 +27,7 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 	caPool.AppendCertsFromPEM(caCert)
 
 	if ok := caPool.AppendCertsFromPEM(caCert); !ok {
+		log.Println("ERROR: Could not append CA certs. Check PATH_CERT_CA format.")
 		// Nếu thất bại, có thể do thiếu dấu xuống dòng, hãy thử log ra để check
 		return nil, fmt.Errorf("failed to append CA certificates")
 	}

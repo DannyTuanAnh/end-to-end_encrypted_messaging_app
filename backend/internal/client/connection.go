@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-func NewGRPCConn(addr, certFile, keyFile, keyClient string) (*grpc.ClientConn, error) {
+func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.ClientConn, error) {
 	certPEM := []byte(certFile)
 	keyPEM := []byte(keyFile)
 
@@ -27,6 +27,8 @@ func NewGRPCConn(addr, certFile, keyFile, keyClient string) (*grpc.ClientConn, e
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caPool,
+
+		ServerName: serverName,
 	}
 
 	conn, err := grpc.NewClient(

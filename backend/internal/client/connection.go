@@ -21,12 +21,12 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		return nil, err
 	}
 
-	caCertStr := []byte(utils.GetEnv("PATH_CERT_CA", ""))
+	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
 
 	caPool := x509.NewCertPool()
-	// caPool.AppendCertsFromPEM(caCertStr)
+	// caPool.AppendCertsFromPEM(caCert)
 
-	if ok := caPool.AppendCertsFromPEM([]byte(caCertStr)); !ok {
+	if ok := caPool.AppendCertsFromPEM(caCert); !ok {
 		log.Println("ERROR: Could not append CA certs. Check PATH_CERT_CA format.")
 		// Nếu thất bại, có thể do thiếu dấu xuống dòng, hãy thử log ra để check
 		return nil, fmt.Errorf("failed to append CA certificates")

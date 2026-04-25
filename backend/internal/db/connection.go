@@ -5,13 +5,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
-	"net"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"cloud.google.com/go/cloudsqlconn"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,41 +35,52 @@ func InitDB() error {
 	// conf.HealthCheckPeriod = 1 * time.Minute
 
 	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
-	if strings.Contains(connDB.DB.Host, ":") {
-		log.Printf("Using Cloud SQL Connector with PROXY BYPASS for: %s", connDB.DB.Host)
+	// if strings.Contains(connDB.DB.Host, ":") {
+	// 	log.Printf("Using Cloud SQL Connector with PROXY BYPASS for: %s", connDB.DB.Host)
 
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				Proxy: nil, // Ép buộc không dùng proxy cho việc lấy metadata
-			},
-		}
+	// 	httpClient := &http.Client{
+	// 		Transport: &http.Transport{
+	// 			Proxy: nil, // Ép buộc không dùng proxy cho việc lấy metadata
+	// 		},
+	// 	}
 
-		d, err := cloudsqlconn.NewDialer(
-			context.Background(),
-			cloudsqlconn.WithDefaultDialOptions(cloudsqlconn.WithPrivateIP()),
-			cloudsqlconn.WithHTTPClient(httpClient),
-		)
-		if err != nil {
-			return err
-		}
-		// Ép thư viện dùng bộ quay số tự động của Google
-		conf.ConnConfig.DialFunc = func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return d.Dial(ctx, connDB.DB.Host)
-		}
-	} else {
-		log.Println("Connecting via Private IP with direct TLS...")
-		// Chạy Local thì gán Host/Port bình thường
-		conf.ConnConfig.Host = connDB.DB.Host
+	// 	d, err := cloudsqlconn.NewDialer(
+	// 		context.Background(),
+	// 		cloudsqlconn.WithDefaultDialOptions(cloudsqlconn.WithPrivateIP()),
+	// 		cloudsqlconn.WithHTTPClient(httpClient),
+	// 	)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	// Ép thư viện dùng bộ quay số tự động của Google
+	// 	conf.ConnConfig.DialFunc = func(ctx context.Context, _, _ string) (net.Conn, error) {
+	// 		return d.Dial(ctx, connDB.DB.Host)
+	// 	}
+	// } else {
+	// 	log.Println("Connecting via Private IP with direct TLS...")
+	// 	// Chạy Local thì gán Host/Port bình thường
+	// 	conf.ConnConfig.Host = connDB.DB.Host
 
-		p, err := strconv.ParseUint(connDB.DB.Port, 10, 16)
-		if err != nil {
-			return fmt.Errorf("invalid db port %q: %w", connDB.DB.Port, err)
-		}
-		conf.ConnConfig.Port = uint16(p)
+	// 	p, err := strconv.ParseUint(connDB.DB.Port, 10, 16)
+	// 	if err != nil {
+	// 		return fmt.Errorf("invalid db port %q: %w", connDB.DB.Port, err)
+	// 	}
+	// 	conf.ConnConfig.Port = uint16(p)
 
-		conf.ConnConfig.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
+	// 	conf.ConnConfig.TLSConfig = &tls.Config{
+	// 		InsecureSkipVerify: true,
+	// 	}
+	// }
+
+	// ÉP BUỘC kết nối trực tiếp qua IP (Bỏ qua Cloud SQL Dialer)
+	log.Println("Connecting DIRECTLY to Private IP:", connDB.DB.Host)
+	conf.ConnConfig.Host = connDB.DB.Host
+	p, _ := strconv.ParseUint(connDB.DB.Port, 10, 16)
+	conf.ConnConfig.Port = uint16(p)
+
+	// BẮT BUỘC có InsecureSkipVerify vì IP 10.54.80.3 không khớp với tên trong Cert của Google
+	conf.ConnConfig.TLSConfig = &tls.Config{
+		InsecureSkipVerify: true,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

@@ -2,10 +2,8 @@ package db
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
@@ -21,7 +19,16 @@ var (
 func InitDB() error {
 	ctx := context.Background()
 	connDB := config.NewConfigDB()
-	dsn := connDB.DB_DNS()
+	// dsn := connDB.DB_DNS()
+
+	// Tạo DSN đặc biệt cho Unix Socket
+	// Lưu ý: host phải là đường dẫn thư mục chứa socket
+	instanceName := "chat-app-493208:us-central1:chat-app-db"
+	socketPath := "/cloudsql/" + instanceName
+	dsn := fmt.Sprintf("user=%s password=%s database=%s host=%s sslmode=disable",
+		connDB.DB.User, connDB.DB.Password, connDB.DB.DBName, socketPath)
+
+	log.Println("Connecting via UNIX SOCKET to bypass Mesh Proxy...")
 
 	conf, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -72,31 +79,31 @@ func InitDB() error {
 	// 	}
 	// }
 
-	// ÉP BUỘC kết nối trực tiếp qua IP (Bỏ qua Cloud SQL Dialer)
-	log.Println("Connecting DIRECTLY to Private IP:", connDB.DB.Host)
-	conf.ConnConfig.Host = connDB.DB.Host
-	p, _ := strconv.ParseUint(connDB.DB.Port, 10, 16)
-	conf.ConnConfig.Port = uint16(p)
+	// // ÉP BUỘC kết nối trực tiếp qua IP (Bỏ qua Cloud SQL Dialer)
+	// log.Println("Connecting DIRECTLY to Private IP:", connDB.DB.Host)
+	// conf.ConnConfig.Host = connDB.DB.Host
+	// p, _ := strconv.ParseUint(connDB.DB.Port, 10, 16)
+	// conf.ConnConfig.Port = uint16(p)
 
-	// BẮT BUỘC có InsecureSkipVerify vì IP 10.54.80.3 không khớp với tên trong Cert của Google
-	conf.ConnConfig.TLSConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
+	// // BẮT BUỘC có InsecureSkipVerify vì IP 10.54.80.3 không khớp với tên trong Cert của Google
+	// conf.ConnConfig.TLSConfig = &tls.Config{
+	// 	InsecureSkipVerify: true,
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	connectCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	pool, err := pgxpool.NewWithConfig(ctx, conf)
+	pool, err := pgxpool.NewWithConfig(connectCtx, conf)
 	if err != nil {
 		return fmt.Errorf("error creating DB pool: %w", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	if err := pool.Ping(connectCtx); err != nil {
 		pool.Close() // Đóng pool nếu ping thất bại
 		return fmt.Errorf("error pinging DB: %w", err)
 	}
 
-	log.Println("Database connection established successfully. Ping successful.")
+	log.Println("DATABASE CONNECTED SUCCESSFULLY VIA UNIX SOCKET!")
 
 	// Gán pool và khởi tạo sqlc.Queries
 	DBPool = pool

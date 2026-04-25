@@ -1,8 +1,10 @@
 package client
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"log"
 	"net"
@@ -40,6 +42,22 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		// Nếu thất bại, có thể do thiếu dấu xuống dòng, hãy thử log ra để check
 		return nil, fmt.Errorf("failed to append CA certificates")
 	}
+
+	block, _ := pem.Decode(caCert)
+	if block == nil {
+		log.Fatal("failed to parse CA PEM")
+	}
+
+	certParsed, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Gateway trusted CA Subject=%s", certParsed.Subject)
+	log.Printf("Gateway trusted CA Issuer=%s", certParsed.Issuer)
+	log.Printf("Gateway trusted CA Serial=%s", certParsed.SerialNumber.String())
+	log.Printf("Gateway trusted CA IsCA=%v", certParsed.IsCA)
+	log.Printf("Gateway trusted CA SHA256=%x", sha256.Sum256(certParsed.Raw))
 
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {

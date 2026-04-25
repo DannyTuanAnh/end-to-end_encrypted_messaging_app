@@ -16,12 +16,14 @@ import (
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
-	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/redis/go-redis/v9"
+
+	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
+
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"

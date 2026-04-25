@@ -6,65 +6,113 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	redis_memory "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/redis"
-	// "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 	log.Println("Start app")
-	// Initialize original context for the application
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 1. Load environment variables from .env file
-	// utils.LoadEnv()
-
+	// --- Init DB (non-fatal)
 	log.Println("Init DB...")
-	// 2. Initialize database connection
 	if err := db.InitDB(); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-		return
+		log.Printf("Database init failed: %v", err)
+		go retryDB(ctx)
+	} else {
+		defer db.Close()
+		log.Println("Database connected")
 	}
-	defer db.Close()
 
+	// --- Init Redis (non-fatal)
 	log.Println("Init Redis...")
-	// 3. Initialize Redis connection
 	rdb, err := redis_memory.InitRedis()
 	if err != nil {
-		log.Fatalf("Failed to initialize Redis: %v", err)
-		return
+		log.Printf("Redis init failed: %v", err)
+		go retryRedis(ctx)
+	} else {
+		defer rdb.CloseRedis()
+		log.Println("Redis connected")
+
+		log.Println("Start Redis listener...")
+		go app.StartRedisListener(ctx, rdb.Redis_GCP)
 	}
-	defer rdb.CloseRedis()
 
 	log.Println("Create app...")
-	// 4. Initialize application
-	application := app.NewApplication(ctx, db.DB, rdb.Redis_GCP)
 
-	log.Println("Start Redis listener...")
-	// Start a goroutine to listen for Redis messages and handle them in the background
-	go app.StartRedisListener(ctx, rdb.Redis_GCP)
+	var redisClient *redis.Client
+	if rdb != nil {
+		redisClient = rdb.Redis_GCP
+	}
+
+	application := app.NewApplication(ctx, db.DB, redisClient)
 
 	log.Println("Run server...")
-	// 5. Run the application and capture any error messages
-	// Check if the application is running in development mode by checking the ENV environment variable
-	if ENV := os.Getenv("ENV"); ENV == "development" {
-		// RunTLS the application and capture any error messages
-		msg, err := application.RunTLS(ctx)
-		if err != nil {
-			log.Fatalf("%s: %v\n", msg, err)
-		}
 
-		log.Println(msg)
+	var msg string
+	if os.Getenv("ENV") == "development" {
+		msg, err = application.RunTLS(ctx)
 	} else {
-		// Run the application and capture any error messages
-		msg, err := application.Run(ctx)
-		if err != nil {
-			log.Fatalf("%s: %v\n", msg, err)
-		}
+		msg, err = application.Run(ctx)
+	}
 
-		log.Println(msg)
+	// Chỉ log lỗi, không kill container
+	if err != nil {
+		log.Printf("Server error: %s: %v", msg, err)
+		select {} // giữ process sống để Cloud Run không kill ngay
+	}
+
+	log.Println(msg)
+}
+
+func retryDB(ctx context.Context) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			log.Println("Retrying DB connection...")
+
+			if err := db.InitDB(); err != nil {
+				log.Printf("DB retry failed: %v", err)
+				continue
+			}
+
+			log.Println("DB reconnected successfully")
+			return
+		}
+	}
+}
+
+func retryRedis(ctx context.Context) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			log.Println("Retrying Redis connection...")
+
+			rdb, err := redis_memory.InitRedis()
+			if err != nil {
+				log.Printf("Redis retry failed: %v", err)
+				continue
+			}
+
+			log.Println("Redis reconnected successfully")
+			go app.StartRedisListener(ctx, rdb.Redis_GCP)
+			return
+		}
 	}
 }

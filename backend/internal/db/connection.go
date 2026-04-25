@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"time"
 
+	"cloud.google.com/go/cloudsqlconn"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,73 +21,55 @@ var (
 func InitDB() error {
 	ctx := context.Background()
 	connDB := config.NewConfigDB()
-	// dsn := connDB.DB_DNS()
 
-	// Kết nối thẳng qua IP 10.54.80.3
-	dsn := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s sslmode=disable",
-		connDB.DB.User, connDB.DB.Password, connDB.DB.DBName, connDB.DB.Host, connDB.DB.Port)
+	// Cloud SQL Connector chỉ cần user/password/dbname
+	// KHÔNG dùng host=10.54.80.3 nữa
+	dsn := fmt.Sprintf(
+		"user=%s password=%s dbname=%s sslmode=disable",
+		connDB.DB.User,
+		connDB.DB.Password,
+		connDB.DB.DBName,
+	)
 
 	conf, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return fmt.Errorf("error parsing DB config: %w", err)
 	}
 
-	// conf.MaxConns = 50
-	// conf.MinConns = 5
-	// conf.MaxConnLifetime = 30 * time.Minute
-	// conf.MaxConnIdleTime = 5 * time.Minute
-	// conf.HealthCheckPeriod = 1 * time.Minute
+	// Pool config
+	conf.MaxConns = 20
+	conf.MinConns = 5
+	conf.MaxConnLifetime = 30 * time.Minute
+	conf.MaxConnIdleTime = 10 * time.Minute
+	conf.HealthCheckPeriod = 1 * time.Minute
 
-	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
-	// if strings.Contains(connDB.DB.Host, ":") {
-	// 	log.Printf("Using Cloud SQL Connector with PROXY BYPASS for: %s", connDB.DB.Host)
+	// connDB.DB.Host bây giờ phải là:
+	// project:region:instance
+	// ví dụ: chat-app-493208:us-central1:chat-app-db
+	instanceConnName := connDB.DB.Host
 
-	// 	httpClient := &http.Client{
-	// 		Transport: &http.Transport{
-	// 			Proxy: nil, // Ép buộc không dùng proxy cho việc lấy metadata
-	// 		},
-	// 	}
+	log.Printf("Using Cloud SQL Connector for instance: %s", instanceConnName)
 
-	// 	d, err := cloudsqlconn.NewDialer(
-	// 		context.Background(),
-	// 		cloudsqlconn.WithDefaultDialOptions(cloudsqlconn.WithPrivateIP()),
-	// 		cloudsqlconn.WithHTTPClient(httpClient),
-	// 	)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	// Ép thư viện dùng bộ quay số tự động của Google
-	// 	conf.ConnConfig.DialFunc = func(ctx context.Context, _, _ string) (net.Conn, error) {
-	// 		return d.Dial(ctx, connDB.DB.Host)
-	// 	}
-	// } else {
-	// 	log.Println("Connecting via Private IP with direct TLS...")
-	// 	// Chạy Local thì gán Host/Port bình thường
-	// 	conf.ConnConfig.Host = connDB.DB.Host
+	// Tạo Cloud SQL Dialer
+	dialer, err := cloudsqlconn.NewDialer(
+		ctx,
+		cloudsqlconn.WithLazyRefresh(),
+		cloudsqlconn.WithDefaultDialOptions(
+			cloudsqlconn.WithPrivateIP(),
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("error creating Cloud SQL dialer: %w", err)
+	}
 
-	// 	p, err := strconv.ParseUint(connDB.DB.Port, 10, 16)
-	// 	if err != nil {
-	// 		return fmt.Errorf("invalid db port %q: %w", connDB.DB.Port, err)
-	// 	}
-	// 	conf.ConnConfig.Port = uint16(p)
+	// Override pgx dialer:
+	// thay vì dial host:port bình thường
+	// pgx sẽ dùng Cloud SQL connector
+	conf.ConnConfig.DialFunc = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return dialer.Dial(ctx, instanceConnName)
+	}
 
-	// 	conf.ConnConfig.TLSConfig = &tls.Config{
-	// 		InsecureSkipVerify: true,
-	// 	}
-	// }
-
-	// // ÉP BUỘC kết nối trực tiếp qua IP (Bỏ qua Cloud SQL Dialer)
-	// log.Println("Connecting DIRECTLY to Private IP:", connDB.DB.Host)
-	// conf.ConnConfig.Host = connDB.DB.Host
-	// p, _ := strconv.ParseUint(connDB.DB.Port, 10, 16)
-	// conf.ConnConfig.Port = uint16(p)
-
-	// // Bắt buộc vì dùng IP trực tiếp sẽ lệch tên trong Certificate của Google
-	// conf.ConnConfig.TLSConfig = &tls.Config{
-	// 	InsecureSkipVerify: true,
-	// }
-
-	connectCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	connectCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	pool, err := pgxpool.NewWithConfig(connectCtx, conf)
@@ -94,18 +78,16 @@ func InitDB() error {
 	}
 
 	if err := pool.Ping(connectCtx); err != nil {
-		pool.Close() // Đóng pool nếu ping thất bại
+		pool.Close()
 		return fmt.Errorf("error pinging DB: %w", err)
 	}
 
-	log.Println("DATABASE CONNECTED SUCCESSFULLY VIA UNIX SOCKET!")
+	log.Println("DATABASE CONNECTED SUCCESSFULLY VIA CLOUD SQL CONNECTOR")
 
-	// Gán pool và khởi tạo sqlc.Queries
 	DBPool = pool
 	DB = sqlc.New(DBPool)
 
-	log.Println("Connecting to database successfully")
-
+	log.Println("Database initialized successfully")
 	return nil
 }
 

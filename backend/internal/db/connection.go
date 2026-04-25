@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -38,7 +39,7 @@ func InitDB() error {
 	conf.HealthCheckPeriod = 1 * time.Minute
 
 	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
-	if strings.Contains(connDB.DB.Host, ":") {
+	if strings.Contains(connDB.DB.Host, ":") && !isValidIP(connDB.DB.Host) {
 		log.Printf("Using Cloud SQL Connector for: %s", connDB.DB.Host)
 		httpClient := &http.Client{
 			Transport: &http.Transport{
@@ -59,7 +60,7 @@ func InitDB() error {
 			return d.Dial(ctx, connDB.DB.Host)
 		}
 	} else {
-		log.Println("Using standard TCP/IP connection for database")
+		log.Println("Connecting via Private IP with direct TLS...")
 		// Chạy Local thì gán Host/Port bình thường
 		conf.ConnConfig.Host = connDB.DB.Host
 
@@ -68,6 +69,10 @@ func InitDB() error {
 			return fmt.Errorf("invalid db port %q: %w", connDB.DB.Port, err)
 		}
 		conf.ConnConfig.Port = uint16(p)
+
+		conf.ConnConfig.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -92,6 +97,10 @@ func InitDB() error {
 	log.Println("Connecting to database successfully")
 
 	return nil
+}
+
+func isValidIP(host string) bool {
+	return net.ParseIP(host) != nil
 }
 
 // Close đóng connection pool (gọi khi shutdown app)

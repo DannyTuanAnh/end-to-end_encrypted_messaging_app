@@ -338,8 +338,8 @@ func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.D
 	}
 
 	ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, req.UserId)
-	ctx = context.WithValue(ctx, interceptor.CtxCallerKey, "user-service")
-	ctx = context.WithValue(ctx, interceptor.CtxAudKey, "auth-service")
+	ctx = context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("USER_SERVICE_NAME", ""))
+	ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
 
 	_, err = s.auth_client.Client.LogoutAll(ctx, reqLogoutAll)
 	if err != nil {

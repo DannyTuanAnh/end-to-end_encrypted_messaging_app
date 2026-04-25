@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -32,25 +33,25 @@ import (
 
 var userPolicies = map[string][]string{
 	"/proto.UserService/DisableUserByUserID": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.UserService/CreateProfile": {
-		"auth-service",
+		os.Getenv("AUTH_SERVICE_NAME"),
 	},
 	"/proto.UserService/GetProfileByUserID": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.UserService/GetProfileByUserUUID": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.UserService/UpdateProfile": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.UserService/VerifyIDTokenOTP": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.UserService/ReportUserImage": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 }
 

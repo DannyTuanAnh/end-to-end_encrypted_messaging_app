@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
@@ -141,9 +142,9 @@ func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
 
 	baseCtx := ctx.Request.Context()
 
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, os.Getenv("API_GATEWAY_NAME"))
 	c = context.WithValue(c, interceptor.CtxUserIDKey, id)
-	c = context.WithValue(c, interceptor.CtxAudKey, "auth-service")
+	c = context.WithValue(c, interceptor.CtxAudKey, os.Getenv("AUTH_SERVICE_NAME"))
 
 	_, err := h.auth_client.Client.LogoutAll(c, req)
 	if err != nil {

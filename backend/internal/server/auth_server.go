@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
@@ -25,14 +26,14 @@ import (
 
 var authPolicies = map[string][]string{
 	"/proto.AuthService/LoginGoogle": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.AuthService/Logout": {
-		"api-gateway",
+		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.AuthService/LogoutAll": {
-		"api-gateway",
-		"user-service",
+		os.Getenv("API_GATEWAY_NAME"),
+		os.Getenv("USER_SERVICE_NAME"),
 	},
 }
 

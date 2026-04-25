@@ -80,9 +80,9 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 	}
 
 	if !resp.ProfileExists {
-		ctx := context.WithValue(ctx, interceptor.CtxCallerKey, "auth-service")
+		ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
 		ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, resp.UserId)
-		ctx = context.WithValue(ctx, interceptor.CtxAudKey, "user-service")
+		ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 		_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
 			UserId:    resp.UserId,

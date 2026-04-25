@@ -74,9 +74,9 @@ func (h *UserHandler) GetProfile(ctx *gin.Context) {
 
 	baseCtx := ctx.Request.Context()
 
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
 	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, "user-service")
+	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 	resp, err := h.user_client.Client.GetProfileByUserID(c, &user_proto.GetProfileByUserIDRequest{UserId: userID})
 	if err != nil {
@@ -123,9 +123,9 @@ func (h *UserHandler) GetProfileByUserUUID(ctx *gin.Context) {
 
 	baseCtx := ctx.Request.Context()
 
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
 	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, "user-service")
+	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 	resp, err := h.user_client.Client.GetProfileByUserUUID(c, &user_proto.GetProfileByUserUUIDRequest{
 		Uuid:   params.UUID,
@@ -213,9 +213,9 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 
 	baseCtx := ctx.Request.Context()
 
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
 	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, "user-service")
+	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 	resp, err := h.user_client.Client.UpdateProfile(c, &user_proto.UpdateProfileRequest{
 		UserId:   userID,
@@ -248,9 +248,9 @@ func (h *UserHandler) DisableUser(ctx *gin.Context) {
 
 	baseCtx := ctx.Request.Context()
 
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, "api-gateway")
+	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
 	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, "user-service")
+	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 	_, err := h.user_client.Client.DisableUserByUserID(c, &user_proto.DisableUserRequest{UserId: userID})
 	if err != nil {

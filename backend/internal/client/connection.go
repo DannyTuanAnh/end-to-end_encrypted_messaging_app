@@ -27,6 +27,9 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 	// Ép chuỗi "\n" thành dấu xuống dòng thực sự để gRPC đọc được định dạng PEM
 	caCertStr = strings.ReplaceAll(caCertStr, "\\n", "\n")
 
+	log.Println("Loaded CA cert for gRPC client")
+	log.Println(caCertStr)
+
 	caCert := []byte(caCertStr)
 
 	caPool := x509.NewCertPool()

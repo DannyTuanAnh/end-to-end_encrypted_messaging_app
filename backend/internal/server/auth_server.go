@@ -53,6 +53,14 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 
 	cert, err := tls.X509KeyPair(authCertPEM, authKeyPEM)
 
+	x509Cert, _ := x509.ParseCertificate(cert.Certificate[0])
+
+	log.Printf("Auth service cert CN=%s DNS=%v Issuer=%s",
+		x509Cert.Subject.CommonName,
+		x509Cert.DNSNames,
+		x509Cert.Issuer.CommonName,
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load auth service TLS credentials: %v", err)
 	}

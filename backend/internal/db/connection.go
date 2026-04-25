@@ -32,15 +32,16 @@ func InitDB() error {
 		return fmt.Errorf("error parsing DB config: %w", err)
 	}
 
-	conf.MaxConns = 50
-	conf.MinConns = 5
-	conf.MaxConnLifetime = 30 * time.Minute
-	conf.MaxConnIdleTime = 5 * time.Minute
-	conf.HealthCheckPeriod = 1 * time.Minute
+	// conf.MaxConns = 50
+	// conf.MinConns = 5
+	// conf.MaxConnLifetime = 30 * time.Minute
+	// conf.MaxConnIdleTime = 5 * time.Minute
+	// conf.HealthCheckPeriod = 1 * time.Minute
 
 	// 2. Nếu là môi trường Cloud (Host chứa dấu ":")
-	if strings.Contains(connDB.DB.Host, ":") && !isValidIP(connDB.DB.Host) {
-		log.Printf("Using Cloud SQL Connector for: %s", connDB.DB.Host)
+	if strings.Contains(connDB.DB.Host, ":") {
+		log.Printf("Using Cloud SQL Connector with PROXY BYPASS for: %s", connDB.DB.Host)
+
 		httpClient := &http.Client{
 			Transport: &http.Transport{
 				Proxy: nil, // Ép buộc không dùng proxy cho việc lấy metadata
@@ -99,9 +100,9 @@ func InitDB() error {
 	return nil
 }
 
-func isValidIP(host string) bool {
-	return net.ParseIP(host) != nil
-}
+// func isValidIP(host string) bool {
+// 	return net.ParseIP(host) != nil
+// }
 
 // Close đóng connection pool (gọi khi shutdown app)
 func Close() {

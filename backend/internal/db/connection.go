@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
 	"time"
@@ -23,7 +22,7 @@ func InitDB() error {
 	// dsn := connDB.DB_DNS()
 
 	// Kết nối thẳng qua IP 10.54.80.3
-	dsn := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s sslmode=require",
+	dsn := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s sslmode=disable",
 		connDB.DB.User, connDB.DB.Password, connDB.DB.DBName, connDB.DB.Host, connDB.DB.Port)
 
 	conf, err := pgxpool.ParseConfig(dsn)
@@ -81,10 +80,10 @@ func InitDB() error {
 	// p, _ := strconv.ParseUint(connDB.DB.Port, 10, 16)
 	// conf.ConnConfig.Port = uint16(p)
 
-	// Bắt buộc vì dùng IP trực tiếp sẽ lệch tên trong Certificate của Google
-	conf.ConnConfig.TLSConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
+	// // Bắt buộc vì dùng IP trực tiếp sẽ lệch tên trong Certificate của Google
+	// conf.ConnConfig.TLSConfig = &tls.Config{
+	// 	InsecureSkipVerify: true,
+	// }
 
 	connectCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()

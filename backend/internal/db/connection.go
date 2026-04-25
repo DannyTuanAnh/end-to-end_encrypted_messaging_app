@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"time"
@@ -21,14 +22,9 @@ func InitDB() error {
 	connDB := config.NewConfigDB()
 	// dsn := connDB.DB_DNS()
 
-	// Tạo DSN đặc biệt cho Unix Socket
-	// Lưu ý: host phải là đường dẫn thư mục chứa socket
-	instanceName := "chat-app-493208:us-central1:chat-app-db"
-	socketPath := "/cloudsql/" + instanceName
-	dsn := fmt.Sprintf("user=%s password=%s database=%s host=%s sslmode=disable",
-		connDB.DB.User, connDB.DB.Password, connDB.DB.DBName, socketPath)
-
-	log.Println("Connecting via UNIX SOCKET to bypass Mesh Proxy...")
+	// Kết nối thẳng qua IP 10.54.80.3
+	dsn := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s sslmode=require",
+		connDB.DB.User, connDB.DB.Password, connDB.DB.DBName, connDB.DB.Host, connDB.DB.Port)
 
 	conf, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -85,10 +81,10 @@ func InitDB() error {
 	// p, _ := strconv.ParseUint(connDB.DB.Port, 10, 16)
 	// conf.ConnConfig.Port = uint16(p)
 
-	// // BẮT BUỘC có InsecureSkipVerify vì IP 10.54.80.3 không khớp với tên trong Cert của Google
-	// conf.ConnConfig.TLSConfig = &tls.Config{
-	// 	InsecureSkipVerify: true,
-	// }
+	// Bắt buộc vì dùng IP trực tiếp sẽ lệch tên trong Certificate của Google
+	conf.ConnConfig.TLSConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
 
 	connectCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()

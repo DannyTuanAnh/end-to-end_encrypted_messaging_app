@@ -64,11 +64,10 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 
-		// ClientAuth: tls.RequireAndVerifyClientCert,
-		// ClientCAs: caPool,
-
-		ClientAuth: tls.VerifyClientCertIfGiven,
+		ClientAuth: tls.RequireAndVerifyClientCert,
 		ClientCAs:  caPool,
+
+		MinVersion: tls.VersionTLS12,
 	}
 
 	authCfg := config.NewConfigAuthService()
@@ -92,8 +91,9 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	s := grpc.NewServer(
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
 		grpc.ChainUnaryInterceptor(
+			interceptor.MTLSIdentityInterceptor(),
 			interceptor.RBACInterceptor(authPolicies),
-			interceptor.AuthServerInterceptor(authCertFile),
+			interceptor.JWTAuthServerInterceptor(authCertFile),
 		),
 	)
 

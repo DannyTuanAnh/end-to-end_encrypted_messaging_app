@@ -81,12 +81,11 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 
-		// ClientAuth: tls.RequireAndVerifyClientCert,
+		ClientAuth: tls.RequireAndVerifyClientCert,
 
-		// ClientCAs: caPool,
+		ClientCAs: caPool,
 
-		ClientAuth: tls.VerifyClientCertIfGiven,
-		ClientCAs:  caPool,
+		MinVersion: tls.VersionTLS12,
 	}
 
 	userCfg := config.NewConfigUserService()
@@ -121,7 +120,8 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
 		grpc.ChainUnaryInterceptor(
 			interceptor.RBACInterceptor(userPolicies),
-			interceptor.AuthServerInterceptor(userCertFile),
+			interceptor.MTLSIdentityInterceptor(),
+			interceptor.JWTAuthServerInterceptor(userCertFile),
 		),
 	)
 

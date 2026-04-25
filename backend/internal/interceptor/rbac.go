@@ -3,7 +3,6 @@ package interceptor
 import (
 	"context"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,7 +16,11 @@ func RBACInterceptor(policies map[string][]string) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 
-		caller := utils.GetCaller(ctx)
+		caller, ok := ctx.Value(CtxCallerKey).(string)
+		if !ok {
+			return nil, status.Error(codes.PermissionDenied, "caller is not a string")
+		}
+
 		if caller == "" || caller == "unknown" {
 			return nil, status.Error(codes.PermissionDenied, "caller not identified")
 		}

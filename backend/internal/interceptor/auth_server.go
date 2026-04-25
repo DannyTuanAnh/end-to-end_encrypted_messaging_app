@@ -16,7 +16,7 @@ var skip = map[string]bool{
 	"/proto.AuthService/Logout":      true,
 }
 
-func AuthServerInterceptor(certPath string) grpc.UnaryServerInterceptor {
+func JWTAuthServerInterceptor(certPath string) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},

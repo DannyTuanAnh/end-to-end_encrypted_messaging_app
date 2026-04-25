@@ -38,25 +38,28 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 		return nil, fmt.Errorf("failed to append CA certificates")
 	}
 
-	host, _, _ := net.SplitHostPort(addr)
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+	}
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caPool,
 
-		ServerName:         host,
-		InsecureSkipVerify: true,
+		ServerName: serverName, // Quan trọng: phải khớp với CN/SAN của server certificate
+
+		MinVersion: tls.VersionTLS12,
 	}
 
 	// Tách lấy host từ addr (bỏ port)
-	log.Printf("DEBUG: Attempting to connect to gRPC server at %s with TLS. ServerName: %s, Host: %s", addr, host, host)
+	log.Printf("DEBUG: Attempting to connect to gRPC server at %s with TLS. ServerName: %s", addr, serverName)
 
 	conn, err := grpc.NewClient(
 		addr,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 		grpc.WithUnaryInterceptor(interceptor.AuthClientInterceptor(keyClient)),
-		// QUAN TRỌNG: Ép authority là URL thực tế của Cloud Run
-		grpc.WithAuthority(host),
+		grpc.WithAuthority(host), // route Cloud Run
 	)
 
 	if err != nil {

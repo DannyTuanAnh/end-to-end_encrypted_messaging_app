@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -194,9 +195,24 @@ func connectGCS(ctx context.Context) *storage.Client {
 func connectAuthFirebase(ctx context.Context) *auth.Client {
 	// Initialize Firebase app for verify otp
 	serviceAccountKey := utils.GetEnv("GOOGLE_APPLICATION_FIREBASE_CREDENTIALS", "")
-	opt := option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
 
-	app, err := firebase.NewApp(ctx, nil, opt)
+	var app *firebase.App
+	var err error
+	if serviceAccountKey != "" {
+		var opt option.ClientOption
+
+		if strings.HasPrefix(serviceAccountKey, "/") {
+			opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
+		} else {
+			opt = option.WithAuthCredentialsJSON(option.ServiceAccount, []byte(serviceAccountKey))
+		}
+
+		app, err = firebase.NewApp(ctx, nil, opt)
+
+	} else {
+		app, err = firebase.NewApp(ctx, nil)
+	}
+
 	if err != nil {
 		panic("Failed to initialize Firebase app: " + err.Error())
 	}

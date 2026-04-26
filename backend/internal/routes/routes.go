@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware"
@@ -18,10 +19,16 @@ func RegisterRoutes(ctx context.Context, r *gin.Engine, rdb *redis.Client, db sq
 	r.Use(middleware.CORSMiddleware(),
 		middleware.RateLimitMiddleware(ctx, rdb, 60, 100), // 100 requests per 60 seconds
 		middleware.LoggerMiddleware(),
-		middleware.ApiKeyMiddleware(db, rdb),
 	)
 
+	// Public health check (NO API KEY)
+	r.GET("/healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "ok")
+	})
+
 	public := r.Group("/api/v1")
+	public.Use(middleware.ApiKeyMiddleware(db, rdb))
+
 	for _, route := range routes {
 		if publicRoute, ok := route.(interface{ RegisterPublic(r *gin.RouterGroup) }); ok {
 			publicRoute.RegisterPublic(public)

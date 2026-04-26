@@ -21,10 +21,7 @@ func NewAuthModule(addr string) *AuthModule {
 	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
 	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
 
-	apiGatewayCertPEM := []byte(apiGatewayCertFile)
-	apiGatewayKeyPEM := []byte(apiGatewayKeyFile)
-
-	cert, err := tls.X509KeyPair(apiGatewayCertPEM, apiGatewayKeyPEM)
+	cert, err := tls.LoadX509KeyPair(apiGatewayCertFile, apiGatewayKeyFile)
 
 	x509Cert, _ := x509.ParseCertificate(cert.Certificate[0])
 

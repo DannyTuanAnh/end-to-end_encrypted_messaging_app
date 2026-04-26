@@ -4,13 +4,19 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func SignJWT(privateKeyPEM string, claims jwt.MapClaims) (string, error) {
-	block, _ := pem.Decode([]byte(privateKeyPEM))
+	keyData, err := os.ReadFile(privateKeyPEM)
+	if err != nil {
+		return "", err
+	}
+
+	block, _ := pem.Decode(keyData)
 	if block == nil {
 		return "", fmt.Errorf("invalid pem")
 	}

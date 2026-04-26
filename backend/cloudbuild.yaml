@@ -14,10 +14,19 @@ steps:
         "--cache-from",
         "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:latest",
         "-t",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:$SHORT_SHA",
+        "-t",
         "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:latest",
         "-f",
         "backend/Dockerfile.api",
         "backend",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:$SHORT_SHA",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
@@ -35,7 +44,7 @@ steps:
         "deploy",
         "chat-app-api-gateway",
         "--image",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:latest",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:$SHORT_SHA",
         "--region",
         "us-central1",
         "--platform",
@@ -51,7 +60,7 @@ steps:
       - |
         set -e
         gcloud container clusters get-credentials chat-app-cluster --region us-central1 --project $PROJECT_ID
-        kubectl set image deployment/api-gateway-deployment api-gateway-sha256-1=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:latest
+        kubectl set image deployment/api-gateway-deployment api-gateway-sha256-1=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:$SHORT_SHA
         kubectl rollout status deployment/api-gateway-deployment
 
   # ================= AUTH SERVICE =================
@@ -69,10 +78,19 @@ steps:
         "--cache-from",
         "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:latest",
         "-t",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:$SHORT_SHA",
+        "-t",
         "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:latest",
         "-f",
         "backend/Dockerfile.auth",
         "backend",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:$SHORT_SHA",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
@@ -90,7 +108,7 @@ steps:
         "deploy",
         "chat-app-auth-service",
         "--image",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:latest",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:$SHORT_SHA",
         "--region",
         "us-central1",
         "--platform",
@@ -106,7 +124,7 @@ steps:
       - |
         set -e
         gcloud container clusters get-credentials chat-app-cluster --region us-central1 --project $PROJECT_ID
-        kubectl set image deployment/auth-service-deployment auth-service-sha256-1=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:latest
+        kubectl set image deployment/auth-service-deployment auth-service-sha256-1=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:$SHORT_SHA
         kubectl rollout status deployment/auth-service-deployment
 
   # ================= USER SERVICE =================
@@ -124,10 +142,19 @@ steps:
         "--cache-from",
         "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:latest",
         "-t",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:$SHORT_SHA",
+        "-t",
         "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:latest",
         "-f",
         "backend/Dockerfile.user",
         "backend",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:$SHORT_SHA",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
@@ -145,7 +172,7 @@ steps:
         "deploy",
         "chat-app-user-service",
         "--image",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:latest",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:$SHORT_SHA",
         "--region",
         "us-central1",
         "--platform",
@@ -161,13 +188,13 @@ steps:
       - |
         set -e
         gcloud container clusters get-credentials chat-app-cluster --region us-central1 --project $PROJECT_ID
-        kubectl set image deployment/user-service-deployment user-service-sha256-1=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:latest
+        kubectl set image deployment/user-service-deployment user-service-sha256-1=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:$SHORT_SHA
         kubectl rollout status deployment/user-service-deployment
 
 images:
-  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:latest"
-  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:latest"
-  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:latest"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/api-gateway:$SHORT_SHA"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/auth-service:$SHORT_SHA"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/user-service:$SHORT_SHA"
 
 options:
   logging: CLOUD_LOGGING_ONLY

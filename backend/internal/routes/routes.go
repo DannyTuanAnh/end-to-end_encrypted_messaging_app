@@ -22,6 +22,9 @@ func RegisterRoutes(ctx context.Context, r *gin.Engine, rdb *redis.Client, db sq
 	)
 
 	// Public health check (NO API KEY)
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 	r.GET("/healthz", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})

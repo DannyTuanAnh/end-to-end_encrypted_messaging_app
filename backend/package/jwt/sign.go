@@ -11,12 +11,21 @@ import (
 )
 
 func SignJWT(privateKeyPEM string, claims jwt.MapClaims) (string, error) {
-	keyData, err := os.ReadFile(privateKeyPEM)
-	if err != nil {
-		return "", err
+	var block *pem.Block
+
+	is_cloud_run := os.Getenv("IS_CLOUD_RUN")
+
+	if is_cloud_run == "true" {
+		block, _ = pem.Decode([]byte(privateKeyPEM))
+	} else {
+		keyData, err := os.ReadFile(privateKeyPEM)
+		if err != nil {
+			return "", err
+		}
+
+		block, _ = pem.Decode(keyData)
 	}
 
-	block, _ := pem.Decode(keyData)
 	if block == nil {
 		return "", fmt.Errorf("invalid pem")
 	}

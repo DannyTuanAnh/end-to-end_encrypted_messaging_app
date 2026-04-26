@@ -10,12 +10,22 @@ import (
 )
 
 func VerifyJWT(certPath string, tokenString string) (*jwt.Token, error) {
-	certData, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, err
+	var block *pem.Block
+
+	is_cloud_run := os.Getenv("IS_CLOUD_RUN")
+
+	if is_cloud_run == "true" {
+		block, _ = pem.Decode([]byte(certPath))
+	} else {
+
+		certData, err := os.ReadFile(certPath)
+		if err != nil {
+			return nil, err
+		}
+
+		block, _ = pem.Decode(certData)
 	}
 
-	block, _ := pem.Decode(certData)
 	if block == nil {
 		return nil, fmt.Errorf("invalid cert")
 	}

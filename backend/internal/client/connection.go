@@ -13,9 +13,23 @@ import (
 )
 
 func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.ClientConn, error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return nil, err
+	var cert tls.Certificate
+	var err error
+
+	is_cloud_run := utils.GetEnv("IS_CLOUD_RUN", "false")
+	if is_cloud_run == "true" {
+		certPEM := []byte(certFile)
+		keyPEM := []byte(keyFile)
+
+		cert, err = tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		cert, err = tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	caCertStr := utils.GetEnv("PATH_CERT_CA", "")
@@ -23,9 +37,15 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 	log.Println("Loaded CA cert for gRPC client")
 	log.Println(caCertStr)
 
-	caCert, err := os.ReadFile(caCertStr)
-	if err != nil {
-		return nil, err
+	var caCert []byte
+
+	if is_cloud_run == "true" {
+		caCert = []byte(caCertStr)
+	} else {
+		caCert, err = os.ReadFile(caCertStr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	caPool := x509.NewCertPool()

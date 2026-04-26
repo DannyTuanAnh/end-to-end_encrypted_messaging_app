@@ -67,15 +67,37 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 	userCertFile := utils.GetEnv("PATH_CERT_USER_SERVICE", "")
 	userKeyFile := utils.GetEnv("PATH_KEY_USER_SERVICE", "")
 
-	userCertPEM := []byte(userCertFile)
-	userKeyPEM := []byte(userKeyFile)
+	var cert tls.Certificate
+	var err error
 
-	cert, err := tls.X509KeyPair(userCertPEM, userKeyPEM)
+	is_cloud_run := utils.GetEnv("IS_CLOUD_RUN", "false")
+	if is_cloud_run == "true" {
+
+		userCertPEM := []byte(userCertFile)
+		userKeyPEM := []byte(userKeyFile)
+
+		cert, err = tls.X509KeyPair(userCertPEM, userKeyPEM)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to load user service TLS credentials: %v", err)
+		}
+	} else {
+		cert, err = tls.LoadX509KeyPair(userCertFile, userKeyFile)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load user service TLS credentials: %v", err)
 	}
 
-	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
+	var caCert []byte
+
+	if is_cloud_run == "true" {
+		caCert = []byte(utils.GetEnv("PATH_CERT_CA", ""))
+	} else {
+		caCert, err = os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read CA cert: %v", err)
+		}
+	}
 
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(caCert)

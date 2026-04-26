@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"log"
 	"net"
@@ -50,10 +49,23 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	authCertFile := utils.GetEnv("PATH_CERT_AUTH_SERVICE", "")
 	authKeyFile := utils.GetEnv("PATH_KEY_AUTH_SERVICE", "")
 
-	authCertPEM := []byte(authCertFile)
-	authKeyPEM := []byte(authKeyFile)
+	var cert tls.Certificate
+	var err error
 
-	cert, err := tls.X509KeyPair(authCertPEM, authKeyPEM)
+	is_cloud_run := utils.GetEnv("IS_CLOUD_RUN", "false")
+	if is_cloud_run == "true" {
+
+		authCertPEM := []byte(authCertFile)
+		authKeyPEM := []byte(authKeyFile)
+
+		cert, err = tls.X509KeyPair(authCertPEM, authKeyPEM)
+	} else {
+		cert, err = tls.LoadX509KeyPair(authCertFile, authKeyFile)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load auth service TLS credentials: %v", err)
+	}
 
 	x509Cert, _ := x509.ParseCertificate(cert.Certificate[0])
 
@@ -69,27 +81,16 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	log.Printf("Auth leaf DNSNames=%v", x509Cert.DNSNames)
 	log.Printf("Auth leaf SHA256=%x", sha256.Sum256(x509Cert.Raw))
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to load auth service TLS credentials: %v", err)
+	var caCert []byte
+
+	if is_cloud_run == "true" {
+		caCert = []byte(utils.GetEnv("PATH_CERT_CA", ""))
+	} else {
+		caCert, err = os.ReadFile(utils.GetEnv("PATH_CERT_CA", ""))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read CA cert: %v", err)
+		}
 	}
-
-	caCert := []byte(utils.GetEnv("PATH_CERT_CA", ""))
-
-	block, _ := pem.Decode(caCert)
-	if block == nil {
-		log.Fatal("failed to parse auth CA PEM")
-	}
-
-	caParsed, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Auth trusted CA Subject=%s", caParsed.Subject)
-	log.Printf("Auth trusted CA Issuer=%s", caParsed.Issuer)
-	log.Printf("Auth trusted CA Serial=%s", caParsed.SerialNumber.String())
-	log.Printf("Auth trusted CA IsCA=%v", caParsed.IsCA)
-	log.Printf("Auth trusted CA SHA256=%x", sha256.Sum256(caParsed.Raw))
 
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(caCert)

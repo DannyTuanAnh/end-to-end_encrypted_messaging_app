@@ -11,7 +11,8 @@ var allowedOrigins = map[string]bool{
 	"https://127.0.0.1:5173": true,
 	"https://localhost:5173": true,
 
-	"https://chat-app-ta.duckdns.org:5173": true,
+	"https://chat-app-ta.duckdns.org:5173":       true,
+	"https://local.chat-app-ta.duckdns.org:5173": true,
 }
 
 // CORSMiddleware allows cross-origin requests

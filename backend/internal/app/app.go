@@ -180,12 +180,6 @@ func StartRedisListener(ctx context.Context, redisClient *redis.Client) {
 	redisKey := utils.GetEnv("REDIS_KEY_PAYLOAD", "")
 
 	for msg := range ch {
-		var data struct {
-			UserID string `json:"user_id"`
-			Status string `json:"status"`
-			URL    string `json:"file_path"`
-		}
-
 		log.Printf("Received message from Redis: %s\n", msg.Payload)
 
 		token, err := jwt.ParseWithClaims(msg.Payload, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -206,13 +200,37 @@ func StartRedisListener(ctx context.Context, redisClient *redis.Client) {
 			continue
 		}
 
-		json.Unmarshal([]byte(msg.Payload), &data)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			log.Printf("Invalid JWT claims")
+			continue
+		}
+
+		userID, _ := claims["user_id"].(string)
+		if userID == "" {
+			log.Printf("Missing user_id in JWT")
+			continue
+		}
+
+		payload := map[string]any{
+			"user_id":   userID,
+			"status":    claims["status"],
+			"file_path": claims["file_path"],
+		}
+
+		b, _ := json.Marshal(payload)
 
 		// Tìm đúng User đang kết nối SSE để gửi
 		sse.MainBroker.Mu.RLock()
-		if userChan, ok := sse.MainBroker.Clients[data.UserID]; ok {
-			userChan <- msg.Payload // Đẩy dữ liệu qua channel SSE
+
+		userChan, ok := sse.MainBroker.Clients[userID]
+		if ok {
+			log.Printf("Dispatching SSE to user %s", userID)
+			userChan <- string(b)
+		} else {
+			log.Printf("No active SSE client for user %s", userID)
 		}
+
 		sse.MainBroker.Mu.RUnlock()
 	}
 }

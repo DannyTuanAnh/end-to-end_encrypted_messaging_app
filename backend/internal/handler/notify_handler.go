@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/sse"
@@ -47,12 +48,22 @@ func (n *NotifyHandler) HandleSSE(ctx *gin.Context) {
 	messageChan := sse.MainBroker.AddClient(userIDStr)
 	defer sse.MainBroker.RemoveClient(userIDStr)
 
+	heartbeat := time.NewTicker(5 * time.Second)
+	defer heartbeat.Stop()
+
 	for {
 		select {
 		case message := <-messageChan:
 			// Send the message to the client
 			log.Println("Sending message to client:", message)
 			_, err := ctx.Writer.Write([]byte("data: " + message + "\n\n"))
+			if err != nil {
+				return
+			}
+			ctx.Writer.Flush()
+		case <-heartbeat.C:
+			// SSE heartbeat (comment frame)
+			_, err := ctx.Writer.Write([]byte(": ping\n\n"))
 			if err != nil {
 				return
 			}

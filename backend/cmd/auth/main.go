@@ -37,7 +37,7 @@ func main() {
 	defer rdb.CloseRedis()
 
 	// 5. Initialize application
-	authServer, err := server.NewAuthServer(ctx, db.DB, rdb.RDB)
+	authServer, err := server.NewAuthServer(ctx, db.DB, rdb.Redis_GCP)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth server: %v", err)
 		return

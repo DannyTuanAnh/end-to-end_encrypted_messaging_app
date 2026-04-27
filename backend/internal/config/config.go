@@ -136,7 +136,7 @@ func NewConfigRedis() *Config {
 func NewConfigServer() *Config {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "443" // default port if not set
+		port = "8080" // default port if not set
 	}
 
 	return &Config{

@@ -49,6 +49,9 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 	authCertFile := utils.GetEnv("PATH_CERT_AUTH_SERVICE", "")
 	authKeyFile := utils.GetEnv("PATH_KEY_AUTH_SERVICE", "")
 
+	authCertFileClient := utils.GetEnv("PATH_CERT_AUTH_SERVICE_CLIENT", "")
+	authKeyFileClient := utils.GetEnv("PATH_KEY_AUTH_SERVICE_CLIENT", "")
+
 	var cert tls.Certificate
 	var err error
 
@@ -114,7 +117,7 @@ func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Au
 
 	cfg.Service.AuthServiceListenAddr = authCfg.Service.AuthServiceListenAddr
 
-	user_client, err := client.NewUserClient(cfg.Service.UserServiceAddr, authCertFile, authKeyFile)
+	user_client, err := client.NewUserClient(cfg.Service.UserServiceAddr, authCertFileClient, authKeyFileClient)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create user client: %v", err)
 	}

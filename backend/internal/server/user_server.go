@@ -143,8 +143,8 @@ func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*Us
 	s := grpc.NewServer(
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
 		grpc.ChainUnaryInterceptor(
-			interceptor.RBACInterceptor(userPolicies),
 			interceptor.MTLSIdentityInterceptor(),
+			interceptor.RBACInterceptor(userPolicies),
 			interceptor.JWTAuthServerInterceptor(userCertFile),
 		),
 	)
@@ -223,6 +223,10 @@ func connectAuthFirebase(ctx context.Context) *auth.Client {
 	if serviceAccountKey != "" {
 		var opt option.ClientOption
 
+		// //local test
+		// opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
+
+		// deploy
 		if strings.HasPrefix(serviceAccountKey, "/") {
 			opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
 		} else {

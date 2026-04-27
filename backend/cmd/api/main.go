@@ -47,6 +47,13 @@ func main() {
 	log.Println("Create app...")
 
 	var redisClient *redis.Client
+
+	// //local test
+	// if rdb != nil {
+	// 	redisClient = rdb.RDB
+	// }
+
+	//deploy
 	if rdb != nil {
 		redisClient = rdb.Redis_GCP
 	}

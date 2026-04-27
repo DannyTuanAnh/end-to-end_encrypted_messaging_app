@@ -136,7 +136,7 @@ func NewConfigRedis() *Config {
 func NewConfigServer() *Config {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080" // default port if not set
+		port = "443" // default port if not set
 	}
 
 	return &Config{
@@ -188,4 +188,7 @@ func (c *Config) DB_DNS() string {
 	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s, SSLMode: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName, c.DB.SSLMode)
 
 	return fmt.Sprintf("user=%s password=%s database=%s sslmode=%s", c.DB.User, c.DB.Password, c.DB.DBName, c.DB.SSLMode)
+
+	// //local test
+	// return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 }

@@ -15,11 +15,13 @@ type Redis struct {
 }
 
 func InitRedis() (*Redis, error) {
+	// //local test
 	// rdb, err := connectRedisLocal()
 	// if err != nil {
 	// 	return nil, err
 	// }
 
+	//deploy
 	redis_gcp, err := connectRedisCloud()
 	if err != nil {
 		return nil, err

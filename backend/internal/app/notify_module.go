@@ -14,8 +14,8 @@ type NotifyModule struct {
 func NewNotifyModule(addr string) *NotifyModule {
 	// Load TLS credentials for gRPC client
 	// Call by API Gateway, so use API Gateway's certs
-	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY", "")
-	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY", "")
+	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY_CLIENT", "")
+	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY_CLIENT", "")
 
 	// 1. Initialize repository
 	notify_client, err := client.NewUserClient(addr, apiGatewayCertFile, apiGatewayKeyFile)

@@ -147,6 +147,24 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
+	// Get user id from context (required for both image-only and full updates)
+	userId, exist := ctx.Get("user_id")
+	if !exist {
+		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
+		return
+	}
+
+	userID, ok := userId.(int64)
+	if !ok {
+		utils.ResponseErrorAbort(ctx, utils.NewError("User ID in context has invalid type", utils.ErrCodeInternal))
+		return
+	}
+
+	if userID <= 0 {
+		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
+		return
+	}
+
 	imageFile, err := ctx.FormFile("avatar_url")
 
 	if err != nil {
@@ -161,7 +179,7 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 	// track object name when we upload so we can return it for image-only updates
 	var objName string
 	if imageFile != nil {
-		file, oName, err := utils.ValidateAndReturnObjNameImage(imageFile)
+		file, oName, err := utils.ValidateAndReturnObjNameImage(userID, imageFile)
 		if err != nil {
 			utils.ResponseErrorAbort(ctx, utils.NewError(fmt.Sprintf("Invalid avatar file: %v", err), utils.ErrCodeBadRequest))
 			return
@@ -182,24 +200,6 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 	needUpdateUser := false
 	if req.Name != nil || req.Birthday != nil || req.Phone != nil {
 		needUpdateUser = true
-	}
-
-	// Get user id from context (required for both image-only and full updates)
-	userId, exist := ctx.Get("user_id")
-	if !exist {
-		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
-		return
-	}
-
-	userID, ok := userId.(int64)
-	if !ok {
-		utils.ResponseErrorAbort(ctx, utils.NewError("User ID in context has invalid type", utils.ErrCodeInternal))
-		return
-	}
-
-	if userID <= 0 {
-		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
-		return
 	}
 
 	// Only run phone verification checks when we will call the user service (i.e. updating profile fields)

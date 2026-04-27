@@ -28,6 +28,7 @@ func (n *NotifyHandler) HandleSSE(ctx *gin.Context) {
 	ctx.Writer.Header().Set("Connection", "keep-alive")
 
 	userId, exist := ctx.Get("user_id")
+	log.Println("User ID from context:", userId, "Exist:", exist)
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
 	}

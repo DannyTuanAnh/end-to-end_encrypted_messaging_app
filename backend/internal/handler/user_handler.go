@@ -158,12 +158,15 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 		}
 	}
 
+	// track object name when we upload so we can return it for image-only updates
+	var objName string
 	if imageFile != nil {
-		file, objName, err := utils.ValidateAndReturnObjNameImage(imageFile)
+		file, oName, err := utils.ValidateAndReturnObjNameImage(imageFile)
 		if err != nil {
 			utils.ResponseErrorAbort(ctx, utils.NewError(fmt.Sprintf("Invalid avatar file: %v", err), utils.ErrCodeBadRequest))
 			return
 		}
+		objName = oName
 
 		contentType := imageFile.Header.Get("Content-Type")
 
@@ -174,41 +177,58 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 		}
 	}
 
-	var verifiedPhoneStr string
-
-	if v, exist := ctx.Get("verified_phone"); exist {
-		if s, ok := v.(string); ok {
-			verifiedPhoneStr = s
-		}
+	// Determine whether we need to call the user service. If no profile fields are provided
+	// (only avatar was uploaded), skip calling the user service.
+	needUpdateUser := false
+	if req.Name != nil || req.Birthday != nil || req.Phone != nil {
+		needUpdateUser = true
 	}
 
-	if req.Phone != nil && verifiedPhoneStr == "" {
-		utils.ResponseErrorAbort(ctx, utils.NewError("Phone number provided but not verified", utils.ErrCodeBadRequest))
-		return
-	}
-
-	if req.Phone != nil && verifiedPhoneStr != *req.Phone {
-		utils.ResponseErrorAbort(ctx, utils.NewError("Provided phone number does not match verified phone number", utils.ErrCodeBadRequest))
-		return
-	}
-
-	if req.Phone == nil && verifiedPhoneStr != "" {
-		utils.ResponseErrorAbort(ctx, utils.NewError("Verified phone number exists but no phone number provided in request", utils.ErrCodeBadRequest))
-		return
-	}
-
+	// Get user id from context (required for both image-only and full updates)
 	userId, exist := ctx.Get("user_id")
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
+		return
 	}
 
 	userID, ok := userId.(int64)
 	if !ok {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID in context has invalid type", utils.ErrCodeInternal))
+		return
 	}
 
 	if userID <= 0 {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
+		return
+	}
+
+	// Only run phone verification checks when we will call the user service (i.e. updating profile fields)
+	if needUpdateUser {
+		var verifiedPhoneStr string
+		if v, exist := ctx.Get("verified_phone"); exist {
+			if s, ok := v.(string); ok {
+				verifiedPhoneStr = s
+			}
+		}
+
+		if req.Phone != nil && verifiedPhoneStr == "" {
+			utils.ResponseErrorAbort(ctx, utils.NewError("Phone number provided but not verified", utils.ErrCodeBadRequest))
+			return
+		}
+
+		if req.Phone != nil && verifiedPhoneStr != *req.Phone {
+			utils.ResponseErrorAbort(ctx, utils.NewError("Provided phone number does not match verified phone number", utils.ErrCodeBadRequest))
+			return
+		}
+
+		if req.Phone == nil && verifiedPhoneStr != "" {
+			utils.ResponseErrorAbort(ctx, utils.NewError("Verified phone number exists but no phone number provided in request", utils.ErrCodeBadRequest))
+			return
+		}
+	} else {
+		// Return object name so client can use or request processed URL later
+		utils.ResponseSuccessWithData(ctx, http.StatusOK, map[string]string{"avatar_object": objName})
+		return
 	}
 
 	baseCtx := ctx.Request.Context()

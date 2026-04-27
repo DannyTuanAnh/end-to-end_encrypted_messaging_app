@@ -242,6 +242,8 @@ func (s *userService) UpdateProfile(ctx context.Context, req *user_proto.UpdateP
 		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
 	}
 
+	log.Println("Req: ", req)
+
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}

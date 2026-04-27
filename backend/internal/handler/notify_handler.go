@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -27,6 +28,7 @@ func (n *NotifyHandler) HandleSSE(ctx *gin.Context) {
 	ctx.Writer.Header().Set("Content-Type", "text/event-stream")
 	ctx.Writer.Header().Set("Cache-Control", "no-cache")
 	ctx.Writer.Header().Set("Connection", "keep-alive")
+	ctx.Writer.Header().Set("X-Accel-Buffering", "no")
 
 	userId, exist := ctx.Get("user_id")
 	log.Println("User ID from context:", userId, "Exist:", exist)
@@ -37,11 +39,23 @@ func (n *NotifyHandler) HandleSSE(ctx *gin.Context) {
 	userID, ok := userId.(int64)
 	if !ok {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID in context has invalid type", utils.ErrCodeInternal))
+		return
 	}
 
 	if userID <= 0 {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
+		return
 	}
+
+	ctx.Writer.WriteHeader(http.StatusOK)
+
+	// 3. Force first body chunk immediately
+	_, err := ctx.Writer.Write([]byte(": connected\n\n"))
+	if err != nil {
+		log.Println("Initial SSE write error:", err)
+		return
+	}
+	ctx.Writer.Flush()
 
 	userIDStr := strconv.FormatInt(userID, 10)
 
@@ -58,17 +72,23 @@ func (n *NotifyHandler) HandleSSE(ctx *gin.Context) {
 			log.Println("Sending message to client:", message)
 			_, err := ctx.Writer.Write([]byte("data: " + message + "\n\n"))
 			if err != nil {
+				log.Println("SSE message write error:", err)
 				return
 			}
 			ctx.Writer.Flush()
+
 		case <-heartbeat.C:
-			// SSE heartbeat (comment frame)
+			log.Println("Sending SSE heartbeat")
+
 			_, err := ctx.Writer.Write([]byte(": ping\n\n"))
 			if err != nil {
+				log.Println("Heartbeat write error:", err)
 				return
 			}
 			ctx.Writer.Flush()
+
 		case <-ctx.Request.Context().Done():
+			log.Println("SSE client disconnected:", userIDStr)
 			return
 		}
 	}

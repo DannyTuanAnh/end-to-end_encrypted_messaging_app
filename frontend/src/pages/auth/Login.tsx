@@ -1,55 +1,89 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "@/lib/schema";
-import type { LoginForm } from "@/lib/schema";
-import { useNavigate, Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+import { useGoogleLogin } from "@react-oauth/google";
+
+import { Home } from "lucide-react";
+
+import { Link, useNavigate } from "react-router-dom";
+
 import { useAuthContext } from "@/context/AuthContext";
+
+import { useState } from "react";
 
 export default function Login() {
   const navigate = useNavigate();
+
   const { login } = useAuthContext();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    mode: "onChange",
+  const [loading, setLoading] = useState(false);
+
+  const googleLogin = useGoogleLogin({
+    flow: "auth-code",
+
+    onSuccess: async (codeResponse) => {
+      try {
+        setLoading(true);
+
+        /**
+         * codeResponse.code
+         * chính là auth_code backend yêu cầu
+         */
+        await login(codeResponse.code);
+
+        navigate("/home");
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+
+    onError: () => {
+      console.error("Google Login Failed");
+    },
   });
 
-  function onSubmit(data: LoginForm) {
-    // demo login via auth hook
-    login(data.email, data.password);
-    navigate("/");
+  async function handleGoogleLogin() {
+    googleLogin();
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <h2 className="text-xl font-semibold">Sign in</h2>
-      <Input {...register("email")} placeholder="Email" type="email" required />
-      {errors.email && (
-        <p className="text-red-500 text-sm">{errors.email.message}</p>
-      )}
-      <Input
-        {...register("password")}
-        placeholder="Password"
-        type="password"
-        required
-      />
-      {errors.password && (
-        <p className="text-red-500 text-sm">{errors.password.message}</p>
-      )}
-      <div className="flex items-center justify-between">
-        <Button type="submit" disabled={isSubmitting}>
-          Sign in
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Login</CardTitle>
+
+        <CardDescription>
+          Welcome back! Please login to your account.
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        <Button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full"
+        >
+          {loading ? "Logging in..." : "Login with Google"}
         </Button>
-        <Link to="/auth/register" className="text-sm text-primary">
-          Create account
+      </CardContent>
+
+      <CardFooter>
+        <Link to="/" className="w-full">
+          <Button variant="ghost" className="w-full">
+            <Home />
+            Back to Home
+          </Button>
         </Link>
-      </div>
-    </form>
+      </CardFooter>
+    </Card>
   );
 }

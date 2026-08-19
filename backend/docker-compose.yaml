@@ -1,21 +1,70 @@
 version: "3.8"
+name: e2ee-messaging-app
 
 services:
-  db:
+  auth-service:
     image: postgres:18.2-alpine3.23
-    container_name: postgres-db-chat-app
+    container_name: auth-service-chat-app
     restart: unless-stopped
 
     environment:
-      POSTGRES_DB: chat-app
+      POSTGRES_DB: auth-service-chat-app
       POSTGRES_USER: root
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
 
     ports:
       - "5433:5432"
 
     volumes:
-      - postgres-data-chat-app:/var/lib/postgresql/data
+      - postgres-data-auth-service-chat-app:/var/lib/postgresql/data
+
+  user-service:
+    image: postgres:18.2-alpine3.23
+    container_name: user-service-chat-app
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: user-service-chat-app
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+
+    ports:
+      - "5434:5432"
+
+    volumes:
+      - postgres-data-user-service-chat-app:/var/lib/postgresql/data
+
+  friend-service:
+    image: postgres:18.2-alpine3.23
+    container_name: friend-service-chat-app
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: friend-service-chat-app
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${FRIEND_DB_PASSWORD}
+
+    ports:
+      - "5435:5432"
+
+    volumes:
+      - postgres-data-friend-service-chat-app:/var/lib/postgresql/data
+
+  chat-service:
+    image: postgres:18.2-alpine3.23
+    container_name: chat-service-chat-app
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: chat-service-chat-app
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${CHAT_DB_PASSWORD}
+
+    ports:
+      - "5436:5432"
+
+    volumes:
+      - postgres-data-chat-service-chat-app:/var/lib/postgresql/data
 
   redis:
     image: redis:8.6.2-alpine
@@ -41,5 +90,8 @@ services:
       - redis-data-chat-app:/data
 
 volumes:
-  postgres-data-chat-app:
+  postgres-data-auth-service-chat-app:
+  postgres-data-user-service-chat-app:
+  postgres-data-friend-service-chat-app:
+  postgres-data-chat-service-chat-app:
   redis-data-chat-app:

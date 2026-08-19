@@ -84,6 +84,24 @@ func ConvertToPgTypeDate(input string) pgtype.Date {
 	}
 }
 
+func ConvertToPgTypeTime(input time.Time) pgtype.Time {
+	if input.IsZero() {
+		return pgtype.Time{
+			Valid: false,
+		}
+	}
+
+	nano := time.Duration(input.Hour())*time.Hour +
+		time.Duration(input.Minute())*time.Minute +
+		time.Duration(input.Second())*time.Second +
+		time.Duration(input.Nanosecond())
+
+	return pgtype.Time{
+		Microseconds: nano.Microseconds(),
+		Valid:        true,
+	}
+}
+
 func ConvertToPgTypeDatePtr(input *string) pgtype.Date {
 	if input == nil || strings.TrimSpace(*input) == "" {
 		return pgtype.Date{

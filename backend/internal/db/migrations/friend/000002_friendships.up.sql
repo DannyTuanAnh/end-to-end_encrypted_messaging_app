@@ -5,8 +5,6 @@ create table if not exists friendships (
 
     primary key (user1_id, user2_id),
 
-    constraint fk_friendships_user1 foreign key (user1_id) references users(user_id) on delete cascade,
-    constraint fk_friendships_user2 foreign key (user2_id) references users(user_id) on delete cascade,
     constraint check_user_order check (user1_id < user2_id)
 );
 

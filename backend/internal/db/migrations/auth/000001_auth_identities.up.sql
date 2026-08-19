@@ -6,8 +6,8 @@ create table if not exists auth_identities (
     email varchar(255),
     created_at timestamptz not null default now(),
     
-    constraint fk_auth_user foreign key (user_id) references users(user_id) on delete cascade,
-    unique (provider, provider_user_id)
+    unique (provider, provider_user_id),
+    unique (user_id, provider)
 );
 
 create index idx_auth_identities_user_id on auth_identities(user_id);

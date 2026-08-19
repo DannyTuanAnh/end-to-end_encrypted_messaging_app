@@ -33,7 +33,7 @@ begin
     values (p_sender_id, p_receiver_id)
     on conflict do nothing;
 
-    -- if failed to insert → check if there's an existing pending request 
+    -- if failed to insert -> check if there's an existing pending request 
     if not found then
 
         select sender_id into v_existing_sender 

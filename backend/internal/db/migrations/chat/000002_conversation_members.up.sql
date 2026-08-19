@@ -1,3 +1,5 @@
+create type member_role as enum ('admin', 'member');
+
 create table if not exists conversation_members(
     conversation_id bigint not null,
     user_id bigint not null,
@@ -5,7 +7,6 @@ create table if not exists conversation_members(
     joined_at timestamptz not null default now(),
 
     constraint fk_conversation_members_conversations foreign key (conversation_id) references conversations(id) on delete cascade,
-    constraint fk_conversation_members_users foreign key (user_id) references users(user_id) on delete cascade,
     constraint unique_conversation_member unique (conversation_id, user_id)
 );
 

@@ -1,9 +1,15 @@
 include .env
 export
 
-CONN_STRING = "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)"
+AUTH_CONN_STRING = "postgresql://$(DB_USER):$(AUTH_DB_PASSWORD)@$(DB_HOST):$(AUTH_DB_PORT)/$(AUTH_DB_NAME)?sslmode=$(DB_SSLMODE)"
+USER_CONN_STRING = "postgresql://$(DB_USER):$(USER_DB_PASSWORD)@$(DB_HOST):$(USER_DB_PORT)/$(USER_DB_NAME)?sslmode=$(DB_SSLMODE)"
+FRIEND_CONN_STRING = "postgresql://$(DB_USER):$(FRIEND_DB_PASSWORD)@$(DB_HOST):$(FRIEND_DB_PORT)/$(FRIEND_DB_NAME)?sslmode=$(DB_SSLMODE)"
+CHAT_CONN_STRING = "postgresql://$(DB_USER):$(CHAT_DB_PASSWORD)@$(DB_HOST):$(CHAT_DB_PORT)/$(CHAT_DB_NAME)?sslmode=$(DB_SSLMODE)"
 
-MIGRATION_DIRS = ./internal/db/migrations
+AUTH_MIGRATION_DIRS = ./internal/db/migrations/auth
+USER_MIGRATION_DIRS = ./internal/db/migrations/user
+FRIEND_MIGRATION_DIRS = ./internal/db/migrations/friend
+CHAT_MIGRATION_DIRS = ./internal/db/migrations/chat
 
 # import database
 import-db:
@@ -18,20 +24,44 @@ migrate-create:
 	migrate create -ext sql -dir $(MIGRATION_DIRS) -seq $(name) 
 
 # run all up migrations (Example: make migrate-up)
-migrate-up: 
-	migrate -path $(MIGRATION_DIRS) -database "$(CONN_STRING)" up
+migrate-up-auth-db: 
+	migrate -path $(AUTH_MIGRATION_DIRS) -database "$(AUTH_CONN_STRING)" up
+migrate-up-user-db: 
+	migrate -path $(USER_MIGRATION_DIRS) -database "$(USER_CONN_STRING)" up
+migrate-up-friend-db: 
+	migrate -path $(FRIEND_MIGRATION_DIRS) -database "$(FRIEND_CONN_STRING)" up
+migrate-up-chat-db: 
+	migrate -path $(CHAT_MIGRATION_DIRS) -database "$(CHAT_CONN_STRING)" up
 
 # rollback the last migration (Example: make migrate-down)
-migrate-down: 
-	migrate -path $(MIGRATION_DIRS) -database "$(CONN_STRING)" down 1
+migrate-down-auth-db:
+	migrate -path $(AUTH_MIGRATION_DIRS) -database "$(AUTH_CONN_STRING)" down 1
+migrate-down-user-db:
+	migrate -path $(USER_MIGRATION_DIRS) -database "$(USER_CONN_STRING)" down 1
+migrate-down-friend-db:
+	migrate -path $(FRIEND_MIGRATION_DIRS) -database "$(FRIEND_CONN_STRING)" down 1
+migrate-down-chat-db:
+	migrate -path $(CHAT_MIGRATION_DIRS) -database "$(CHAT_CONN_STRING)" down 1
 
 # rollback n migration (Example: make migrate-down n=2)
-migrate-down-n: 
-	migrate -path $(MIGRATION_DIRS) -database "$(CONN_STRING)" down $(n)
+migrate-down-n-auth-db:
+	migrate -path $(AUTH_MIGRATION_DIRS) -database "$(AUTH_CONN_STRING)" down $(n)
+migrate-down-n-user-db:
+	migrate -path $(USER_MIGRATION_DIRS) -database "$(USER_CONN_STRING)" down $(n)
+migrate-down-n-friend-db:
+	migrate -path $(FRIEND_MIGRATION_DIRS) -database "$(FRIEND_CONN_STRING)" down $(n)
+migrate-down-n-chat-db:
+	migrate -path $(CHAT_MIGRATION_DIRS) -database "$(CHAT_CONN_STRING)" down $(n)
 
 # force migration version (use with caution, Example: make migrate-force version=2) 
-migrate-force:
-	migrate -path $(MIGRATION_DIRS) -database "$(CONN_STRING)" force $(version)
+migrate-force-auth-db:
+	migrate -path $(AUTH_MIGRATION_DIRS) -database "$(AUTH_CONN_STRING)" force $(version)
+migrate-force-user-db:
+	migrate -path $(USER_MIGRATION_DIRS) -database "$(USER_CONN_STRING)" force $(version)
+migrate-force-friend-db:
+	migrate -path $(FRIEND_MIGRATION_DIRS) -database "$(FRIEND_CONN_STRING)" force $(version)
+migrate-force-chat-db:
+	migrate -path $(CHAT_MIGRATION_DIRS) -database "$(CHAT_CONN_STRING)" force $(version)
 
 # drop everything (include schema migration)
 migrate-drop:

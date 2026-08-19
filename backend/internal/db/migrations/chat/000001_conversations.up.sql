@@ -1,3 +1,5 @@
+create type conversation_type as enum ('private', 'group');
+
 create table if not exists conversations (
     id bigserial primary key,
     type conversation_type not null,

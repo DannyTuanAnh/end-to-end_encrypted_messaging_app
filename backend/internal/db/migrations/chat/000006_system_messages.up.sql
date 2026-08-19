@@ -23,9 +23,7 @@ create table if not exists system_messages (
     content text,
     created_at timestamptz not null default now(),
     
-    constraint fk_system_messages_conversation foreign key (conversation_id) references conversations(id) on delete cascade,
-    constraint fk_system_messages_actor foreign key (actor_id) references users(user_id) on delete set null,
-    constraint fk_system_messages_target foreign key (target_id) references users(user_id) on delete set null
+    constraint fk_system_messages_conversation foreign key (conversation_id) references conversations(id) on delete cascade
 );
 
 create index idx_system_messages_conversation on system_messages(conversation_id, created_at desc);

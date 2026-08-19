@@ -5,10 +5,9 @@ create table if not exists sessions (
     user_id bigint not null,
     revoked boolean not null default false,
     revoke_at timestamptz,
-    device_id uuid not null,
     created_at timestamptz not null default now(),
 
-    constraint fk_sessions_user foreign key (user_id) references users(user_id) on delete cascade
+    unique (user_id, session_id)
 );
 
 create index idx_sessions_user_id on sessions(user_id);

@@ -1,102 +1,87 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-export type User = {
-  email?: string;
-  name?: string;
-  uid: string;
-};
+import { getProfile, loginGoogle, logoutApi, type User } from "@/api/auth.api";
 
-export type AuthReturn = {
-  token: string | null;
+type AuthContextType = {
   user: User | null;
-  login: (email: string, password?: string) => void;
-  logout: () => void;
+  loading: boolean;
   isAuthenticated: boolean;
+
+  login: (authCode: string) => Promise<void>;
+  logout: () => Promise<void>;
+
+  refreshProfile: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthReturn | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Demo auth hook: keeps state in React and mirrors to localStorage.
-function useAuth(): AuthReturn {
-  const [token, setToken] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem("token");
-    } catch {
-      return null;
-    }
-  });
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
 
-  const [user, setUser] = useState<User | null>(() => {
+  const [loading, setLoading] = useState(true);
+
+  async function refreshProfile() {
     try {
-      const raw = localStorage.getItem("user");
-      const u = raw ? JSON.parse(raw) : null;
-      if (u.uid === "") {
-        return console.log(
-          "Invalid user data in localStorage: uid is empty string",
-        );
-      }
-      return u;
+      const profile = await getProfile();
+
+      setUser(profile);
     } catch {
-      return null;
+      setUser(null);
     }
-  });
+  }
+
+  async function login(authCode: string) {
+    await loginGoogle({
+      auth_code: authCode,
+    });
+
+    await refreshProfile();
+  }
+
+  async function logout() {
+    try {
+      await logoutApi();
+    } finally {
+      setUser(null);
+    }
+  }
 
   useEffect(() => {
-    function onStorage(e: StorageEvent) {
-      if (e.key === "token") setToken(e.newValue);
-      if (e.key === "user") setUser(e.newValue ? JSON.parse(e.newValue) : null);
+    async function initAuth() {
+      try {
+        await refreshProfile();
+      } finally {
+        setLoading(false);
+      }
     }
 
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    initAuth();
   }, []);
 
-  const login = (email: string, _password?: string) => {
-    const demoToken = email && _password ? `token-for-${email}` : null;
-    const u: User = {
-      email,
-      name: email.split("@")[0],
-      uid: `u_${email.split("@")[0]}`,
-    };
-    if (!demoToken) return;
-    try {
-      localStorage.setItem("token", demoToken);
-      localStorage.setItem("user", JSON.stringify(u));
-    } catch (error) {
-      console.error("Failed to save auth data to localStorage", error);
-    }
-    setToken(demoToken);
-    setUser(u);
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated: !!user,
 
-  const logout = () => {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    } catch (error) {
-      console.error("Failed to remove auth data from localStorage", error);
-    }
-    setToken(null);
-    setUser(null);
-  };
+        login,
+        logout,
 
-  return {
-    token,
-    user,
-    login,
-    logout,
-    isAuthenticated: !!token,
-  };
+        refreshProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const auth = useAuth();
-  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
-};
-
 export function useAuthContext() {
-  const ctx = useContext(AuthContext);
-  if (!ctx)
-    throw new Error("useAuthContext must be used within an AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuthContext must be used within AuthProvider");
+  }
+
+  return context;
 }

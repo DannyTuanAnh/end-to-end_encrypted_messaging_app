@@ -3,13 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import MainLayout from "@/layouts/MainLayout";
 import AuthLayout from "@/layouts/AuthLayout";
+import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import Profile from "@/pages/profile/Profile";
 import ChatLayout from "@/layouts/ChatLayout";
 import ChatList from "@/pages/chat/ChatList";
 import ChatPage from "@/pages/chat/ChatPage";
 import Login from "@/pages/auth/Login";
-import Register from "@/pages/auth/Register";
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const token =
@@ -27,18 +27,16 @@ export default function Router() {
         <Route path="/auth" element={<AuthLayout />}>
           <Route index element={<Navigate to="login" replace />} />
           <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
         </Route>
-
+        <Route path="/" element={<Landing />} />
         <Route
-          path="/"
           element={
             <RequireAuth>
               <MainLayout />
             </RequireAuth>
           }
         >
-          <Route index element={<Home />} />
+          {/* <Route index element={<Home />} /> */}
           <Route path="home" element={<Home />} />
           <Route path="profile" element={<Profile />} />
         </Route>
@@ -47,7 +45,6 @@ export default function Router() {
           <Route index element={<ChatList />} />
           <Route path=":id" element={<ChatPage />} />
         </Route>
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

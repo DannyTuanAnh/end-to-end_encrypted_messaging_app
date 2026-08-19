@@ -9,31 +9,22 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import path from "path";
 
-// import fs from "fs";
-// import path from "path";
-
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(), 
+    tailwindcss(),
+    basicSsl()
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // server: {
-  //   https: {
-  //     key: fs.readFileSync(
-  //       path.resolve(
-  //         "../../end-to-end_encrypted_messaging_app/internal/certs/localhost+2-key.pem",
-  //       ), // đường dẫn key
-  //     ),
-  //     cert: fs.readFileSync(
-  //       path.resolve(
-  //         "../../end-to-end_encrypted_messaging_app/internal/certs/localhost+2.pem",
-  //       ), // đường dẫn cert
-  //     ),
-  //   },
-  //   port: 5173,
-  // },
+  server: {
+    port: 5173,
+    https: true, // Enable HTTPS for basic-ssl plugin
+  },
 });

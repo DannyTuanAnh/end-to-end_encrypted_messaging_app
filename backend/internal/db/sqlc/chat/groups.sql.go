@@ -8,7 +8,6 @@ package sqlc
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -39,74 +38,6 @@ func (q *Queries) AddGroupMembers(ctx context.Context, arg AddGroupMembersParams
 	var i AddGroupMembersRow
 	err := row.Scan(&i.ConversationID, &i.UserID, &i.Role)
 	return i, err
-}
-
-const createGroupConversation = `-- name: CreateGroupConversation :one
-select c.conversation_id::bigint, c.group_name::text, c.invalid_user_ids::bigint[] from create_group_conversation($1, $2, $3) as c
-`
-
-type CreateGroupConversationParams struct {
-	PCreatorID int64  `json:"p_creator_id"`
-	PGroupName string `json:"p_group_name"`
-	PMemberIds int64  `json:"p_member_ids"`
-}
-
-type CreateGroupConversationRow struct {
-	CConversationID int64   `json:"c_conversation_id"`
-	CGroupName      string  `json:"c_group_name"`
-	CInvalidUserIds []int64 `json:"c_invalid_user_ids"`
-}
-
-func (q *Queries) CreateGroupConversation(ctx context.Context, arg CreateGroupConversationParams) (CreateGroupConversationRow, error) {
-	row := q.db.QueryRow(ctx, createGroupConversation, arg.PCreatorID, arg.PGroupName, arg.PMemberIds)
-	var i CreateGroupConversationRow
-	err := row.Scan(&i.CConversationID, &i.CGroupName, &i.CInvalidUserIds)
-	return i, err
-}
-
-const getGroupMembers = `-- name: GetGroupMembers :many
-select 
-    u.uuid, 
-    coalesce(p.name, u.display_name) as name, 
-    p.avatar_url,
-    cm.role
-from conversation_members cm
-join users u on cm.user_id = u.user_id
-left join profiles p on u.user_id = p.user_id
-where cm.conversation_id = $1
-order by coalesce(p.name, u.display_name)
-`
-
-type GetGroupMembersRow struct {
-	Uuid      uuid.UUID   `json:"uuid"`
-	Name      string      `json:"name"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-	Role      MemberRole  `json:"role"`
-}
-
-func (q *Queries) GetGroupMembers(ctx context.Context, conversationID int64) ([]GetGroupMembersRow, error) {
-	rows, err := q.db.Query(ctx, getGroupMembers, conversationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetGroupMembersRow{}
-	for rows.Next() {
-		var i GetGroupMembersRow
-		if err := rows.Scan(
-			&i.Uuid,
-			&i.Name,
-			&i.AvatarUrl,
-			&i.Role,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const leaveConversation = `-- name: LeaveConversation :one
@@ -153,6 +84,7 @@ func (q *Queries) RemoveGroupMembers(ctx context.Context, arg RemoveGroupMembers
 }
 
 const updateGroupInfo = `-- name: UpdateGroupInfo :one
+
 update groups set 
     name = coalesce($2, name),
     avatar_url = coalesce($3, avatar_url)
@@ -166,6 +98,19 @@ type UpdateGroupInfoParams struct {
 	AvatarUrl      pgtype.Text `json:"avatar_url"`
 }
 
+// -- name: GetGroupMembers :many
+// select
+//
+//	u.uuid,
+//	coalesce(p.name, u.display_name) as name,
+//	p.avatar_url,
+//	cm.role
+//
+// from conversation_members cm
+// join users u on cm.user_id = u.user_id
+// left join profiles p on u.user_id = p.user_id
+// where cm.conversation_id = $1
+// order by coalesce(p.name, u.display_name);
 func (q *Queries) UpdateGroupInfo(ctx context.Context, arg UpdateGroupInfoParams) (Group, error) {
 	row := q.db.QueryRow(ctx, updateGroupInfo, arg.ConversationID, arg.Name, arg.AvatarUrl)
 	var i Group

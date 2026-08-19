@@ -9,7 +9,7 @@ import (
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

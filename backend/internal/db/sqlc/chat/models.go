@@ -55,48 +55,6 @@ func (ns NullConversationType) Value() (driver.Value, error) {
 	return string(ns.ConversationType), nil
 }
 
-type FriendRequestStatus string
-
-const (
-	FriendRequestStatusPending  FriendRequestStatus = "pending"
-	FriendRequestStatusAccepted FriendRequestStatus = "accepted"
-)
-
-func (e *FriendRequestStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = FriendRequestStatus(s)
-	case string:
-		*e = FriendRequestStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for FriendRequestStatus: %T", src)
-	}
-	return nil
-}
-
-type NullFriendRequestStatus struct {
-	FriendRequestStatus FriendRequestStatus `json:"friend_request_status"`
-	Valid               bool                `json:"valid"` // Valid is true if FriendRequestStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullFriendRequestStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.FriendRequestStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.FriendRequestStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullFriendRequestStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.FriendRequestStatus), nil
-}
-
 type MemberRole string
 
 const (
@@ -189,23 +147,6 @@ func (ns NullSystemEventType) Value() (driver.Value, error) {
 	return string(ns.SystemEventType), nil
 }
 
-type ApiKey struct {
-	ID        int64              `json:"id"`
-	KeyHash   string             `json:"key_hash"`
-	IsActive  bool               `json:"is_active"`
-	CreatedAt time.Time          `json:"created_at"`
-	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
-}
-
-type AuthIdentity struct {
-	ID             int64       `json:"id"`
-	UserID         int64       `json:"user_id"`
-	Provider       string      `json:"provider"`
-	ProviderUserID string      `json:"provider_user_id"`
-	Email          pgtype.Text `json:"email"`
-	CreatedAt      time.Time   `json:"created_at"`
-}
-
 type Conversation struct {
 	ID        int64            `json:"id"`
 	Type      ConversationType `json:"type"`
@@ -217,20 +158,6 @@ type ConversationMember struct {
 	UserID         int64      `json:"user_id"`
 	Role           MemberRole `json:"role"`
 	JoinedAt       time.Time  `json:"joined_at"`
-}
-
-type FriendRequest struct {
-	RequestID  int64               `json:"request_id"`
-	SenderID   int64               `json:"sender_id"`
-	ReceiverID int64               `json:"receiver_id"`
-	Status     FriendRequestStatus `json:"status"`
-	SendAt     time.Time           `json:"send_at"`
-}
-
-type Friendship struct {
-	User1ID       int64     `json:"user1_id"`
-	User2ID       int64     `json:"user2_id"`
-	EstablishedAt time.Time `json:"established_at"`
 }
 
 type Group struct {
@@ -255,26 +182,6 @@ type MessageRead struct {
 	ReadAt    time.Time `json:"read_at"`
 }
 
-type Profile struct {
-	UserID        int64       `json:"user_id"`
-	Name          string      `json:"name"`
-	Email         pgtype.Text `json:"email"`
-	Phone         pgtype.Text `json:"phone"`
-	Birthday      pgtype.Date `json:"birthday"`
-	AvatarUrl     pgtype.Text `json:"avatar_url"`
-	AvatarVersion int32       `json:"avatar_version"`
-	UpdatedAt     time.Time   `json:"updated_at"`
-}
-
-type Session struct {
-	SessionID uuid.UUID          `json:"session_id"`
-	UserID    int64              `json:"user_id"`
-	Revoked   bool               `json:"revoked"`
-	RevokeAt  pgtype.Timestamptz `json:"revoke_at"`
-	DeviceID  uuid.UUID          `json:"device_id"`
-	CreatedAt time.Time          `json:"created_at"`
-}
-
 type SystemMessage struct {
 	ID             int64           `json:"id"`
 	Uuid           uuid.UUID       `json:"uuid"`
@@ -284,13 +191,4 @@ type SystemMessage struct {
 	TargetID       pgtype.Int8     `json:"target_id"`
 	Content        pgtype.Text     `json:"content"`
 	CreatedAt      time.Time       `json:"created_at"`
-}
-
-type User struct {
-	UserID      int64              `json:"user_id"`
-	Uuid        uuid.UUID          `json:"uuid"`
-	DisplayName string             `json:"display_name"`
-	CreatedAt   time.Time          `json:"created_at"`
-	IsActive    bool               `json:"is_active"`
-	DisableAt   pgtype.Timestamptz `json:"disable_at"`
 }

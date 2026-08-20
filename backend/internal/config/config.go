@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -171,24 +170,59 @@ func NewConfigUserService() *Config {
 	}
 }
 
-func NewConfigDB() *Config {
+func NewConfigUserDB() *Config {
 	return &Config{
 		DB: DatabaseConfig{
 			Host:     utils.GetEnv("DB_HOST", "localhost"),
-			Port:     utils.GetEnv("DB_PORT", "5432"),
+			Port:     utils.GetEnv("USER_DB_PORT", "5432"),
 			User:     utils.GetEnv("DB_USER", "postgres"),
-			Password: utils.GetEnv("DB_PASSWORD", "postgres"),
-			DBName:   utils.GetEnv("DB_NAME", "myapp"),
+			Password: utils.GetEnv("USER_DB_PASSWORD", "postgres"),
+			DBName:   utils.GetEnv("USER_DB_NAME", "myapp"),
+			SSLMode:  utils.GetEnv("DB_SSLMODE", "disable"),
+		},
+	}
+}
+
+func NewConfigAuthDB() *Config {
+	return &Config{
+		DB: DatabaseConfig{
+			Host:     utils.GetEnv("DB_HOST", "localhost"),
+			Port:     utils.GetEnv("AUTH_DB_PORT", "5432"),
+			User:     utils.GetEnv("DB_USER", "postgres"),
+			Password: utils.GetEnv("AUTH_DB_PASSWORD", "postgres"),
+			DBName:   utils.GetEnv("AUTH_DB_NAME", "myapp"),
+			SSLMode:  utils.GetEnv("DB_SSLMODE", "disable"),
+		},
+	}
+}
+
+func NewConfigFriendDB() *Config {
+	return &Config{
+		DB: DatabaseConfig{
+			Host:     utils.GetEnv("DB_HOST", "localhost"),
+			Port:     utils.GetEnv("FRIEND_DB_PORT", "5432"),
+			User:     utils.GetEnv("DB_USER", "postgres"),
+			Password: utils.GetEnv("FRIEND_DB_PASSWORD", "postgres"),
+			DBName:   utils.GetEnv("FRIEND_DB_NAME", "myapp"),
+			SSLMode:  utils.GetEnv("DB_SSLMODE", "disable"),
+		},
+	}
+}
+
+func NewConfigChatDB() *Config {
+	return &Config{
+		DB: DatabaseConfig{
+			Host:     utils.GetEnv("DB_HOST", "localhost"),
+			Port:     utils.GetEnv("CHAT_DB_PORT", "5432"),
+			User:     utils.GetEnv("DB_USER", "postgres"),
+			Password: utils.GetEnv("CHAT_DB_PASSWORD", "postgres"),
+			DBName:   utils.GetEnv("CHAT_DB_NAME", "myapp"),
 			SSLMode:  utils.GetEnv("DB_SSLMODE", "disable"),
 		},
 	}
 }
 
 func (c *Config) DB_DNS() string {
-	log.Printf("DEBUG: DB Host: %s, User: %s, Password: %s, Database: %s, SSLMode: %s\n", c.DB.Host, c.DB.User, c.DB.Password, c.DB.DBName, c.DB.SSLMode)
-
-	return fmt.Sprintf("user=%s password=%s database=%s sslmode=%s", c.DB.User, c.DB.Password, c.DB.DBName, c.DB.SSLMode)
-
-	// //local test
-	// return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
+	//local test
+	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", c.DB.User, c.DB.Password, c.DB.Host, c.DB.Port, c.DB.DBName, c.DB.SSLMode)
 }

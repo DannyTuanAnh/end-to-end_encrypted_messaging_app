@@ -22,11 +22,15 @@ func main() {
 	// utils.LoadEnv()
 
 	// 2. Initialize database connection
-	if err := db.InitDB(); err != nil {
+	var userDB db.UserDB
+
+	userDB, err := db.InitUserDB()
+
+	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 		return
 	}
-	defer db.Close()
+	defer userDB.Close()
 
 	// 3. Initialize Redis connection
 	rdb, err := redis_memory.InitRedis()
@@ -37,7 +41,7 @@ func main() {
 	defer rdb.CloseRedis()
 
 	// 5. Initialize application
-	userServer, err := server.NewUserServer(ctx, db.DB, rdb.Redis_GCP)
+	userServer, err := server.NewUserServer(ctx, userDB.DB, rdb.Redis_GCP)
 	if err != nil {
 		log.Fatalf("Failed to initialize user server: %v", err)
 		return

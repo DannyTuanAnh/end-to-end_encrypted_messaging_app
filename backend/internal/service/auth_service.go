@@ -13,7 +13,7 @@ import (
 	"buf.build/go/protovalidate"
 	"cloud.google.com/go/auth/credentials/idtoken"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"

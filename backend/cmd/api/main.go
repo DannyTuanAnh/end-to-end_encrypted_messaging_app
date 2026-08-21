@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/app"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
@@ -20,45 +19,44 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// --- Init DB (non-fatal)
-	log.Println("Init DB...")
-	if err := db.InitDB(); err != nil {
-		log.Printf("Database init failed: %v", err)
-		go retryDB(ctx)
-	} else {
-		defer db.Close()
-		log.Println("Database connected")
-	}
+	var authDB db.AuthDB
 
-	// --- Init Redis (non-fatal)
+	// --- Init DB
+	log.Println("Init DB...")
+	authDB, err := db.InitAuthDB()
+	if err != nil {
+		log.Fatal("Database init failed: %v", err)
+	}
+	defer authDB.Close()
+	log.Println("Database connected")
+
+	// --- Init Redis
 	log.Println("Init Redis...")
 	rdb, err := redis_memory.InitRedis()
 	if err != nil {
-		log.Printf("Redis init failed: %v", err)
-		go retryRedis(ctx)
-	} else {
-		defer rdb.CloseRedis()
-		log.Println("Redis connected")
-
-		log.Println("Start Redis listener...")
-		go app.StartRedisListener(ctx, rdb.Redis_GCP)
+		log.Fatal("Redis init failed: %v", err)
 	}
+	defer rdb.CloseRedis()
+	log.Println("Redis connected")
+
+	// log.Println("Start Redis listener...")
+	// go app.StartRedisListener(ctx, rdb.Redis_GCP)
 
 	log.Println("Create app...")
 
 	var redisClient *redis.Client
 
-	// //local test
-	// if rdb != nil {
-	// 	redisClient = rdb.RDB
-	// }
-
-	//deploy
+	//local test
 	if rdb != nil {
-		redisClient = rdb.Redis_GCP
+		redisClient = rdb.RDB
 	}
 
-	application := app.NewApplication(ctx, db.DB, redisClient)
+	// //deploy
+	// if rdb != nil {
+	// 	redisClient = rdb.Redis_GCP
+	// }
+
+	application := app.NewApplication(ctx, authDB.DB, redisClient)
 
 	log.Println("Run server...")
 
@@ -78,48 +76,48 @@ func main() {
 	log.Println(msg)
 }
 
-func retryDB(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
+// func retryDB(ctx context.Context) {
+// 	ticker := time.NewTicker(10 * time.Second)
+// 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			log.Println("Retrying DB connection...")
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			return
+// 		case <-ticker.C:
+// 			log.Println("Retrying DB connection...")
 
-			if err := db.InitDB(); err != nil {
-				log.Printf("DB retry failed: %v", err)
-				continue
-			}
+// 			if err := db.InitDB(); err != nil {
+// 				log.Printf("DB retry failed: %v", err)
+// 				continue
+// 			}
 
-			log.Println("DB reconnected successfully")
-			return
-		}
-	}
-}
+// 			log.Println("DB reconnected successfully")
+// 			return
+// 		}
+// 	}
+// }
 
-func retryRedis(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
+// func retryRedis(ctx context.Context) {
+// 	ticker := time.NewTicker(10 * time.Second)
+// 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			log.Println("Retrying Redis connection...")
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			return
+// 		case <-ticker.C:
+// 			log.Println("Retrying Redis connection...")
 
-			rdb, err := redis_memory.InitRedis()
-			if err != nil {
-				log.Printf("Redis retry failed: %v", err)
-				continue
-			}
+// 			rdb, err := redis_memory.InitRedis()
+// 			if err != nil {
+// 				log.Printf("Redis retry failed: %v", err)
+// 				continue
+// 			}
 
-			log.Println("Redis reconnected successfully")
-			go app.StartRedisListener(ctx, rdb.Redis_GCP)
-			return
-		}
-	}
-}
+// 			log.Println("Redis reconnected successfully")
+// 			go app.StartRedisListener(ctx, rdb.Redis_GCP)
+// 			return
+// 		}
+// 	}
+// }

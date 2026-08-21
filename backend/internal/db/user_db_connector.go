@@ -12,29 +12,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type DB_Connector struct {
+type UserDB struct {
 	DB     *sqlc.Queries
 	DBPool *pgxpool.Pool
 }
 
 // local test
-func InitDB(service string) (DB_Connector, error) {
-	var connStr string
-
-	switch service {
-	case "user":
-		connStr = config.NewConfigUserDB().DB_DNS()
-	case "auth":
-		connStr = config.NewConfigAuthDB().DB_DNS()
-	case "friend":
-		connStr = config.NewConfigFriendDB().DB_DNS()
-	case "chat":
-		connStr = config.NewConfigChatDB().DB_DNS()
-	}
+func InitUserDB() (UserDB, error) {
+	connStr := config.NewConfigUserDB().DB_DNS()
 
 	conf, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
-		return DB_Connector{}, fmt.Errorf("error parsing DB config: %w", err)
+		return UserDB{}, fmt.Errorf("error parsing DB config: %w", err)
 	}
 
 	conf.MaxConns = 50
@@ -48,23 +37,23 @@ func InitDB(service string) (DB_Connector, error) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, conf)
 	if err != nil {
-		return DB_Connector{}, fmt.Errorf("error creating DB pool: %w", err)
+		return UserDB{}, fmt.Errorf("error creating DB pool: %w", err)
 	}
 
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close() // Đóng pool nếu ping thất bại
-		return DB_Connector{}, fmt.Errorf("error pinging DB: %w", err)
+		return UserDB{}, fmt.Errorf("error pinging DB: %w", err)
 	}
 
 	// Gán pool và khởi tạo sqlc.Queries
-	return DB_Connector{
+	return UserDB{
 		DBPool: pool,
 		DB:     sqlc.New(pool),
 	}, nil
 }
 
 // Close đóng connection pool (gọi khi shutdown app)
-func (db *DB_Connector) Close() {
+func (db *UserDB) Close() {
 	if db.DBPool != nil {
 		db.DBPool.Close()
 		log.Println("Database connection closed")

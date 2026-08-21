@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	sqlc_auth "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
+	sqlc_user "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
+
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 )
 
@@ -14,17 +16,17 @@ type APIKeyRepository interface {
 }
 
 type AuthRepository interface {
-	Login(ctx context.Context, arg sqlc.OAuthLoginParams) (models.GoogleLoginResponse, error)
-	Logout(ctx context.Context, arg sqlc.RevokeSessionParams) error
+	Login(ctx context.Context, arg sqlc_auth.OAuthLoginParams) (models.GoogleLoginResponse, error)
+	Logout(ctx context.Context, arg sqlc_auth.RevokeSessionParams) error
 	LogoutAll(ctx context.Context, userId int64) error
 }
 
 type UserRepository interface {
-	GetProfileByUserID(ctx context.Context, userId int64) (sqlc.GetProfileByUserIdRow, error)
-	GetProfileByUserUUID(ctx context.Context, arg sqlc.GetProfileByUserUUIDParams) (sqlc.GetProfileByUserUUIDRow, error)
-	CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error)
+	GetProfileByUserID(ctx context.Context, userId int64) (sqlc_user.GetProfileByUserIdRow, error)
+	GetProfileByUserUUID(ctx context.Context, arg sqlc_user.GetProfileByUserUUIDParams) (sqlc_user.GetProfileByUserUUIDRow, error)
+	CreateProfile(ctx context.Context, arg sqlc_user.CreateProfileParams) (sqlc_user.Profile, error)
 	DisableUserByUserID(ctx context.Context, userId int64) error
-	UpdateProfile(ctx context.Context, arg sqlc.UpdateProfileByUserIdParams) (sqlc.UpdateProfileByUserIdRow, error)
+	UpdateProfile(ctx context.Context, arg sqlc_user.UpdateProfileByUserIdParams) (sqlc_user.UpdateProfileByUserIdRow, error)
 }
 
 type NotifyRepository interface {

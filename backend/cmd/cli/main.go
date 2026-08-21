@@ -22,11 +22,15 @@ func main() {
 	utils.LoadEnv()
 
 	// 2. Initialize database connection
-	if err := db.InitDB(); err != nil {
+	var authDB db.AuthDB
+
+	authDB, err := db.InitAuthDB()
+
+	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 		return
 	}
-	defer db.Close()
+	defer authDB.Close()
 
 	// 3. Initialize Redis connection
 	rdb, err := redis_memory.InitRedis()
@@ -36,7 +40,7 @@ func main() {
 	}
 	defer rdb.CloseRedis()
 
-	cli := cli.NewCLI(db.DB, rdb.RDB)
+	cli := cli.NewCLI(authDB.DB, rdb.RDB)
 
 	if cli.Run(ctx) {
 		return

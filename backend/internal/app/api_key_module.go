@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	sqlc_auth "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"github.com/redis/go-redis/v9"
@@ -11,7 +11,7 @@ type APIKeyModule struct {
 	service service.APIKeyService
 }
 
-func NewAPIKeyModule(db sqlc.Querier, rdb *redis.Client) *APIKeyModule {
+func NewAPIKeyModule(db sqlc_auth.Querier, rdb *redis.Client) *APIKeyModule {
 	// 1. Initialize repository
 	apiKey_repo := repository.NewAPIKeyRepository(db)
 	apiKey_service := service.NewAPIKeyService(apiKey_repo, rdb)

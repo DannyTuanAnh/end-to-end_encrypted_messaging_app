@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	sqlc_auth "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/routes"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/sse"
@@ -39,7 +39,8 @@ type Application struct {
 	Clients *Clients
 }
 
-func NewApplication(ctx context.Context, db sqlc.Querier, rdb *redis.Client) *Application {
+// sqlc_auth for middleware, check api_key for public api, check session for private api
+func NewApplication(ctx context.Context, db sqlc_auth.Querier, rdb *redis.Client) *Application {
 	cfg := config.NewConfig()
 
 	// 1. Initialize the Gin router

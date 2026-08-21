@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 )
 
 type apiKeyRepository struct {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 	"buf.build/go/protovalidate"
 	"cloud.google.com/go/auth/credentials/idtoken"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
+	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
@@ -64,78 +65,119 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		return nil, status.Errorf(codes.Internal, "Failed to verify Google ID token: %v", err)
 	}
 
-	deviceID := uuid.New()
-
 	name := fmt.Sprintf("%s %s", userInfo.Claims["family_name"].(string), userInfo.Claims["given_name"].(string))
 
-	resp, err := s.auth_repo.Login(ctx, sqlc.OAuthLoginParams{
-		PProvider:       "google",
-		PProviderUserID: userInfo.Claims["sub"].(string),
-		PEmail:          userInfo.Claims["email"].(string),
-		PDisplayName:    name,
-		PDeviceID:       deviceID,
+	userID, err := s.auth_repo.IsExistingIdentityID(ctx, sqlc.FindExistingIdentityParams{
+		Provider:       "google",
+		ProviderUserID: userInfo.Claims["sub"].(string),
 	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to login with Google: %v", err)
-	}
+		if !errors.Is(err, repository.ErrNotFoundIdentityID) {
+			return nil, status.Errorf(codes.Internal, "Failed to check existing identity: %v", err)
+		}
 
-	if !resp.ProfileExists {
-		ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
-		ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, resp.UserId)
-		ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-
-		_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
-			UserId:    resp.UserId,
-			Name:      name,
-			Email:     userInfo.Claims["email"].(string),
-			Birthday:  userInfo.Claims["birthday"].(string),
-			AvatarUrl: userInfo.Claims["picture"].(string),
+		respCreateUser, err := s.user_client.Client.CreateUser(ctx, &user_proto.CreateUserRequest{
+			DisplayName: name,
 		})
 		if err != nil {
 			return nil, validation.MapServiceError(err, "user")
 		}
+
+		err = s.auth_repo.CreateIdentity(ctx, sqlc.CreateIdentityParams{
+			UserID:         respCreateUser.UserId,
+			Provider:       "google",
+			ProviderUserID: userInfo.Claims["sub"].(string),
+			Email:          utils.ConvertToPgTypeText(userInfo.Claims["email"].(string)),
+		})
+		if err != nil {
+			if !errors.Is(err, repository.ErrIdentityAlreadyExist) {
+				return nil, status.Errorf(codes.Internal, "Failed to create identity: %v", err)
+			}
+
+			//Compensating Action if identity creation fails, delete the user that was just created
+			_, err := s.user_client.Client.DeleteUserByUserID(ctx, &user_proto.DeleteUserRequest{
+				UserId: respCreateUser.UserId,
+			})
+			if err != nil {
+				return nil, validation.MapServiceError(err, "user")
+			}
+		}
+
+		_, err = s.user_client.Client.ActiveUser(ctx, &user_proto.EnableUserRequest{
+			UserId: respCreateUser.UserId,
+		})
+		if err != nil {
+			return nil, validation.MapServiceError(err, "user")
+		}
+
+		respIsExist, err := s.user_client.Client.IsExistProfile(ctx, &user_proto.IsExistProfileRequest{
+			UserId: respCreateUser.UserId,
+		})
+		if err != nil {
+			return nil, validation.MapServiceError(err, "user")
+		}
+
+		if !respIsExist.Exists {
+			ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
+			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respCreateUser.UserId)
+			ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
+
+			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
+				UserId:    respCreateUser.UserId,
+				Name:      name,
+				Email:     userInfo.Claims["email"].(string),
+				Birthday:  userInfo.Claims["birthday"].(string),
+				AvatarUrl: userInfo.Claims["picture"].(string),
+			})
+			if err != nil {
+				return nil, validation.MapServiceError(err, "user")
+			}
+		}
 	}
 
-	version, err := s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId)).Int()
+	version, err := s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", userID)).Int()
 	if err != nil {
 		log.Println("Error in get session_version (in auth service layer): ", err)
 	}
 
 	if version == 0 {
-		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId), 1, 0).Err(); err != nil {
+		if err := s.redis_memory.SetNX(ctx, fmt.Sprintf("user:%d:session_version", userID), 1, 0).Err(); err != nil {
 			log.Println("Error in create session_version if redis didn't exist session_version before (in auth service layer): ", err)
 		}
-		version, err = s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", resp.UserId)).Int()
+		version, err = s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", userID)).Int()
 		if err != nil {
 			log.Println("Error in get session_version after setNX (in auth service layer): ", err)
 			version = 1
 		}
 	}
 
-	session := models.SessionRedis{
-		UserID:         resp.UserId,
-		UUID:           resp.UUID,
-		DeviceID:       resp.DeviceID,
+	session, err := s.auth_repo.CreateSession(ctx, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to create session: %v", err)
+	}
+
+	sessionRedis := models.SessionRedis{
+		UserID:         userID,
 		SessionVersion: version,
 		Valid:          true,
 	}
 
-	sessionJson, err := json.Marshal(session)
+	sessionJson, err := json.Marshal(sessionRedis)
 	if err != nil {
 		log.Println("Error in marshal session data (in auth service layer): ", err)
 	}
 
-	err = s.redis_memory.Set(ctx, fmt.Sprintf("session:%s", resp.SessionId.String()), sessionJson, 24*7*time.Hour).Err()
+	err = s.redis_memory.Set(ctx, fmt.Sprintf("session:%s", session), sessionJson, 24*7*time.Hour).Err()
 	if err != nil {
 		log.Println("Error in set session with marshal data in Redis (in auth service layer): ", err)
 	}
 
 	return &auth_proto.LoginResponse{
-		Success:  true,
-		Session:  resp.SessionId.String(),
-		UserId:   resp.UserId,
-		DeviceId: resp.DeviceID.String(),
+		Success: true,
+		Session: session.String(),
+		UserId:  userID,
 	}, nil
+
 }
 
 func (s *authService) ExchangeGoogleCode(code string) (*models.GoogleTokenResponse, error) {
@@ -226,17 +268,7 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 		return nil, status.Errorf(codes.Internal, "Failed to parse session ID: %v", err)
 	}
 
-	deviceId, err := uuid.Parse(req.DeviceId)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to parse device ID: %v", err)
-	}
-
-	params := sqlc.RevokeSessionParams{
-		SessionID: sessionId,
-		DeviceID:  deviceId,
-	}
-
-	err = s.auth_repo.Logout(ctx, params)
+	err = s.auth_repo.Logout(ctx, sessionId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to logout: %v", err)
 	}

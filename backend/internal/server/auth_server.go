@@ -13,7 +13,7 @@ import (
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -45,7 +45,7 @@ type AuthServer struct {
 	server *grpc.Server
 }
 
-func NewAuthServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*AuthServer, error) {
+func NewAuthServer(ctx context.Context, db db.AuthDB, rdb *redis.Client) (*AuthServer, error) {
 	authCertFile := utils.GetEnv("PATH_CERT_AUTH_SERVICE", "")
 	authKeyFile := utils.GetEnv("PATH_KEY_AUTH_SERVICE", "")
 

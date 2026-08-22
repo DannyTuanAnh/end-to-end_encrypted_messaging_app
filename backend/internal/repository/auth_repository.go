@@ -2,37 +2,74 @@ package repository
 
 import (
 	"context"
+	"errors"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
+	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type authRepository struct {
-	auth_repo sqlc.Querier
+	auth_repo db.AuthDB
 }
 
-func NewAuthRepository(db sqlc.Querier) AuthRepository {
+func NewAuthRepository(db db.AuthDB) AuthRepository {
 	return &authRepository{auth_repo: db}
 }
 
-func (ar *authRepository) Login(ctx context.Context, arg sqlc.OAuthLoginParams) (models.GoogleLoginResponse, error) {
-	result, err := ar.auth_repo.OAuthLogin(ctx, arg)
+func (ar *authRepository) IsExistingIdentityID(ctx context.Context, arg sqlc.FindExistingIdentityParams) (int64, error) {
+	userID, err := ar.auth_repo.DB.FindExistingIdentity(ctx, arg)
 	if err != nil {
-		return models.GoogleLoginResponse{}, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFoundIdentityID
+		}
+
+		return 0, err
 	}
 
-	return models.GoogleLoginResponse{
-		SessionId:     result.FSessionID,
-		UUID:          result.FUserUuid,
-		DeviceID:      arg.PDeviceID,
-		UserId:        result.FUserID,
-		ProfileExists: result.FProfileExists,
-	}, nil
-
+	return userID, nil
 }
 
-func (ar *authRepository) Logout(ctx context.Context, arg sqlc.RevokeSessionParams) error {
-	err := ar.auth_repo.RevokeSession(ctx, arg)
+func (ar *authRepository) CreateIdentity(ctx context.Context, arg sqlc.CreateIdentityParams) error {
+	err := ar.auth_repo.DB.CreateIdentity(ctx, arg)
+	if err != nil {
+		var pqErr *pgconn.PgError
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return ErrIdentityAlreadyExist
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (ar *authRepository) CreateSession(ctx context.Context, userID int64) (uuid.UUID, error) {
+	sessionID, err := ar.auth_repo.DB.CreateSession(ctx, userID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return sessionID, nil
+}
+
+func (ar *authRepository) CheckSession(ctx context.Context, sessionID uuid.UUID) (sqlc.CheckSessionRow, error) {
+	results, err := ar.auth_repo.DB.CheckSession(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.CheckSessionRow{}, ErrNotFoundSessionID
+		}
+
+		return sqlc.CheckSessionRow{}, err
+	}
+
+	return results, nil
+}
+
+func (ar *authRepository) Logout(ctx context.Context, sessionID uuid.UUID) error {
+	err := ar.auth_repo.DB.RevokeSession(ctx, sessionID)
 	if err != nil {
 		return err
 	}
@@ -41,7 +78,7 @@ func (ar *authRepository) Logout(ctx context.Context, arg sqlc.RevokeSessionPara
 }
 
 func (ar *authRepository) LogoutAll(ctx context.Context, userId int64) error {
-	err := ar.auth_repo.RevokeAllSessions(ctx, userId)
+	err := ar.auth_repo.DB.RevokeAllSessions(ctx, userId)
 	if err != nil {
 		return err
 	}

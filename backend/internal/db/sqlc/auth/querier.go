@@ -11,17 +11,16 @@ import (
 )
 
 type Querier interface {
+	CheckSession(ctx context.Context, sessionID uuid.UUID) (CheckSessionRow, error)
 	CleanupSessionTable(ctx context.Context) error
 	// manage apikeys
 	CreateAPIKey(ctx context.Context, keyHash string) error
+	CreateIdentity(ctx context.Context, arg CreateIdentityParams) error
+	CreateSession(ctx context.Context, userID int64) (uuid.UUID, error)
+	FindExistingIdentity(ctx context.Context, arg FindExistingIdentityParams) (int64, error)
 	RevokeAPIKeyByKey(ctx context.Context, keyHash string) error
 	RevokeAllAPIKeys(ctx context.Context) error
 	RevokeAllSessions(ctx context.Context, userID int64) error
-	// -- name: CheckSession :one
-	// select s.user_id, u.uuid, s.revoked, s.revoke_at
-	// from sessions as s
-	// join users as u on s.user_id = u.id
-	// where session_id = $1 and device_id = $2 and u.is_active = true;
 	RevokeSession(ctx context.Context, sessionID uuid.UUID) error
 	ValidateAPIKey(ctx context.Context, keyHash string) (bool, error)
 }

@@ -1,8 +1,18 @@
--- -- name: CheckSession :one
--- select s.user_id, u.uuid, s.revoked, s.revoke_at
--- from sessions as s 
--- join users as u on s.user_id = u.id
--- where session_id = $1 and device_id = $2 and u.is_active = true;
+-- name: FindExistingIdentity :one
+select user_id from auth_identities 
+where provider = $1 and provider_user_id = $2;
+
+-- name: CreateIdentity :exec
+insert into auth_identities (user_id, provider, provider_user_id, email)
+values ($1, $2, $3, $4);
+
+-- name: CreateSession :one
+insert into sessions (user_id) values ($1) returning session_id;
+
+-- name: CheckSession :one
+select user_id, revoked, revoke_at
+from sessions 
+where session_id = $1;
 
 -- name: RevokeSession :exec
 update sessions set revoked = true, revoke_at = now() where session_id = $1;

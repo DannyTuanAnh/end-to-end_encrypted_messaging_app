@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
+	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -24,12 +24,6 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 		sessionId, err, errCode := ValidateSession(ctx)
 		if err != nil {
 			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to validate session", errCode))
-			return
-		}
-
-		deviceId, err, errCode := ValidateDeviceID(ctx)
-		if err != nil {
-			utils.ResponseErrorAbort(ctx, utils.WrapError(err, "Failed to validate device ID", errCode))
 			return
 		}
 
@@ -58,22 +52,12 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				return
 			}
 
-			if valueSession.DeviceID != deviceId {
-				utils.ResponseErrorAbort(ctx, utils.NewError("Invalid session: device mismatch", utils.ErrCodeUnauthorized))
-				return
-			}
-
 			userId = valueSession.UserID
-			userUUID = valueSession.UUID
 
 		} else if errors.Is(err, redis.Nil) {
 			log.Println("Session not found in Redis, checking database...")
-			params := sqlc.CheckSessionParams{
-				SessionID: sessionId,
-				DeviceID:  deviceId,
-			}
 
-			result, err := db.CheckSession(ctx, params)
+			result, err := db.CheckSession(ctx, sessionId)
 			if err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
 					utils.ResponseErrorAbort(ctx, utils.NewError("Session not found", utils.ErrCodeUnauthorized))
@@ -88,7 +72,6 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 				return
 			}
 			userId = result.UserID
-			userUUID = result.Uuid
 
 			version, err := rdb.Get(ctx, fmt.Sprintf("user:%d:session_version", userId)).Int()
 			if err != nil {
@@ -108,8 +91,6 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 			sessionRedis := models.SessionRedis{
 				UserID:         userId,
-				UUID:           userUUID,
-				DeviceID:       deviceId,
 				SessionVersion: version,
 				Valid:          result.Revoked,
 			}
@@ -131,7 +112,6 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 
 		ctx.Set("user_id", userId)
 		ctx.Set("user_uuid", userUUID.String())
-		ctx.Set("device_id", deviceId.String())
 		ctx.Set("session_id", sessionId.String())
 
 		ctx.Next()

@@ -17,7 +17,7 @@ import (
 	"firebase.google.com/go/auth"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/config"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/service"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/redis/go-redis/v9"
@@ -35,6 +35,18 @@ import (
 var userPolicies = map[string][]string{
 	"/proto.UserService/DisableUserByUserID": {
 		os.Getenv("API_GATEWAY_NAME"),
+	},
+	"/proto.UserService/CreateUser": {
+		os.Getenv("AUTH_SERVICE_NAME"),
+	},
+	"/proto.UserService/DeleteUserByUserID": {
+		os.Getenv("AUTH_SERVICE_NAME"),
+	},
+	"/proto.UserService/ActiveUser": {
+		os.Getenv("AUTH_SERVICE_NAME"),
+	},
+	"/proto.UserService/IsExistProfile": {
+		os.Getenv("AUTH_SERVICE_NAME"),
 	},
 	"/proto.UserService/CreateProfile": {
 		os.Getenv("AUTH_SERVICE_NAME"),
@@ -63,7 +75,7 @@ type UserServer struct {
 	server *grpc.Server
 }
 
-func NewUserServer(ctx context.Context, db sqlc.Querier, rdb *redis.Client) (*UserServer, error) {
+func NewUserServer(ctx context.Context, db db.UserDB, rdb *redis.Client) (*UserServer, error) {
 	userCertFile := utils.GetEnv("PATH_CERT_USER_SERVICE", "")
 	userKeyFile := utils.GetEnv("PATH_KEY_USER_SERVICE", "")
 

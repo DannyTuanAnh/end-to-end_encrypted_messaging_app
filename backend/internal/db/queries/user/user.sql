@@ -37,11 +37,23 @@
 
 -- WHERE u.uuid = $1 and u.is_active = true and u.user_id <> $2; 
 
+-- name: ActiveUser :execresult
+UPDATE users SET is_active = true, disable_at = null 
+WHERE user_id = $1
+AND is_active = false
+AND disable_at > now() - interval '30 days';
+
+-- name: IsExistProfile :one
+SELECT EXISTS (SELECT 1 FROM profiles WHERE user_id = $1);
+
 -- name: GetUUIDByUserId :one
 SELECT uuid FROM users WHERE user_id = $1;
 
 -- name: CreateUser :one
-INSERT INTO users (display_name) VALUES ($1) RETURNING *;
+INSERT INTO users (display_name) VALUES ($1) RETURNING user_id;
+
+-- name: DeleteUser :execresult
+DELETE FROM users WHERE user_id = $1;
 
 -- name: DisableUser :exec
 UPDATE users SET is_active = false, disable_at = now() WHERE user_id = $1;

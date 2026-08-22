@@ -21,7 +21,6 @@ type GoogleLoginResponse struct {
 	SessionId     uuid.UUID `json:"session_id"`
 	UUID          uuid.UUID `json:"uuid"`
 	UserId        int64     `json:"user_id"`
-	DeviceID      uuid.UUID `json:"device_id" `
 	ProfileExists bool      `json:"profile_exists"`
 }
 
@@ -36,9 +35,7 @@ type GoogleBirthdayResponse struct {
 }
 
 type SessionRedis struct {
-	UserID         int64     `json:"user_id"`
-	UUID           uuid.UUID `json:"uuid"`
-	DeviceID       uuid.UUID `json:"device_id"`
-	SessionVersion int       `json:"session_version"`
-	Valid          bool      `json:"valid"`
+	UserID         int64 `json:"user_id"`
+	SessionVersion int   `json:"session_version"`
+	Valid          bool  `json:"valid"`
 }

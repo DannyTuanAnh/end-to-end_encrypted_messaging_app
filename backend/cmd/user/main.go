@@ -41,7 +41,7 @@ func main() {
 	defer rdb.CloseRedis()
 
 	// 5. Initialize application
-	userServer, err := server.NewUserServer(ctx, userDB.DB, rdb.Redis_GCP)
+	userServer, err := server.NewUserServer(ctx, userDB, rdb.Redis_GCP)
 	if err != nil {
 		log.Fatalf("Failed to initialize user server: %v", err)
 		return

@@ -23,15 +23,10 @@ message LoginResponse {
   bool success = 1;
   string session = 2;
   int64 user_id = 3;
-  string device_id = 4;
 }
 
 message LogoutRequest {
   string session_id = 1 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.uuid = true
-  ];
-  string device_id = 2 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.uuid = true
   ];

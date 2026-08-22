@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -40,7 +41,7 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 
 	resp, err := h.auth_client.Client.LoginGoogle(ctx, authReq)
 	if err != nil {
-		utils.WriteGRPCErrorToGin(ctx, err)
+		utils.WriteGRPCErrorToGin(ctx, fmt.Errorf("failed to login with Google: %v", err))
 		return
 	}
 
@@ -55,17 +56,6 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 		MaxAge:   utils.GetEnvInt("SESSION_ID_MAX_AGE", 168) * 3600,
 	})
 
-	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:     "device_id",
-		Value:    resp.DeviceId,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-		Domain:   utils.GetEnv("COOKIE_DOMAIN", ""),
-		Path:     "/",
-		MaxAge:   utils.GetEnvInt("DEVICE_ID_MAX_AGE", 168) * 3600,
-	})
-
 	utils.ResponseSuccess(ctx, http.StatusOK)
 }
 
@@ -76,15 +66,8 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 		return
 	}
 
-	deviceID, exist := ctx.Get("device_id")
-	if !exist {
-		utils.ResponseErrorAbort(ctx, utils.NewError("device_id not found in context", utils.ErrCodeUnauthorized))
-		return
-	}
-
 	req := &auth_proto.LogoutRequest{
 		SessionId: sessionID.(string),
-		DeviceId:  deviceID.(string),
 	}
 
 	_, err := h.auth_client.Client.Logout(ctx, req)

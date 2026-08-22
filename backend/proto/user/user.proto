@@ -7,6 +7,10 @@ import "buf/validate/validate.proto";
 option go_package = "internal/gen-proto/user;user_proto";
 
 service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc DeleteUserByUserID(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ActiveUser(EnableUserRequest) returns (EnableUserResponse);
+  rpc IsExistProfile(IsExistProfileRequest) returns (IsExistProfileResponse);
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
   rpc DisableUserByUserID(DisableUserRequest) returns (DisableUserResponse);
   rpc GetProfileByUserID(GetProfileByUserIDRequest) returns (GetProfileByUserIDResponse);
@@ -15,6 +19,55 @@ service UserService {
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc UpdateAvatar(UpdateAvatarRequest) returns (UpdateAvatarResponse);
   rpc ReportUserImage(ReportUserImageRequest) returns (ReportUserImageResponse);
+}
+
+message CreateUserRequest {
+  string display_name = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 100
+  ];
+}
+
+message CreateUserResponse {
+  int64 user_id = 1;
+  string message = 2;
+}
+
+message EnableUserRequest {
+  int64 user_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int64.gt = 0
+  ];
+}
+
+message EnableUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message IsExistProfileRequest {
+  int64 user_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int64.gt = 0
+  ];
+}
+
+message IsExistProfileResponse {
+  bool exists = 1;
+  string message = 2;
+}
+
+message DeleteUserRequest {
+  int64 user_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int64.gt = 0
+  ];
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message CreateProfileRequest {

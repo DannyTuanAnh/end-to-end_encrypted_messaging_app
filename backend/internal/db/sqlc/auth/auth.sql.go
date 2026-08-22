@@ -9,7 +9,27 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const checkSession = `-- name: CheckSession :one
+select user_id, revoked, revoke_at
+from sessions 
+where session_id = $1
+`
+
+type CheckSessionRow struct {
+	UserID   int64              `json:"user_id"`
+	Revoked  bool               `json:"revoked"`
+	RevokeAt pgtype.Timestamptz `json:"revoke_at"`
+}
+
+func (q *Queries) CheckSession(ctx context.Context, sessionID uuid.UUID) (CheckSessionRow, error) {
+	row := q.db.QueryRow(ctx, checkSession, sessionID)
+	var i CheckSessionRow
+	err := row.Scan(&i.UserID, &i.Revoked, &i.RevokeAt)
+	return i, err
+}
 
 const cleanupSessionTable = `-- name: CleanupSessionTable :exec
 delete from sessions where revoked = true and revoke_at < now() - interval '1 days'
@@ -28,6 +48,56 @@ insert into api_keys (key_hash) values ($1)
 func (q *Queries) CreateAPIKey(ctx context.Context, keyHash string) error {
 	_, err := q.db.Exec(ctx, createAPIKey, keyHash)
 	return err
+}
+
+const createIdentity = `-- name: CreateIdentity :exec
+insert into auth_identities (user_id, provider, provider_user_id, email)
+values ($1, $2, $3, $4)
+`
+
+type CreateIdentityParams struct {
+	UserID         int64       `json:"user_id"`
+	Provider       string      `json:"provider"`
+	ProviderUserID string      `json:"provider_user_id"`
+	Email          pgtype.Text `json:"email"`
+}
+
+func (q *Queries) CreateIdentity(ctx context.Context, arg CreateIdentityParams) error {
+	_, err := q.db.Exec(ctx, createIdentity,
+		arg.UserID,
+		arg.Provider,
+		arg.ProviderUserID,
+		arg.Email,
+	)
+	return err
+}
+
+const createSession = `-- name: CreateSession :one
+insert into sessions (user_id) values ($1) returning session_id
+`
+
+func (q *Queries) CreateSession(ctx context.Context, userID int64) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createSession, userID)
+	var session_id uuid.UUID
+	err := row.Scan(&session_id)
+	return session_id, err
+}
+
+const findExistingIdentity = `-- name: FindExistingIdentity :one
+select user_id from auth_identities 
+where provider = $1 and provider_user_id = $2
+`
+
+type FindExistingIdentityParams struct {
+	Provider       string `json:"provider"`
+	ProviderUserID string `json:"provider_user_id"`
+}
+
+func (q *Queries) FindExistingIdentity(ctx context.Context, arg FindExistingIdentityParams) (int64, error) {
+	row := q.db.QueryRow(ctx, findExistingIdentity, arg.Provider, arg.ProviderUserID)
+	var user_id int64
+	err := row.Scan(&user_id)
+	return user_id, err
 }
 
 const revokeAPIKeyByKey = `-- name: RevokeAPIKeyByKey :exec
@@ -58,15 +128,9 @@ func (q *Queries) RevokeAllSessions(ctx context.Context, userID int64) error {
 }
 
 const revokeSession = `-- name: RevokeSession :exec
-
 update sessions set revoked = true, revoke_at = now() where session_id = $1
 `
 
-// -- name: CheckSession :one
-// select s.user_id, u.uuid, s.revoked, s.revoke_at
-// from sessions as s
-// join users as u on s.user_id = u.id
-// where session_id = $1 and device_id = $2 and u.is_active = true;
 func (q *Queries) RevokeSession(ctx context.Context, sessionID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, revokeSession, sessionID)
 	return err

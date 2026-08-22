@@ -9,36 +9,10 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users (display_name) VALUES ($1) RETURNING user_id, uuid, display_name, created_at, is_active, disable_at
-`
-
-func (q *Queries) CreateUser(ctx context.Context, displayName string) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, displayName)
-	var i User
-	err := row.Scan(
-		&i.UserID,
-		&i.Uuid,
-		&i.DisplayName,
-		&i.CreatedAt,
-		&i.IsActive,
-		&i.DisableAt,
-	)
-	return i, err
-}
-
-const disableUser = `-- name: DisableUser :exec
-UPDATE users SET is_active = false, disable_at = now() WHERE user_id = $1
-`
-
-func (q *Queries) DisableUser(ctx context.Context, userID int64) error {
-	_, err := q.db.Exec(ctx, disableUser, userID)
-	return err
-}
-
-const getUUIDByUserId = `-- name: GetUUIDByUserId :one
+const activeUser = `-- name: ActiveUser :execresult
     
     
     
@@ -47,7 +21,10 @@ const getUUIDByUserId = `-- name: GetUUIDByUserId :one
 
 
 
-SELECT uuid FROM users WHERE user_id = $1
+UPDATE users SET is_active = true, disable_at = null 
+WHERE user_id = $1
+AND is_active = false
+AND disable_at > now() - interval '30 days'
 `
 
 // -- name: GetUserByUUID :one
@@ -89,9 +66,56 @@ SELECT uuid FROM users WHERE user_id = $1
 //	ON p.user_id = u.user_id
 //
 // WHERE u.uuid = $1 and u.is_active = true and u.user_id <> $2;
+func (q *Queries) ActiveUser(ctx context.Context, userID int64) (pgconn.CommandTag, error) {
+	return q.db.Exec(ctx, activeUser, userID)
+}
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (display_name) VALUES ($1) RETURNING user_id
+`
+
+func (q *Queries) CreateUser(ctx context.Context, displayName string) (int64, error) {
+	row := q.db.QueryRow(ctx, createUser, displayName)
+	var user_id int64
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
+const deleteUser = `-- name: DeleteUser :execresult
+DELETE FROM users WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, userID int64) (pgconn.CommandTag, error) {
+	return q.db.Exec(ctx, deleteUser, userID)
+}
+
+const disableUser = `-- name: DisableUser :exec
+UPDATE users SET is_active = false, disable_at = now() WHERE user_id = $1
+`
+
+func (q *Queries) DisableUser(ctx context.Context, userID int64) error {
+	_, err := q.db.Exec(ctx, disableUser, userID)
+	return err
+}
+
+const getUUIDByUserId = `-- name: GetUUIDByUserId :one
+SELECT uuid FROM users WHERE user_id = $1
+`
+
 func (q *Queries) GetUUIDByUserId(ctx context.Context, userID int64) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, getUUIDByUserId, userID)
 	var uuid uuid.UUID
 	err := row.Scan(&uuid)
 	return uuid, err
+}
+
+const isExistProfile = `-- name: IsExistProfile :one
+SELECT EXISTS (SELECT 1 FROM profiles WHERE user_id = $1)
+`
+
+func (q *Queries) IsExistProfile(ctx context.Context, userID int64) (bool, error) {
+	row := q.db.QueryRow(ctx, isExistProfile, userID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }

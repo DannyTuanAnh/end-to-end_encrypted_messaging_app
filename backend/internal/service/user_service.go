@@ -15,7 +15,7 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
+	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
@@ -60,6 +60,110 @@ func NewUserService(user_repo repository.UserRepository, rdb *redis.Client, auth
 		compute_service:      compute_service,
 		gcs_client:           gcs_client,
 	}
+}
+
+func (s *userService) CreateUser(ctx context.Context, req *user_proto.CreateUserRequest) (*user_proto.CreateUserResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if err := s.validator.Validate(req); err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
+	userID, err := s.user_repo.CreateUser(ctx, req.DisplayName)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to create user: %v", err)
+	}
+
+	return &user_proto.CreateUserResponse{
+		UserId:  userID,
+		Message: "User created successfully",
+	}, nil
+}
+
+func (s *userService) ActiveUser(ctx context.Context, req *user_proto.EnableUserRequest) (*user_proto.EnableUserResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
+	}
+
+	if err := s.validator.Validate(req); err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
+	err := s.user_repo.ActiveUser(ctx, req.UserId)
+	if err != nil {
+		if err == repository.ErrCannotRestore {
+			return nil, validation.BuildBusinessError("CANNOT_RESTORE_USER", "Cannot restore user, user has been disabled for more than 30 days.")
+		}
+	}
+
+	return &user_proto.EnableUserResponse{
+		Success: true,
+		Message: "User activated successfully",
+	}, nil
+}
+
+func (s *userService) IsExistProfile(ctx context.Context, req *user_proto.IsExistProfileRequest) (*user_proto.IsExistProfileResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if err := s.validator.Validate(req); err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
+	exists, err := s.user_repo.IsExistProfile(ctx, req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to check if profile exists: %v", err)
+	}
+	if !exists {
+		return &user_proto.IsExistProfileResponse{
+			Exists:  false,
+			Message: "Profile does not exist for the given user ID",
+		}, nil
+	}
+
+	return &user_proto.IsExistProfileResponse{
+		Exists:  true,
+		Message: "Profile exists for the given user ID",
+	}, nil
+}
+
+func (s *userService) DeleteUserByUserID(ctx context.Context, req *user_proto.DeleteUserRequest) (*user_proto.DeleteUserResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if err := s.validator.Validate(req); err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
+	err := s.user_repo.DeleteUserByUserID(ctx, req.UserId)
+	if err != nil {
+		if errors.Is(err, repository.ErrCannotDeleteUser) {
+			return nil, validation.BuildBusinessError("USER_NOT_FOUND", "User not found with the given ID. Please check the user ID and try again.")
+		}
+
+		return nil, status.Errorf(codes.Internal, "Failed to delete user: %v", err)
+	}
+
+	return &user_proto.DeleteUserResponse{
+		Success: true,
+		Message: "User deleted successfully",
+	}, nil
 }
 
 func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.GetProfileByUserIDRequest) (*user_proto.GetProfileByUserIDResponse, error) {

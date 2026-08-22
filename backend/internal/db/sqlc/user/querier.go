@@ -8,14 +8,10 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type Querier interface {
-	CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error)
-	CreateUser(ctx context.Context, displayName string) (User, error)
-	DisableUser(ctx context.Context, userID int64) error
-	GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error)
-	GetProfileByUserUUID(ctx context.Context, arg GetProfileByUserUUIDParams) (GetProfileByUserUUIDRow, error)
 	// -- name: GetUserByUUID :one
 	// -- Get user info with friendship/friend request status
 	// -- $1: target_user_uuid (user being searched)
@@ -47,7 +43,15 @@ type Querier interface {
 	// LEFT JOIN profiles p
 	//     ON p.user_id = u.user_id
 	// WHERE u.uuid = $1 and u.is_active = true and u.user_id <> $2;
+	ActiveUser(ctx context.Context, userID int64) (pgconn.CommandTag, error)
+	CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error)
+	CreateUser(ctx context.Context, displayName string) (int64, error)
+	DeleteUser(ctx context.Context, userID int64) (pgconn.CommandTag, error)
+	DisableUser(ctx context.Context, userID int64) error
+	GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error)
+	GetProfileByUserUUID(ctx context.Context, arg GetProfileByUserUUIDParams) (GetProfileByUserUUIDRow, error)
 	GetUUIDByUserId(ctx context.Context, userID int64) (uuid.UUID, error)
+	IsExistProfile(ctx context.Context, userID int64) (bool, error)
 	UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (UpdateProfileAvatarByUserIdRow, error)
 	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (UpdateProfileByUserIdRow, error)
 }

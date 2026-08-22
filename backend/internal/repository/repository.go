@@ -5,8 +5,7 @@ import (
 
 	sqlc_auth "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	sqlc_user "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
-
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
+	"github.com/google/uuid"
 )
 
 type APIKeyRepository interface {
@@ -16,12 +15,19 @@ type APIKeyRepository interface {
 }
 
 type AuthRepository interface {
-	Login(ctx context.Context, arg sqlc_auth.OAuthLoginParams) (models.GoogleLoginResponse, error)
-	Logout(ctx context.Context, arg sqlc_auth.RevokeSessionParams) error
+	IsExistingIdentityID(ctx context.Context, arg sqlc_auth.FindExistingIdentityParams) (int64, error)
+	CreateIdentity(ctx context.Context, arg sqlc_auth.CreateIdentityParams) error
+	CreateSession(ctx context.Context, userID int64) (uuid.UUID, error)
+	CheckSession(ctx context.Context, sessionID uuid.UUID) (sqlc_auth.CheckSessionRow, error)
+	Logout(ctx context.Context, sessionID uuid.UUID) error
 	LogoutAll(ctx context.Context, userId int64) error
 }
 
 type UserRepository interface {
+	CreateUser(ctx context.Context, displayName string) (int64, error)
+	DeleteUserByUserID(ctx context.Context, userId int64) error
+	ActiveUser(ctx context.Context, userId int64) error
+	IsExistProfile(ctx context.Context, userId int64) (bool, error)
 	GetProfileByUserID(ctx context.Context, userId int64) (sqlc_user.GetProfileByUserIdRow, error)
 	GetProfileByUserUUID(ctx context.Context, arg sqlc_user.GetProfileByUserUUIDParams) (sqlc_user.GetProfileByUserUUIDRow, error)
 	CreateProfile(ctx context.Context, arg sqlc_user.CreateProfileParams) (sqlc_user.Profile, error)

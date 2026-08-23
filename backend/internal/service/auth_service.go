@@ -52,6 +52,7 @@ func NewAuthService(auth_repo repository.AuthRepository, user_client *client.Use
 
 func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.LoginResponse, error) {
 	if err := s.validator.Validate(req); err != nil {
+		fmt.Printf("AuthorCode: %v\n", req.AuthorCode)
 		return nil, validation.BuildValidationError(err)
 	}
 
@@ -73,10 +74,15 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		Provider:       "google",
 		ProviderUserID: userInfo.Claims["sub"].(string),
 	})
+	fmt.Printf("Existing identity found: %+v\n", respIsExistingIdentity)
 	if err != nil {
 		if !errors.Is(err, repository.ErrNotFoundIdentityID) {
 			return nil, status.Errorf(codes.Internal, "Failed to check existing identity: %v", err)
 		}
+
+		ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
+		ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respIsExistingIdentity.UserID)
+		ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 		respCreateUser, err := s.user_client.Client.CreateUser(ctx, &user_proto.CreateUserRequest{
 			DisplayName: name,
@@ -113,7 +119,10 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 			}
 
 			userID = respIsExistingIdentity.UserID
+		} else {
+			userID = respCreateUser.UserId
 		}
+
 		respIsExist, err := s.user_client.Client.IsExistProfile(ctx, &user_proto.IsExistProfileRequest{
 			UserId: respIsExistingIdentity.UserID,
 		})
@@ -122,10 +131,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		}
 
 		if !respIsExist.Exists {
-			ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
-			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respIsExistingIdentity.UserID)
-			ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-
 			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
 				UserId:    respIsExistingIdentity.UserID,
 				Name:      name,
@@ -138,8 +143,9 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 			}
 		}
 
+	} else {
+		userID = respIsExistingIdentity.UserID
 	}
-
 	if respIsExistingIdentity.Status == "revoked" && respIsExistingIdentity.RevokedAt.Valid && time.Since(respIsExistingIdentity.RevokedAt.Time) <= 30*24*time.Hour {
 		_, err := s.user_client.Client.ActiveUser(ctx, &user_proto.EnableUserRequest{
 			UserId: respIsExistingIdentity.UserID,
@@ -217,8 +223,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 				return nil, validation.MapServiceError(err, "user")
 			}
 		}
-	} else {
-		userID = respIsExistingIdentity.UserID
 	}
 
 	version, err := s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", userID)).Int()

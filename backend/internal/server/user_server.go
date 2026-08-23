@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -235,15 +234,15 @@ func connectAuthFirebase(ctx context.Context) *auth.Client {
 	if serviceAccountKey != "" {
 		var opt option.ClientOption
 
-		// //local test
-		// opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
+		//local test
+		opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
 
-		// deploy
-		if strings.HasPrefix(serviceAccountKey, "/") {
-			opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
-		} else {
-			opt = option.WithAuthCredentialsJSON(option.ServiceAccount, []byte(serviceAccountKey))
-		}
+		// // deploy
+		// if strings.HasPrefix(serviceAccountKey, "/") {
+		// 	opt = option.WithAuthCredentialsFile(option.ServiceAccount, serviceAccountKey)
+		// } else {
+		// 	opt = option.WithAuthCredentialsJSON(option.ServiceAccount, []byte(serviceAccountKey))
+		// }
 
 		app, err = firebase.NewApp(ctx, nil, opt)
 

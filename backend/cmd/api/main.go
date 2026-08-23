@@ -25,7 +25,7 @@ func main() {
 	log.Println("Init DB...")
 	authDB, err := db.InitAuthDB()
 	if err != nil {
-		log.Fatal("Database init failed: %v", err)
+		log.Fatalf("Database init failed: %v", err)
 	}
 	defer authDB.Close()
 	log.Println("Database connected")
@@ -34,7 +34,7 @@ func main() {
 	log.Println("Init Redis...")
 	rdb, err := redis_memory.InitRedis()
 	if err != nil {
-		log.Fatal("Redis init failed: %v", err)
+		log.Fatalf("Redis init failed: %v", err)
 	}
 	defer rdb.CloseRedis()
 	log.Println("Redis connected")

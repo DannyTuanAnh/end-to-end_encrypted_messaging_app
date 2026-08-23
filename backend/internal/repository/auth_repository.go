@@ -20,7 +20,7 @@ func NewAuthRepository(db db.AuthDB) AuthRepository {
 }
 
 func (ar *authRepository) IsExistingIdentityID(ctx context.Context, arg sqlc.FindExistingIdentityParams) (sqlc.FindExistingIdentityRow, error) {
-	userID, err := ar.auth_repo.DB.FindExistingIdentity(ctx, arg)
+	row, err := ar.auth_repo.DB.FindExistingIdentity(ctx, arg)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return sqlc.FindExistingIdentityRow{}, ErrNotFoundIdentityID
@@ -29,7 +29,7 @@ func (ar *authRepository) IsExistingIdentityID(ctx context.Context, arg sqlc.Fin
 		return sqlc.FindExistingIdentityRow{}, err
 	}
 
-	return userID, nil
+	return row, nil
 }
 
 func (ar *authRepository) CreateIdentity(ctx context.Context, arg sqlc.CreateIdentityParams) error {

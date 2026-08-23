@@ -44,7 +44,7 @@ func (ur *userRepository) ActiveUser(ctx context.Context, userId int64) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return ErrCannotRestore
+		return ErrCannotRestoreUser
 	}
 
 	return nil

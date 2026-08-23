@@ -67,7 +67,9 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 
 	name := fmt.Sprintf("%s %s", userInfo.Claims["family_name"].(string), userInfo.Claims["given_name"].(string))
 
-	userID, err := s.auth_repo.IsExistingIdentityID(ctx, sqlc.FindExistingIdentityParams{
+	var userID int64
+
+	respIsExistingIdentity, err := s.auth_repo.IsExistingIdentityID(ctx, sqlc.FindExistingIdentityParams{
 		Provider:       "google",
 		ProviderUserID: userInfo.Claims["sub"].(string),
 	})
@@ -101,17 +103,19 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 			if err != nil {
 				return nil, validation.MapServiceError(err, "user")
 			}
-		}
 
-		_, err = s.user_client.Client.ActiveUser(ctx, &user_proto.EnableUserRequest{
-			UserId: respCreateUser.UserId,
-		})
-		if err != nil {
-			return nil, validation.MapServiceError(err, "user")
-		}
+			respIsExistingIdentity, err := s.auth_repo.IsExistingIdentityID(ctx, sqlc.FindExistingIdentityParams{
+				Provider:       "google",
+				ProviderUserID: userInfo.Claims["sub"].(string),
+			})
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "Failed to check existing identity after create identity failure by unique constraint: %v", err)
+			}
 
+			userID = respIsExistingIdentity.UserID
+		}
 		respIsExist, err := s.user_client.Client.IsExistProfile(ctx, &user_proto.IsExistProfileRequest{
-			UserId: respCreateUser.UserId,
+			UserId: respIsExistingIdentity.UserID,
 		})
 		if err != nil {
 			return nil, validation.MapServiceError(err, "user")
@@ -119,11 +123,11 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 
 		if !respIsExist.Exists {
 			ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
-			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respCreateUser.UserId)
+			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respIsExistingIdentity.UserID)
 			ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
-				UserId:    respCreateUser.UserId,
+				UserId:    respIsExistingIdentity.UserID,
 				Name:      name,
 				Email:     userInfo.Claims["email"].(string),
 				Birthday:  userInfo.Claims["birthday"].(string),
@@ -133,6 +137,88 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 				return nil, validation.MapServiceError(err, "user")
 			}
 		}
+
+	}
+
+	if respIsExistingIdentity.Status == "revoked" && respIsExistingIdentity.RevokedAt.Valid && time.Since(respIsExistingIdentity.RevokedAt.Time) <= 30*24*time.Hour {
+		_, err := s.user_client.Client.ActiveUser(ctx, &user_proto.EnableUserRequest{
+			UserId: respIsExistingIdentity.UserID,
+		})
+		if err != nil {
+			return nil, validation.MapServiceError(err, "user")
+		}
+
+		err = s.auth_repo.ActiveIdentity(ctx, sqlc.ActiveIdentityParams{
+			Provider:       "google",
+			ProviderUserID: userInfo.Claims["sub"].(string),
+		})
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Failed to activate identity: %v", err)
+		}
+
+		userID = respIsExistingIdentity.UserID
+
+	} else if respIsExistingIdentity.Status == "revoked" && respIsExistingIdentity.RevokedAt.Valid && time.Since(respIsExistingIdentity.RevokedAt.Time) > 30*24*time.Hour {
+		respCreateUser, err := s.user_client.Client.CreateUser(ctx, &user_proto.CreateUserRequest{
+			DisplayName: name,
+		})
+		if err != nil {
+			return nil, validation.MapServiceError(err, "user")
+		}
+
+		err = s.auth_repo.CreateIdentity(ctx, sqlc.CreateIdentityParams{
+			UserID:         respCreateUser.UserId,
+			Provider:       "google",
+			ProviderUserID: userInfo.Claims["sub"].(string),
+			Email:          utils.ConvertToPgTypeText(userInfo.Claims["email"].(string)),
+		})
+		if err != nil {
+			if !errors.Is(err, repository.ErrIdentityAlreadyExist) {
+				return nil, status.Errorf(codes.Internal, "Failed to create identity: %v", err)
+			}
+
+			//Compensating Action if identity creation fails, delete the user that was just created
+			_, err := s.user_client.Client.DeleteUserByUserID(ctx, &user_proto.DeleteUserRequest{
+				UserId: respCreateUser.UserId,
+			})
+			if err != nil {
+				return nil, validation.MapServiceError(err, "user")
+			}
+
+			respIsExistingIdentity, err := s.auth_repo.IsExistingIdentityID(ctx, sqlc.FindExistingIdentityParams{
+				Provider:       "google",
+				ProviderUserID: userInfo.Claims["sub"].(string),
+			})
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "Failed to check existing identity after create identity failure by unique constraint: %v", err)
+			}
+			userID = respIsExistingIdentity.UserID
+		}
+		respIsExist, err := s.user_client.Client.IsExistProfile(ctx, &user_proto.IsExistProfileRequest{
+			UserId: respIsExistingIdentity.UserID,
+		})
+		if err != nil {
+			return nil, validation.MapServiceError(err, "user")
+		}
+
+		if !respIsExist.Exists {
+			ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
+			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respIsExistingIdentity.UserID)
+			ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
+
+			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
+				UserId:    respIsExistingIdentity.UserID,
+				Name:      name,
+				Email:     userInfo.Claims["email"].(string),
+				Birthday:  userInfo.Claims["birthday"].(string),
+				AvatarUrl: userInfo.Claims["picture"].(string),
+			})
+			if err != nil {
+				return nil, validation.MapServiceError(err, "user")
+			}
+		}
+	} else {
+		userID = respIsExistingIdentity.UserID
 	}
 
 	version, err := s.redis_memory.Get(ctx, fmt.Sprintf("user:%d:session_version", userID)).Int()
@@ -280,6 +366,41 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 	return &auth_proto.LogoutResponse{
 		Success: true,
 		Message: "Logout successfully",
+	}, nil
+}
+
+func (s *authService) DisableIdentity(ctx context.Context, req *auth_proto.DisableIdentityRequest) (*auth_proto.DisableIdentityResponse, error) {
+	caller := utils.GetCaller(ctx)
+
+	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
+	}
+
+	err := s.validator.Validate(req)
+	if err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
+	err = s.auth_repo.DisableIdentity(ctx, sqlc.DisableIdentityParams{
+		Provider: "google",
+		UserID:   req.UserId,
+	})
+
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFoundIdentityID) {
+			return nil, status.Errorf(codes.NotFound, "Identity not found")
+		}
+
+		return nil, status.Errorf(codes.Internal, "Failed to disable identity: %v", err)
+	}
+
+	return &auth_proto.DisableIdentityResponse{
+		Success: true,
+		Message: "Identity disabled successfully",
 	}, nil
 }
 

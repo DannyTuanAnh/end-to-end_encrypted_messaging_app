@@ -8,16 +8,19 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type Querier interface {
+	ActiveIdentity(ctx context.Context, arg ActiveIdentityParams) (pgconn.CommandTag, error)
 	CheckSession(ctx context.Context, sessionID uuid.UUID) (CheckSessionRow, error)
 	CleanupSessionTable(ctx context.Context) error
 	// manage apikeys
 	CreateAPIKey(ctx context.Context, keyHash string) error
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) error
 	CreateSession(ctx context.Context, userID int64) (uuid.UUID, error)
-	FindExistingIdentity(ctx context.Context, arg FindExistingIdentityParams) (int64, error)
+	DisableIdentity(ctx context.Context, arg DisableIdentityParams) (pgconn.CommandTag, error)
+	FindExistingIdentity(ctx context.Context, arg FindExistingIdentityParams) (FindExistingIdentityRow, error)
 	RevokeAPIKeyByKey(ctx context.Context, keyHash string) error
 	RevokeAllAPIKeys(ctx context.Context) error
 	RevokeAllSessions(ctx context.Context, userID int64) error

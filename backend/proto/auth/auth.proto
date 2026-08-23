@@ -10,6 +10,7 @@ service AuthService {
   rpc LoginGoogle(LoginRequest) returns (LoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc LogoutAll(LogoutAllRequest) returns (LogoutAllResponse);
+  rpc DisableIdentity(DisableIdentityRequest) returns (DisableIdentityResponse);
 }
 
 message LoginRequest {
@@ -44,6 +45,20 @@ message LogoutAllRequest {
 }
 
 message LogoutAllResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DisableIdentityRequest {
+  string provider = 1 [
+    (buf.validate.field).required = true
+  ];
+  int64 user_id = 2 [
+    (buf.validate.field).required = true
+  ];
+}
+
+message DisableIdentityResponse {
   bool success = 1;
   string message = 2;
 }

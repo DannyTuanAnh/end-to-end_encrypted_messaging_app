@@ -9,8 +9,26 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const activeIdentity = `-- name: ActiveIdentity :execresult
+update auth_identities 
+set status = 'active', revoked_at = null 
+where provider = $1 
+and provider_user_id = $2
+and revoked_at > now() - interval '30 days'
+`
+
+type ActiveIdentityParams struct {
+	Provider       string `json:"provider"`
+	ProviderUserID string `json:"provider_user_id"`
+}
+
+func (q *Queries) ActiveIdentity(ctx context.Context, arg ActiveIdentityParams) (pgconn.CommandTag, error) {
+	return q.db.Exec(ctx, activeIdentity, arg.Provider, arg.ProviderUserID)
+}
 
 const checkSession = `-- name: CheckSession :one
 select user_id, revoked, revoke_at
@@ -83,8 +101,21 @@ func (q *Queries) CreateSession(ctx context.Context, userID int64) (uuid.UUID, e
 	return session_id, err
 }
 
+const disableIdentity = `-- name: DisableIdentity :execresult
+update auth_identities set status = 'revoked', revoked_at = now() where provider = $1 and user_id = $2
+`
+
+type DisableIdentityParams struct {
+	Provider string `json:"provider"`
+	UserID   int64  `json:"user_id"`
+}
+
+func (q *Queries) DisableIdentity(ctx context.Context, arg DisableIdentityParams) (pgconn.CommandTag, error) {
+	return q.db.Exec(ctx, disableIdentity, arg.Provider, arg.UserID)
+}
+
 const findExistingIdentity = `-- name: FindExistingIdentity :one
-select user_id from auth_identities 
+select user_id, status, revoked_at from auth_identities 
 where provider = $1 and provider_user_id = $2
 `
 
@@ -93,11 +124,17 @@ type FindExistingIdentityParams struct {
 	ProviderUserID string `json:"provider_user_id"`
 }
 
-func (q *Queries) FindExistingIdentity(ctx context.Context, arg FindExistingIdentityParams) (int64, error) {
+type FindExistingIdentityRow struct {
+	UserID    int64              `json:"user_id"`
+	Status    AuthIdentityStatus `json:"status"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+}
+
+func (q *Queries) FindExistingIdentity(ctx context.Context, arg FindExistingIdentityParams) (FindExistingIdentityRow, error) {
 	row := q.db.QueryRow(ctx, findExistingIdentity, arg.Provider, arg.ProviderUserID)
-	var user_id int64
-	err := row.Scan(&user_id)
-	return user_id, err
+	var i FindExistingIdentityRow
+	err := row.Scan(&i.UserID, &i.Status, &i.RevokedAt)
+	return i, err
 }
 
 const revokeAPIKeyByKey = `-- name: RevokeAPIKeyByKey :exec

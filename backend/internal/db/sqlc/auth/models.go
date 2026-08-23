@@ -5,11 +5,55 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type AuthIdentityStatus string
+
+const (
+	AuthIdentityStatusActive  AuthIdentityStatus = "active"
+	AuthIdentityStatusRevoked AuthIdentityStatus = "revoked"
+)
+
+func (e *AuthIdentityStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuthIdentityStatus(s)
+	case string:
+		*e = AuthIdentityStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuthIdentityStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAuthIdentityStatus struct {
+	AuthIdentityStatus AuthIdentityStatus `json:"auth_identity_status"`
+	Valid              bool               `json:"valid"` // Valid is true if AuthIdentityStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuthIdentityStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuthIdentityStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuthIdentityStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuthIdentityStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuthIdentityStatus), nil
+}
 
 type ApiKey struct {
 	ID        int64              `json:"id"`
@@ -20,12 +64,14 @@ type ApiKey struct {
 }
 
 type AuthIdentity struct {
-	ID             int64       `json:"id"`
-	UserID         int64       `json:"user_id"`
-	Provider       string      `json:"provider"`
-	ProviderUserID string      `json:"provider_user_id"`
-	Email          pgtype.Text `json:"email"`
-	CreatedAt      time.Time   `json:"created_at"`
+	ID             int64              `json:"id"`
+	UserID         int64              `json:"user_id"`
+	Provider       string             `json:"provider"`
+	ProviderUserID string             `json:"provider_user_id"`
+	Status         AuthIdentityStatus `json:"status"`
+	Email          pgtype.Text        `json:"email"`
+	CreatedAt      time.Time          `json:"created_at"`
+	RevokedAt      pgtype.Timestamptz `json:"revoked_at"`
 }
 
 type Session struct {

@@ -15,8 +15,10 @@ type APIKeyRepository interface {
 }
 
 type AuthRepository interface {
-	IsExistingIdentityID(ctx context.Context, arg sqlc_auth.FindExistingIdentityParams) (int64, error)
+	IsExistingIdentityID(ctx context.Context, arg sqlc_auth.FindExistingIdentityParams) (sqlc_auth.FindExistingIdentityRow, error)
 	CreateIdentity(ctx context.Context, arg sqlc_auth.CreateIdentityParams) error
+	ActiveIdentity(ctx context.Context, arg sqlc_auth.ActiveIdentityParams) error
+	DisableIdentity(ctx context.Context, arg sqlc_auth.DisableIdentityParams) error
 	CreateSession(ctx context.Context, userID int64) (uuid.UUID, error)
 	CheckSession(ctx context.Context, sessionID uuid.UUID) (sqlc_auth.CheckSessionRow, error)
 	Logout(ctx context.Context, sessionID uuid.UUID) error

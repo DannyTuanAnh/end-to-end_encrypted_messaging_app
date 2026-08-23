@@ -19,14 +19,14 @@ func NewAuthRepository(db db.AuthDB) AuthRepository {
 	return &authRepository{auth_repo: db}
 }
 
-func (ar *authRepository) IsExistingIdentityID(ctx context.Context, arg sqlc.FindExistingIdentityParams) (int64, error) {
+func (ar *authRepository) IsExistingIdentityID(ctx context.Context, arg sqlc.FindExistingIdentityParams) (sqlc.FindExistingIdentityRow, error) {
 	userID, err := ar.auth_repo.DB.FindExistingIdentity(ctx, arg)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, ErrNotFoundIdentityID
+			return sqlc.FindExistingIdentityRow{}, ErrNotFoundIdentityID
 		}
 
-		return 0, err
+		return sqlc.FindExistingIdentityRow{}, err
 	}
 
 	return userID, nil
@@ -41,6 +41,33 @@ func (ar *authRepository) CreateIdentity(ctx context.Context, arg sqlc.CreateIde
 		}
 
 		return err
+	}
+
+	return nil
+}
+
+func (ar *authRepository) ActiveIdentity(ctx context.Context, arg sqlc.ActiveIdentityParams) error {
+	result, err := ar.auth_repo.DB.ActiveIdentity(ctx, arg)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrCannotRestoreUserIdentity
+	}
+
+	return nil
+}
+
+func (ar *authRepository) DisableIdentity(ctx context.Context, arg sqlc.DisableIdentityParams) error {
+	result, err := ar.auth_repo.DB.DisableIdentity(ctx, arg)
+
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFoundIdentityID
 	}
 
 	return nil

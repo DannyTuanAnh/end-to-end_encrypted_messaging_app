@@ -101,7 +101,7 @@ func (s *userService) ActiveUser(ctx context.Context, req *user_proto.EnableUser
 
 	err := s.user_repo.ActiveUser(ctx, req.UserId)
 	if err != nil {
-		if err == repository.ErrCannotRestore {
+		if err == repository.ErrCannotRestoreUser {
 			return nil, validation.BuildBusinessError("CANNOT_RESTORE_USER", "Cannot restore user, user has been disabled for more than 30 days.")
 		}
 	}
@@ -448,6 +448,14 @@ func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.D
 	ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
 
 	_, err = s.auth_client.Client.LogoutAll(ctx, reqLogoutAll)
+	if err != nil {
+		return nil, validation.MapServiceError(err, "auth")
+	}
+
+	_, err = s.auth_client.Client.DisableIdentity(ctx, &auth_proto.DisableIdentityRequest{
+		Provider: "google",
+		UserId:   req.UserId,
+	})
 	if err != nil {
 		return nil, validation.MapServiceError(err, "auth")
 	}

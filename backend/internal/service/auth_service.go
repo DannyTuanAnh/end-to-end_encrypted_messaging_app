@@ -52,7 +52,6 @@ func NewAuthService(auth_repo repository.AuthRepository, user_client *client.Use
 
 func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.LoginResponse, error) {
 	if err := s.validator.Validate(req); err != nil {
-		fmt.Printf("AuthorCode: %v\n", req.AuthorCode)
 		return nil, validation.BuildValidationError(err)
 	}
 
@@ -74,14 +73,12 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		Provider:       "google",
 		ProviderUserID: userInfo.Claims["sub"].(string),
 	})
-	fmt.Printf("Existing identity found: %+v\n", respIsExistingIdentity)
 	if err != nil {
 		if !errors.Is(err, repository.ErrNotFoundIdentityID) {
 			return nil, status.Errorf(codes.Internal, "Failed to check existing identity: %v", err)
 		}
 
 		ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
-		ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respIsExistingIdentity.UserID)
 		ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 
 		respCreateUser, err := s.user_client.Client.CreateUser(ctx, &user_proto.CreateUserRequest{
@@ -124,15 +121,17 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		}
 
 		respIsExist, err := s.user_client.Client.IsExistProfile(ctx, &user_proto.IsExistProfileRequest{
-			UserId: respIsExistingIdentity.UserID,
+			UserId: userID,
 		})
 		if err != nil {
 			return nil, validation.MapServiceError(err, "user")
 		}
 
 		if !respIsExist.Exists {
+			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, userID)
+
 			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
-				UserId:    respIsExistingIdentity.UserID,
+				UserId:    userID,
 				Name:      name,
 				Email:     userInfo.Claims["email"].(string),
 				Birthday:  userInfo.Claims["birthday"].(string),
@@ -183,6 +182,9 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 				return nil, status.Errorf(codes.Internal, "Failed to create identity: %v", err)
 			}
 
+			ctx := context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
+			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respIsExistingIdentity.UserID)
+			ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
 			//Compensating Action if identity creation fails, delete the user that was just created
 			_, err := s.user_client.Client.DeleteUserByUserID(ctx, &user_proto.DeleteUserRequest{
 				UserId: respCreateUser.UserId,

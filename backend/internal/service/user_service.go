@@ -120,6 +120,7 @@ func (s *userService) IsExistProfile(ctx context.Context, req *user_proto.IsExis
 	}
 
 	if err := s.validator.Validate(req); err != nil {
+		fmt.Printf("Validation error in IsExistProfile: %v\n", err)
 		return nil, validation.BuildValidationError(err)
 	}
 
@@ -145,6 +146,10 @@ func (s *userService) DeleteUserByUserID(ctx context.Context, req *user_proto.De
 
 	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
 		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
+	}
+
+	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
+		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
 	}
 
 	if err := s.validator.Validate(req); err != nil {
@@ -306,6 +311,7 @@ func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateP
 	}
 
 	if err := s.validator.Validate(req); err != nil {
+		fmt.Printf("Validation error: %v\n", err)
 		return nil, validation.BuildValidationError(err)
 	}
 

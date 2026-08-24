@@ -41,7 +41,6 @@ func (h *AuthHandler) LoginGoogle(ctx *gin.Context) {
 
 	resp, err := h.auth_client.Client.LoginGoogle(ctx, authReq)
 	if err != nil {
-		fmt.Printf("AuthorCode: %v\n", input.AuthCode)
 		utils.WriteGRPCErrorToGin(ctx, fmt.Errorf("failed to login with Google: %v", err))
 		return
 	}

@@ -88,10 +88,10 @@ func MapServiceError(err error, service string) error {
 	switch status.Code(err) {
 
 	case codes.InvalidArgument:
-		return err
+		return status.Errorf(codes.InvalidArgument, "%s service error: %v", service, err)
 
 	case codes.FailedPrecondition:
-		return err
+		return status.Errorf(codes.FailedPrecondition, "%s service error: %v", service, err)
 
 	case codes.Unavailable:
 		return BuildServiceUnavailableError(service)

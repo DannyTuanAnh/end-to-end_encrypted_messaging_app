@@ -11,7 +11,7 @@ FROM users u
 LEFT JOIN profiles p
     ON p.user_id = u.user_id
 
-WHERE u.uuid = sqlc.arg(target_user_uuid) and u.user_id <> sqlc.arg(current_user_id); 
+WHERE u.uuid = sqlc.arg(target_user_uuid); 
 
 -- name: ActiveUser :execresult
 UPDATE users SET is_active = true, disable_at = null 

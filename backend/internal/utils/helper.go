@@ -142,3 +142,7 @@ func IsPhoneNumber(phone *string) (string, bool) {
 	e164 := phonenumbers.Format(num, phonenumbers.E164)
 	return e164, true
 }
+
+func StringPtr(s string) *string {
+	return &s
+}

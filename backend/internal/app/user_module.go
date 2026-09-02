@@ -16,20 +16,20 @@ type UserModule struct {
 	routes routes.Routes
 }
 
-func NewUserModule(addr string, ctx context.Context, rdb *redis.Client) *UserModule {
+func NewUserModule(userAddr, friendAddr string, ctx context.Context, rdb *redis.Client) *UserModule {
 	// Load TLS credentials for gRPC client
 	// Call by API Gateway, so use API Gateway's certs
 	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY_CLIENT", "")
 	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY_CLIENT", "")
 
 	// 1. Initialize user client
-	user_client, err := client.NewUserClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
+	user_client, err := client.NewUserClient(userAddr, apiGatewayCertFile, apiGatewayKeyFile)
 	if err != nil {
 		panic("Failed to initialize User client: " + err.Error())
 	}
 
 	// 2. Initialize friend client
-	friend_client, err := client.NewFriendClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
+	friend_client, err := client.NewFriendClient(friendAddr, apiGatewayCertFile, apiGatewayKeyFile)
 	if err != nil {
 		panic("Failed to initialize Friend client: " + err.Error())
 	}

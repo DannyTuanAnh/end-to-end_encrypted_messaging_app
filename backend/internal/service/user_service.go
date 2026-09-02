@@ -271,12 +271,7 @@ func (s *userService) SearchUserByUUID(ctx context.Context, req *user_proto.Sear
 		return nil, status.Errorf(codes.InvalidArgument, "Invalid UUID format: %v", err)
 	}
 
-	request := sqlc.GetUserByUUIDParams{
-		TargetUserUuid: targetUserUUID,
-		CurrentUserID:  req.CurrentUserId,
-	}
-
-	data, err := s.user_repo.GetUserByUUID(ctx, request)
+	data, err := s.user_repo.GetUserByUUID(ctx, targetUserUUID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFoundIdentityUUID) {
 			return nil, validation.BuildBusinessError("USER_NOT_FOUND", err.Error())
@@ -287,12 +282,16 @@ func (s *userService) SearchUserByUUID(ctx context.Context, req *user_proto.Sear
 		return nil, status.Errorf(codes.Internal, "Failed to get user by UUID: %v", err)
 	}
 
+	if data.UserID == req.CurrentUserId {
+		return nil, validation.BuildBusinessError("CANNOT_SEARCH_SELF", "Cannot search for yourself. Please provide a different UUID.")
+	}
+
 	var avatar_url *string
 
 	if data.AvatarUrl.String == "" {
 		avatar_url = nil
 	} else {
-		v := fmt.Sprintf("%s?v=%v", data.AvatarUrl.String, data.AvatarVersion)
+		v := fmt.Sprintf("%s?v=%d", data.AvatarUrl.String, data.AvatarVersion.Int32)
 		avatar_url = &v
 	}
 

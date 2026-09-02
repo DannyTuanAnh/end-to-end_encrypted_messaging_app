@@ -33,12 +33,8 @@ func (q *Queries) AddFriendById(ctx context.Context, arg AddFriendByIdParams) (A
 const getInfoRelationship = `-- name: GetInfoRelationship :one
 select     
     -- Friend request status (if exists)
-    case
-        when f.user1_id is not null then null
-        when fr.is_accepted = false and fr.sender_id = $1 then 'sent'
-        when fr.is_accepted = false and fr.receiver_id = $1 then 'received'
-        else null
-    end::text as friend_request_direction,
+    fr.sender_id,
+    fr.is_accepted,
     
     -- Friendship status (if exists)
     (f.user1_id is not null)::boolean as is_friend
@@ -61,8 +57,9 @@ type GetInfoRelationshipParams struct {
 }
 
 type GetInfoRelationshipRow struct {
-	FriendRequestDirection string `json:"friend_request_direction"`
-	IsFriend               bool   `json:"is_friend"`
+	SenderID   *int64 `json:"sender_id"`
+	IsAccepted *bool  `json:"is_accepted"`
+	IsFriend   bool   `json:"is_friend"`
 }
 
 // Get user info with friendship/friend request status
@@ -71,7 +68,7 @@ type GetInfoRelationshipRow struct {
 func (q *Queries) GetInfoRelationship(ctx context.Context, arg GetInfoRelationshipParams) (GetInfoRelationshipRow, error) {
 	row := q.db.QueryRow(ctx, getInfoRelationship, arg.CurrentUserID, arg.TargetUserID)
 	var i GetInfoRelationshipRow
-	err := row.Scan(&i.FriendRequestDirection, &i.IsFriend)
+	err := row.Scan(&i.SenderID, &i.IsAccepted, &i.IsFriend)
 	return i, err
 }
 

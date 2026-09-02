@@ -23,6 +23,6 @@ message GetRelationshipRequest {
 }
 
 message GetRelationshipResponse {
-    string friend_request_direction = 1;
-    bool is_friend = 2;
+    bool is_friend = 1;
+    optional string friend_request_direction = 2;
 }

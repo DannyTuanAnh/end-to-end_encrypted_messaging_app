@@ -62,12 +62,8 @@ where request_id = $1 and receiver_id = $2 and status = 'pending';
 -- Get user info with friendship/friend request status
 select     
     -- Friend request status (if exists)
-    case
-        when f.user1_id is not null then null
-        when fr.is_accepted = false and fr.sender_id = sqlc.arg(current_user_id) then 'sent'
-        when fr.is_accepted = false and fr.receiver_id = sqlc.arg(current_user_id) then 'received'
-        else null
-    end::text as friend_request_direction,
+    fr.sender_id,
+    fr.is_accepted,
     
     -- Friendship status (if exists)
     (f.user1_id is not null)::boolean as is_friend

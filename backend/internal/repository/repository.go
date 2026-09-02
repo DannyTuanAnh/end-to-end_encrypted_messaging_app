@@ -33,7 +33,7 @@ type UserRepository interface {
 	IsExistProfile(ctx context.Context, userId int64) (bool, error)
 	GetProfile(ctx context.Context, userId int64) (sqlc_user.GetProfileRow, error)
 	GetProfileByUserID(ctx context.Context, arg sqlc_user.GetProfileByUserIdParams) (sqlc_user.GetProfileByUserIdRow, error)
-	GetUserByUUID(ctx context.Context, arg sqlc_user.GetUserByUUIDParams) (sqlc_user.GetUserByUUIDRow, error)
+	GetUserByUUID(ctx context.Context, targetUserUUID uuid.UUID) (sqlc_user.GetUserByUUIDRow, error)
 	CreateProfile(ctx context.Context, arg sqlc_user.CreateProfileParams) (sqlc_user.Profile, error)
 	DisableUserByUserID(ctx context.Context, userId int64) error
 	UpdateProfile(ctx context.Context, arg sqlc_user.UpdateProfileByUserIdParams) (sqlc_user.UpdateProfileByUserIdRow, error)

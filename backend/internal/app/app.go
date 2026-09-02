@@ -62,7 +62,7 @@ func NewApplication(ctx context.Context, db sqlc_auth.Querier, rdb *redis.Client
 	// 4. Initialize modules
 	modules := []ModelHTTP{
 		NewAuthModule(cfg.Service.AuthServiceAddr),
-		NewUserModule(cfg.Service.UserServiceAddr, ctx, rdb),
+		NewUserModule(cfg.Service.UserServiceAddr, cfg.Service.FriendServiceAddr, ctx, rdb),
 		NewNotifyModule(cfg.Service.UserServiceAddr),
 	}
 

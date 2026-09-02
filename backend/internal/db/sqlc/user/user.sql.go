@@ -76,13 +76,8 @@ FROM users u
 LEFT JOIN profiles p
     ON p.user_id = u.user_id
 
-WHERE u.uuid = $1 and u.user_id <> $2
+WHERE u.uuid = $1
 `
-
-type GetUserByUUIDParams struct {
-	TargetUserUuid uuid.UUID `json:"target_user_uuid"`
-	CurrentUserID  int64     `json:"current_user_id"`
-}
 
 type GetUserByUUIDRow struct {
 	UserID        int64       `json:"user_id"`
@@ -92,8 +87,8 @@ type GetUserByUUIDRow struct {
 	AvatarVersion pgtype.Int4 `json:"avatar_version"`
 }
 
-func (q *Queries) GetUserByUUID(ctx context.Context, arg GetUserByUUIDParams) (GetUserByUUIDRow, error) {
-	row := q.db.QueryRow(ctx, getUserByUUID, arg.TargetUserUuid, arg.CurrentUserID)
+func (q *Queries) GetUserByUUID(ctx context.Context, targetUserUuid uuid.UUID) (GetUserByUUIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserByUUID, targetUserUuid)
 	var i GetUserByUUIDRow
 	err := row.Scan(
 		&i.UserID,

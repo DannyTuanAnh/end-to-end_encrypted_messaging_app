@@ -19,7 +19,7 @@ type SearchUserByUUIDResponse struct {
 	Name                   string  `json:"name"`
 	AvatarUrl              *string `json:"avatar_url"`
 	IsFriend               bool    `json:"is_friend"`
-	FriendRequestDirection string  `json:"friend_request_direction"`
+	FriendRequestDirection *string `json:"friend_request_direction"`
 }
 
 type GetProfileResponse struct {

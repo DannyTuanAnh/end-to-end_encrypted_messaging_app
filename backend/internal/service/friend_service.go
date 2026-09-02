@@ -9,6 +9,7 @@ import (
 	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/friend"
 	friend_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/friend"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -51,8 +52,39 @@ func (fs *friendService) GetRelationship(ctx context.Context, req *friend_proto.
 		return nil, status.Errorf(codes.Internal, "Failed to get relationship info: %v", err)
 	}
 
-	return &friend_proto.GetRelationshipResponse{
-		FriendRequestDirection: info.FriendRequestDirection,
-		IsFriend:               info.IsFriend,
-	}, nil
+	if info.IsFriend {
+		return &friend_proto.GetRelationshipResponse{
+			FriendRequestDirection: nil,
+			IsFriend:               true,
+		}, nil
+
+	}
+
+	if info.SenderID == nil && info.IsAccepted == nil {
+		return &friend_proto.GetRelationshipResponse{
+			FriendRequestDirection: nil,
+			IsFriend:               false,
+		}, nil
+	}
+
+	if !*info.IsAccepted {
+		if *info.SenderID == req.CurrentUserId {
+			direction := utils.StringPtr("sent")
+
+			return &friend_proto.GetRelationshipResponse{
+				FriendRequestDirection: direction,
+				IsFriend:               false,
+			}, nil
+		}
+
+		direction := utils.StringPtr("received")
+
+		return &friend_proto.GetRelationshipResponse{
+			FriendRequestDirection: direction,
+			IsFriend:               false,
+		}, nil
+
+	}
+
+	return nil, status.Errorf(codes.Internal, "Something went wrong while determining the relationship status, may be error in the table data relating to the relationship between users %d and %d, please try again later or contact support", req.CurrentUserId, req.TargetUserId)
 }

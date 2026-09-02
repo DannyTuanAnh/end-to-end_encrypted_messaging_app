@@ -20,7 +20,7 @@ type Querier interface {
 	GetProfile(ctx context.Context, userID int64) (GetProfileRow, error)
 	GetProfileByUserId(ctx context.Context, arg GetProfileByUserIdParams) (GetProfileByUserIdRow, error)
 	GetUUIDByUserId(ctx context.Context, userID int64) (uuid.UUID, error)
-	GetUserByUUID(ctx context.Context, arg GetUserByUUIDParams) (GetUserByUUIDRow, error)
+	GetUserByUUID(ctx context.Context, targetUserUuid uuid.UUID) (GetUserByUUIDRow, error)
 	IsExistProfile(ctx context.Context, userID int64) (bool, error)
 	UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (UpdateProfileAvatarByUserIdRow, error)
 	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (UpdateProfileByUserIdRow, error)

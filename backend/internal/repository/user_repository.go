@@ -6,6 +6,7 @@ import (
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -87,8 +88,8 @@ func (ur *userRepository) GetProfileByUserID(ctx context.Context, arg sqlc.GetPr
 	return row, nil
 }
 
-func (ur *userRepository) GetUserByUUID(ctx context.Context, arg sqlc.GetUserByUUIDParams) (sqlc.GetUserByUUIDRow, error) {
-	row, err := ur.user_repo.DB.GetUserByUUID(ctx, arg)
+func (ur *userRepository) GetUserByUUID(ctx context.Context, targetUserUUID uuid.UUID) (sqlc.GetUserByUUIDRow, error) {
+	row, err := ur.user_repo.DB.GetUserByUUID(ctx, targetUserUUID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return sqlc.GetUserByUUIDRow{}, ErrNotFoundIdentityUUID

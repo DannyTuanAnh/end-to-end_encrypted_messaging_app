@@ -1,14 +1,19 @@
--- name: GetProfileByUserId :one
+-- name: GetProfile :one
 SELECT p.*, u.uuid
 FROM profiles p
 join users u on p.user_id = u.user_id
 WHERE p.user_id = $1 AND u.is_active = true;
 
--- name: GetProfileByUserUUID :one
-SELECT p.name, p.avatar_url, p.birthday, p.avatar_version
+-- name: GetProfileByUserId :one
+SELECT 
+    u.user_id,
+    p.name,
+    p.birthday,
+    p.avatar_url,
+    p.avatar_version
 FROM profiles p
 join users u on p.user_id = u.user_id
-WHERE u.uuid = $1 AND u.is_active = true AND u.user_id <> $2;
+WHERE p.user_id = sqlc.arg(target_user_id) AND u.is_active = true AND p.user_id <> sqlc.arg(current_user_id);
 
 -- name: CreateProfile :one
 INSERT INTO profiles (user_id, name, email, birthday, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING *;

@@ -10,8 +10,7 @@ type UserClient struct {
 }
 
 func NewUserClient(addr string, certFile string, keyFile string) (*UserClient, error) {
-	keyClient := utils.GetEnv("PATH_KEY_USER_SERVICE", "")
-	conn, err := NewGRPCConn(addr, utils.GetEnv("USER_SERVER_NAME", ""), certFile, keyFile, keyClient)
+	conn, err := NewGRPCConn(addr, utils.GetEnv("USER_SERVER_NAME", ""), certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}

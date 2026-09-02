@@ -8,6 +8,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type ctxKey string
+
+const (
+	CALLER ctxKey = "caller"
+)
+
 func RBACInterceptor(policies map[string][]string) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -16,7 +22,7 @@ func RBACInterceptor(policies map[string][]string) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 
-		caller, ok := ctx.Value(CtxCallerKey).(string)
+		caller, ok := ctx.Value(CALLER).(string)
 		if !ok {
 			return nil, status.Error(codes.PermissionDenied, "caller is not a string")
 		}

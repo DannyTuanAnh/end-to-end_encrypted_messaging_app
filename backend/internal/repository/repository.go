@@ -4,6 +4,7 @@ import (
 	"context"
 
 	sqlc_auth "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
+	sqlc_friend "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/friend"
 	sqlc_user "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
 	"github.com/google/uuid"
 )
@@ -30,11 +31,16 @@ type UserRepository interface {
 	DeleteUserByUserID(ctx context.Context, userId int64) error
 	ActiveUser(ctx context.Context, userId int64) error
 	IsExistProfile(ctx context.Context, userId int64) (bool, error)
-	GetProfileByUserID(ctx context.Context, userId int64) (sqlc_user.GetProfileByUserIdRow, error)
-	GetProfileByUserUUID(ctx context.Context, arg sqlc_user.GetProfileByUserUUIDParams) (sqlc_user.GetProfileByUserUUIDRow, error)
+	GetProfile(ctx context.Context, userId int64) (sqlc_user.GetProfileRow, error)
+	GetProfileByUserID(ctx context.Context, arg sqlc_user.GetProfileByUserIdParams) (sqlc_user.GetProfileByUserIdRow, error)
+	GetUserByUUID(ctx context.Context, arg sqlc_user.GetUserByUUIDParams) (sqlc_user.GetUserByUUIDRow, error)
 	CreateProfile(ctx context.Context, arg sqlc_user.CreateProfileParams) (sqlc_user.Profile, error)
 	DisableUserByUserID(ctx context.Context, userId int64) error
 	UpdateProfile(ctx context.Context, arg sqlc_user.UpdateProfileByUserIdParams) (sqlc_user.UpdateProfileByUserIdRow, error)
+}
+
+type FriendRepository interface {
+	GetInfoRelationship(ctx context.Context, params sqlc_friend.GetInfoRelationshipParams) (sqlc_friend.GetInfoRelationshipRow, error)
 }
 
 type NotifyRepository interface {

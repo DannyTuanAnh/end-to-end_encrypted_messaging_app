@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/nyaruka/phonenumbers"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/peer"
 )
 
 var (
@@ -130,31 +127,6 @@ func CheckUUID(id string) bool {
 	}
 
 	return true
-}
-
-// grpc, mtls, get caller service name from client certificate
-func GetCaller(ctx context.Context) string {
-	p, ok := peer.FromContext(ctx)
-	if !ok || p == nil {
-		return "unknown"
-	}
-
-	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
-	if !ok {
-		return "unknown"
-	}
-
-	if len(tlsInfo.State.PeerCertificates) == 0 {
-		return "unknown"
-	}
-
-	cert := tlsInfo.State.PeerCertificates[0]
-
-	if len(cert.DNSNames) > 0 {
-		return cert.DNSNames[0]
-	}
-
-	return "unknown"
 }
 
 func IsPhoneNumber(phone *string) (string, bool) {

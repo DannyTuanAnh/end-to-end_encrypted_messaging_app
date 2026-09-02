@@ -47,14 +47,14 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 	return i, err
 }
 
-const getProfileByUserId = `-- name: GetProfileByUserId :one
+const getProfile = `-- name: GetProfile :one
 SELECT p.user_id, p.name, p.email, p.phone, p.birthday, p.avatar_url, p.avatar_version, p.updated_at, u.uuid
 FROM profiles p
 join users u on p.user_id = u.user_id
 WHERE p.user_id = $1 AND u.is_active = true
 `
 
-type GetProfileByUserIdRow struct {
+type GetProfileRow struct {
 	UserID        int64       `json:"user_id"`
 	Name          string      `json:"name"`
 	Email         pgtype.Text `json:"email"`
@@ -66,9 +66,9 @@ type GetProfileByUserIdRow struct {
 	Uuid          uuid.UUID   `json:"uuid"`
 }
 
-func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProfileByUserIdRow, error) {
-	row := q.db.QueryRow(ctx, getProfileByUserId, userID)
-	var i GetProfileByUserIdRow
+func (q *Queries) GetProfile(ctx context.Context, userID int64) (GetProfileRow, error) {
+	row := q.db.QueryRow(ctx, getProfile, userID)
+	var i GetProfileRow
 	err := row.Scan(
 		&i.UserID,
 		&i.Name,
@@ -83,32 +83,39 @@ func (q *Queries) GetProfileByUserId(ctx context.Context, userID int64) (GetProf
 	return i, err
 }
 
-const getProfileByUserUUID = `-- name: GetProfileByUserUUID :one
-SELECT p.name, p.avatar_url, p.birthday, p.avatar_version
+const getProfileByUserId = `-- name: GetProfileByUserId :one
+SELECT 
+    u.user_id,
+    p.name,
+    p.birthday,
+    p.avatar_url,
+    p.avatar_version
 FROM profiles p
 join users u on p.user_id = u.user_id
-WHERE u.uuid = $1 AND u.is_active = true AND u.user_id <> $2
+WHERE p.user_id = $1 AND u.is_active = true AND p.user_id <> $2
 `
 
-type GetProfileByUserUUIDParams struct {
-	Uuid   uuid.UUID `json:"uuid"`
-	UserID int64     `json:"user_id"`
+type GetProfileByUserIdParams struct {
+	TargetUserID  int64 `json:"target_user_id"`
+	CurrentUserID int64 `json:"current_user_id"`
 }
 
-type GetProfileByUserUUIDRow struct {
+type GetProfileByUserIdRow struct {
+	UserID        int64       `json:"user_id"`
 	Name          string      `json:"name"`
-	AvatarUrl     pgtype.Text `json:"avatar_url"`
 	Birthday      pgtype.Date `json:"birthday"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
 	AvatarVersion int32       `json:"avatar_version"`
 }
 
-func (q *Queries) GetProfileByUserUUID(ctx context.Context, arg GetProfileByUserUUIDParams) (GetProfileByUserUUIDRow, error) {
-	row := q.db.QueryRow(ctx, getProfileByUserUUID, arg.Uuid, arg.UserID)
-	var i GetProfileByUserUUIDRow
+func (q *Queries) GetProfileByUserId(ctx context.Context, arg GetProfileByUserIdParams) (GetProfileByUserIdRow, error) {
+	row := q.db.QueryRow(ctx, getProfileByUserId, arg.TargetUserID, arg.CurrentUserID)
+	var i GetProfileByUserIdRow
 	err := row.Scan(
+		&i.UserID,
 		&i.Name,
-		&i.AvatarUrl,
 		&i.Birthday,
+		&i.AvatarUrl,
 		&i.AvatarVersion,
 	)
 	return i, err

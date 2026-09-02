@@ -93,4 +93,7 @@ run-auth:
 run-user:
 	go run cmd/user/main.go
 
+run-friend:
+	go run cmd/friend/main.go
+
 .PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto run-api run-auth run-user buf

@@ -22,16 +22,22 @@ func NewUserModule(addr string, ctx context.Context, rdb *redis.Client) *UserMod
 	apiGatewayCertFile := utils.GetEnv("PATH_CERT_API_GATEWAY_CLIENT", "")
 	apiGatewayKeyFile := utils.GetEnv("PATH_KEY_API_GATEWAY_CLIENT", "")
 
-	// 1. Initialize repository
+	// 1. Initialize user client
 	user_client, err := client.NewUserClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
 	if err != nil {
 		panic("Failed to initialize User client: " + err.Error())
 	}
 
-	// 2. Initialize handler
-	user_handler := handler.NewUserHandler(user_client, rdb, connectGCS(ctx))
+	// 2. Initialize friend client
+	friend_client, err := client.NewFriendClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
+	if err != nil {
+		panic("Failed to initialize Friend client: " + err.Error())
+	}
 
-	// 3. Initialize routes
+	// 3. Initialize handler
+	user_handler := handler.NewUserHandler(user_client, friend_client, rdb, connectGCS(ctx))
+
+	// 4. Initialize routes
 	user_routes := routes.NewUserRoutes(user_handler)
 
 	return &UserModule{routes: user_routes}

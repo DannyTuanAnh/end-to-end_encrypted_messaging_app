@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db"
 	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
+	"github.com/jackc/pgx/v5"
 )
 
 type userRepository struct {
@@ -59,12 +61,47 @@ func (ur *userRepository) IsExistProfile(ctx context.Context, userId int64) (boo
 	return exists, nil
 }
 
-func (ur *userRepository) GetProfileByUserID(ctx context.Context, userId int64) (sqlc.GetProfileByUserIdRow, error) {
-	return ur.user_repo.DB.GetProfileByUserId(ctx, userId)
+func (ur *userRepository) GetProfile(ctx context.Context, userId int64) (sqlc.GetProfileRow, error) {
+	row, err := ur.user_repo.DB.GetProfile(ctx, userId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.GetProfileRow{}, ErrNotFoundProfile
+		}
+
+		return sqlc.GetProfileRow{}, err
+	}
+
+	return row, nil
 }
 
-func (ur *userRepository) GetProfileByUserUUID(ctx context.Context, arg sqlc.GetProfileByUserUUIDParams) (sqlc.GetProfileByUserUUIDRow, error) {
-	return ur.user_repo.DB.GetProfileByUserUUID(ctx, arg)
+func (ur *userRepository) GetProfileByUserID(ctx context.Context, arg sqlc.GetProfileByUserIdParams) (sqlc.GetProfileByUserIdRow, error) {
+	row, err := ur.user_repo.DB.GetProfileByUserId(ctx, arg)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.GetProfileByUserIdRow{}, ErrNotFoundProfileByUserID
+		}
+
+		return sqlc.GetProfileByUserIdRow{}, err
+	}
+
+	return row, nil
+}
+
+func (ur *userRepository) GetUserByUUID(ctx context.Context, arg sqlc.GetUserByUUIDParams) (sqlc.GetUserByUUIDRow, error) {
+	row, err := ur.user_repo.DB.GetUserByUUID(ctx, arg)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return sqlc.GetUserByUUIDRow{}, ErrNotFoundIdentityUUID
+		}
+
+		return sqlc.GetUserByUUIDRow{}, err
+	}
+
+	if !row.IsActive {
+		return sqlc.GetUserByUUIDRow{}, ErrUserIsUnActive
+	}
+
+	return row, nil
 }
 
 func (ur *userRepository) CreateProfile(ctx context.Context, arg sqlc.CreateProfileParams) (sqlc.Profile, error) {

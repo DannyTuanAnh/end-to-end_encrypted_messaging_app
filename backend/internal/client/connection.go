@@ -6,13 +6,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.ClientConn, error) {
+func NewGRPCConn(addr, serverName, certFile, keyFile string) (*grpc.ClientConn, error) {
 	var cert tls.Certificate
 	var err error
 
@@ -71,7 +70,6 @@ func NewGRPCConn(addr, serverName, certFile, keyFile, keyClient string) (*grpc.C
 	conn, err := grpc.NewClient(
 		addr,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-		grpc.WithUnaryInterceptor(interceptor.AuthClientInterceptor(keyClient)),
 		// grpc.WithAuthority(host), // route Cloud Run
 	)
 

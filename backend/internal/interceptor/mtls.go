@@ -44,7 +44,7 @@ func MTLSIdentityInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 
-		ctx = context.WithValue(ctx, CtxCallerKey, caller)
+		ctx = context.WithValue(ctx, CALLER, caller)
 
 		return handler(ctx, req)
 	}

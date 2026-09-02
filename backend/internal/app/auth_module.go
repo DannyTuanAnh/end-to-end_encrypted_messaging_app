@@ -48,7 +48,7 @@ func NewAuthModule(addr string) *AuthModule {
 		x509Cert.Issuer.CommonName,
 	)
 
-	// 1. Initialize repository
+	// 1. Initialize auth client
 	auth_client, err := client.NewAuthClient(addr, apiGatewayCertFile, apiGatewayKeyFile)
 	if err != nil {
 		panic("Failed to initialize auth client: " + err.Error())

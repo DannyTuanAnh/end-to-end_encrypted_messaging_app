@@ -19,8 +19,9 @@ func (ur *UserRoutes) Register(r *gin.RouterGroup) {
 	user := r.Group("/user")
 	{
 		// Users.GET("", ur.User_handler.GetAllUsers)
+		user.GET("/:uuid", ur.user_handler.SearchUserByUUID)
 		user.GET("/profile", ur.user_handler.GetProfile)
-		user.GET("/profile/:uuid", ur.user_handler.GetProfileByUserUUID)
+		user.GET("/profile/:id", ur.user_handler.GetProfileByUserID)
 		user.DELETE("/disable", ur.user_handler.DisableUser)
 		user.PUT("/profile", ur.user_handler.VerifyIDTokenOTP, ur.user_handler.UpdateProfile)
 		user.POST("/report-avatar", ur.user_handler.ReportUserImage)

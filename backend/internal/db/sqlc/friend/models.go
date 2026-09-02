@@ -5,59 +5,15 @@
 package sqlc
 
 import (
-	"database/sql/driver"
-	"fmt"
 	"time"
 )
 
-type FriendRequestStatus string
-
-const (
-	FriendRequestStatusPending  FriendRequestStatus = "pending"
-	FriendRequestStatusAccepted FriendRequestStatus = "accepted"
-)
-
-func (e *FriendRequestStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = FriendRequestStatus(s)
-	case string:
-		*e = FriendRequestStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for FriendRequestStatus: %T", src)
-	}
-	return nil
-}
-
-type NullFriendRequestStatus struct {
-	FriendRequestStatus FriendRequestStatus `json:"friend_request_status"`
-	Valid               bool                `json:"valid"` // Valid is true if FriendRequestStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullFriendRequestStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.FriendRequestStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.FriendRequestStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullFriendRequestStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.FriendRequestStatus), nil
-}
-
 type FriendRequest struct {
-	RequestID  int64               `json:"request_id"`
-	SenderID   int64               `json:"sender_id"`
-	ReceiverID int64               `json:"receiver_id"`
-	Status     FriendRequestStatus `json:"status"`
-	SendAt     time.Time           `json:"send_at"`
+	RequestID  int64     `json:"request_id"`
+	SenderID   int64     `json:"sender_id"`
+	ReceiverID int64     `json:"receiver_id"`
+	IsAccepted bool      `json:"is_accepted"`
+	SendAt     time.Time `json:"send_at"`
 }
 
 type Friendship struct {

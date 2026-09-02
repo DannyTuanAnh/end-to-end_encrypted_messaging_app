@@ -10,6 +10,10 @@ import (
 
 type Querier interface {
 	AddFriendById(ctx context.Context, arg AddFriendByIdParams) (AddFriendByIdRow, error)
+	// Get user info with friendship/friend request status
+	// Check if there's a pending/accepted friend request
+	// Check if already friends
+	GetInfoRelationship(ctx context.Context, arg GetInfoRelationshipParams) (GetInfoRelationshipRow, error)
 	// -- name: GetPendingFriendRequests :many
 	// select fr.request_id, u.uuid, p.name, p.avatar_url, fr.send_at
 	// from friend_requests fr

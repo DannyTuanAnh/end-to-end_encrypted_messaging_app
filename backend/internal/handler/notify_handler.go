@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/sse"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -30,7 +31,7 @@ func (n *NotifyHandler) HandleSSE(ctx *gin.Context) {
 	ctx.Writer.Header().Set("Connection", "keep-alive")
 	ctx.Writer.Header().Set("X-Accel-Buffering", "no")
 
-	userId, exist := ctx.Get("user_id")
+	userId, exist := ctx.Get(middleware.CTX_USER_ID_KEY)
 	log.Println("User ID from context:", userId, "Exist:", exist)
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))

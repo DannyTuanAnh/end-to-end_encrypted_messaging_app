@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package proto;
+
+import "buf/validate/validate.proto";
+
+option go_package = "internal/gen-proto/friend;friend_proto";
+
+service FriendService {
+    rpc GetRelationship(GetRelationshipRequest) returns (GetRelationshipResponse);
+}
+
+message GetRelationshipRequest {
+    int64 current_user_id = 1 [
+        (buf.validate.field).required = true,
+        (buf.validate.field).int64.gt = 0
+    ];
+
+    int64 target_user_id = 2 [
+        (buf.validate.field).required = true,
+        (buf.validate.field).int64.gt = 0
+    ];
+}
+
+message GetRelationshipResponse {
+    string friend_request_direction = 1;
+    bool is_friend = 2;
+}

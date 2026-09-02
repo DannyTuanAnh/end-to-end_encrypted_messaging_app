@@ -1,16 +1,14 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware"
 
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
@@ -102,7 +100,7 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 }
 
 func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
-	userID, exist := ctx.Get("user_id")
+	userID, exist := ctx.Get(middleware.CTX_USER_ID_KEY)
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("user_id not found in context", utils.ErrCodeUnauthorized))
 		return
@@ -123,13 +121,7 @@ func (h *AuthHandler) LogoutAll(ctx *gin.Context) {
 		UserId: id,
 	}
 
-	baseCtx := ctx.Request.Context()
-
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, os.Getenv("API_GATEWAY_NAME"))
-	c = context.WithValue(c, interceptor.CtxUserIDKey, id)
-	c = context.WithValue(c, interceptor.CtxAudKey, os.Getenv("AUTH_SERVICE_NAME"))
-
-	_, err := h.auth_client.Client.LogoutAll(c, req)
+	_, err := h.auth_client.Client.LogoutAll(ctx, req)
 	if err != nil {
 		utils.WriteGRPCErrorToGin(ctx, err)
 		return

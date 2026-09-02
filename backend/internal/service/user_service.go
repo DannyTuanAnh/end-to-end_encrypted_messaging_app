@@ -18,7 +18,6 @@ import (
 	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/user"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -28,6 +27,7 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type userService struct {
@@ -63,12 +63,6 @@ func NewUserService(user_repo repository.UserRepository, rdb *redis.Client, auth
 }
 
 func (s *userService) CreateUser(ctx context.Context, req *user_proto.CreateUserRequest) (*user_proto.CreateUserResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -85,16 +79,6 @@ func (s *userService) CreateUser(ctx context.Context, req *user_proto.CreateUser
 }
 
 func (s *userService) ActiveUser(ctx context.Context, req *user_proto.EnableUserRequest) (*user_proto.EnableUserResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -113,12 +97,6 @@ func (s *userService) ActiveUser(ctx context.Context, req *user_proto.EnableUser
 }
 
 func (s *userService) IsExistProfile(ctx context.Context, req *user_proto.IsExistProfileRequest) (*user_proto.IsExistProfileResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		fmt.Printf("Validation error in IsExistProfile: %v\n", err)
 		return nil, validation.BuildValidationError(err)
@@ -142,16 +120,6 @@ func (s *userService) IsExistProfile(ctx context.Context, req *user_proto.IsExis
 }
 
 func (s *userService) DeleteUserByUserID(ctx context.Context, req *user_proto.DeleteUserRequest) (*user_proto.DeleteUserResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -171,17 +139,7 @@ func (s *userService) DeleteUserByUserID(ctx context.Context, req *user_proto.De
 	}, nil
 }
 
-func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.GetProfileByUserIDRequest) (*user_proto.GetProfileByUserIDResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
+func (s *userService) GetProfile(ctx context.Context, req *user_proto.GetProfileRequest) (*user_proto.GetProfileResponse, error) {
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -191,21 +149,22 @@ func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.Ge
 		var cachedProfile models.ProfileRedis
 		if err := json.Unmarshal(profileData, &cachedProfile); err == nil {
 			log.Println("Profile data found in Redis in user-service for user ID: ", req.UserId)
-			return &user_proto.GetProfileByUserIDResponse{
+			return &user_proto.GetProfileResponse{
 				Uuid:      cachedProfile.UserUUID.String(),
 				Name:      cachedProfile.Name,
 				Email:     cachedProfile.Email,
 				Phone:     cachedProfile.Phone,
-				AvatarUrl: cachedProfile.AvatarUrl,
 				Birthday:  cachedProfile.Birthday,
+				AvatarUrl: cachedProfile.AvatarUrl,
+				UpdatedAt: timestamppb.New(cachedProfile.UpdatedAt),
 			}, nil
 		}
 	}
 
-	data, err := s.user_repo.GetProfileByUserID(ctx, req.UserId)
+	data, err := s.user_repo.GetProfile(ctx, req.UserId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, validation.BuildBusinessError("USER_NOT_FOUND", "User not found with the given ID. Please check the user ID and try again.")
+		if errors.Is(err, repository.ErrNotFoundProfile) {
+			return nil, validation.BuildBusinessError("PROFILE_NOT_FOUND", err.Error())
 		}
 
 		return nil, status.Errorf(codes.Internal, "Failed to get profile: %v", err)
@@ -234,6 +193,7 @@ func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.Ge
 		Phone:     &data.Phone.String,
 		AvatarUrl: avatar_url,
 		Birthday:  birthday,
+		UpdatedAt: data.UpdatedAt,
 	}
 
 	profileBytes, err := json.Marshal(profileRedis)
@@ -247,69 +207,103 @@ func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.Ge
 		}
 	}
 
-	return &user_proto.GetProfileByUserIDResponse{
+	return &user_proto.GetProfileResponse{
 		Uuid:      data.Uuid.String(),
 		Name:      &data.Name,
 		Email:     data.Email.String,
 		Phone:     &data.Phone.String,
-		AvatarUrl: avatar_url,
 		Birthday:  birthday,
+		AvatarUrl: avatar_url,
+		UpdatedAt: timestamppb.New(data.UpdatedAt),
 	}, nil
 }
 
-func (s *userService) GetProfileByUserUUID(ctx context.Context, req *user_proto.GetProfileByUserUUIDRequest) (*user_proto.GetProfileByUserUUIDResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
+func (s *userService) GetProfileByUserID(ctx context.Context, req *user_proto.GetProfileByUserIDRequest) (*user_proto.GetProfileByUserIDResponse, error) {
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
 
-	targetUUID, err := uuid.Parse(req.Uuid)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Invalid UUID format: %v", err)
+	request := sqlc.GetProfileByUserIdParams{
+		CurrentUserID: req.CurrentUserId,
+		TargetUserID:  req.TargetUserId,
 	}
 
-	request := sqlc.GetProfileByUserUUIDParams{
-		UserID: req.UserId,
-		Uuid:   targetUUID,
-	}
-
-	data, err := s.user_repo.GetProfileByUserUUID(ctx, request)
+	data, err := s.user_repo.GetProfileByUserID(ctx, request)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, validation.BuildBusinessError("USER_NOT_FOUND", "User not found with the given UUID. Please check the UUID and try again.")
+		if errors.Is(err, repository.ErrNotFoundProfileByUserID) {
+			return nil, validation.BuildBusinessError("PROFILE_NOT_FOUND", err.Error())
 		}
 
 		return nil, status.Errorf(codes.Internal, "Failed to get profile: %v", err)
 	}
 
-	return &user_proto.GetProfileByUserUUIDResponse{
+	var avatar_url, birthday *string
+
+	if data.AvatarUrl.String == "" {
+		avatar_url = nil
+	} else {
+		v := fmt.Sprintf("%s?v=%v", data.AvatarUrl.String, data.AvatarVersion)
+		avatar_url = &v
+	}
+
+	if data.Birthday.Valid {
+		birthdayStr := data.Birthday.Time.Format("2006-01-02")
+		birthday = &birthdayStr
+	} else {
+		birthday = nil
+	}
+
+	return &user_proto.GetProfileByUserIDResponse{
 		Name:      data.Name,
-		Birthday:  data.Birthday.Time.Format("2006-01-02"),
-		AvatarUrl: fmt.Sprintf("%s?v=%d", data.AvatarUrl.String, data.AvatarVersion),
+		Birthday:  birthday,
+		AvatarUrl: avatar_url,
 	}, nil
 
 }
 
+func (s *userService) SearchUserByUUID(ctx context.Context, req *user_proto.SearchUserByUUIDRequest) (*user_proto.SearchUserByUUIDResponse, error) {
+	if err := s.validator.Validate(req); err != nil {
+		return nil, validation.BuildValidationError(err)
+	}
+
+	targetUserUUID, err := uuid.Parse(req.TargetUserUuid)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid UUID format: %v", err)
+	}
+
+	request := sqlc.GetUserByUUIDParams{
+		TargetUserUuid: targetUserUUID,
+		CurrentUserID:  req.CurrentUserId,
+	}
+
+	data, err := s.user_repo.GetUserByUUID(ctx, request)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFoundIdentityUUID) {
+			return nil, validation.BuildBusinessError("USER_NOT_FOUND", err.Error())
+		} else if errors.Is(err, repository.ErrUserIsUnActive) {
+			return nil, validation.BuildBusinessError("USER_INACTIVE", err.Error())
+		}
+
+		return nil, status.Errorf(codes.Internal, "Failed to get user by UUID: %v", err)
+	}
+
+	var avatar_url *string
+
+	if data.AvatarUrl.String == "" {
+		avatar_url = nil
+	} else {
+		v := fmt.Sprintf("%s?v=%v", data.AvatarUrl.String, data.AvatarVersion)
+		avatar_url = &v
+	}
+
+	return &user_proto.SearchUserByUUIDResponse{
+		UserId:    data.UserID,
+		Name:      data.Name.String,
+		AvatarUrl: avatar_url,
+	}, nil
+}
+
 func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateProfileRequest) (*user_proto.CreateProfileResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		fmt.Printf("Validation error: %v\n", err)
 		return nil, validation.BuildValidationError(err)
@@ -342,18 +336,6 @@ func (s *userService) CreateProfile(ctx context.Context, req *user_proto.CreateP
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, req *user_proto.UpdateProfileRequest) (*user_proto.UpdateProfileResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
-	log.Println("Req: ", req)
-
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -423,16 +405,6 @@ func (s *userService) UpdateProfile(ctx context.Context, req *user_proto.UpdateP
 }
 
 func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.DisableUserRequest) (*user_proto.DisableUserResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -448,10 +420,6 @@ func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.D
 	reqLogoutAll := &auth_proto.LogoutAllRequest{
 		UserId: req.UserId,
 	}
-
-	ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, req.UserId)
-	ctx = context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-	ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
 
 	_, err = s.auth_client.Client.LogoutAll(ctx, reqLogoutAll)
 	if err != nil {
@@ -473,12 +441,6 @@ func (s *userService) DisableUserByUserID(ctx context.Context, req *user_proto.D
 }
 
 func (s *userService) VerifyIDTokenOTP(ctx context.Context, req *user_proto.VerifyIDTokenOTPRequest) (*user_proto.VerifyIDTokenOTPResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
 	if err := s.validator.Validate(req); err != nil {
 		return nil, validation.BuildValidationError(err)
 	}
@@ -514,12 +476,6 @@ func (s *userService) VerifyIDTokenOTP(ctx context.Context, req *user_proto.Veri
 }
 
 func (s *userService) ReportUserImage(ctx context.Context, req *user_proto.ReportUserImageRequest) (*user_proto.ReportUserImageResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
 	// 1. Use Cloud Vision API to check the image
 	image := vision.NewImageFromURI("gs://" + req.Bucket + "/" + req.Name)
 	props, err := s.vision_client.DetectSafeSearch(ctx, image, nil)

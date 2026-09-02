@@ -10,8 +10,7 @@ type AuthClient struct {
 }
 
 func NewAuthClient(addr string, certFile string, keyFile string) (*AuthClient, error) {
-	keyClient := utils.GetEnv("PATH_KEY_AUTH_SERVICE", "")
-	conn, err := NewGRPCConn(addr, utils.GetEnv("AUTH_SERVER_NAME", ""), certFile, keyFile, keyClient)
+	conn, err := NewGRPCConn(addr, utils.GetEnv("AUTH_SERVER_NAME", ""), certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}

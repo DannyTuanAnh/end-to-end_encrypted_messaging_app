@@ -16,6 +16,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type identity string
+
+const (
+	CTX_USER_ID_KEY    identity = "user_id"
+	CTX_USER_UUID_KEY  identity = "user_uuid"
+	CTX_SESSION_ID_KEY identity = "session_id"
+)
+
 func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var userId int64
@@ -110,9 +118,9 @@ func AuthMiddleware(db sqlc.Querier, rdb *redis.Client) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user_id", userId)
-		ctx.Set("user_uuid", userUUID.String())
-		ctx.Set("session_id", sessionId.String())
+		ctx.Set(CTX_USER_ID_KEY, userId)
+		ctx.Set(CTX_USER_UUID_KEY, userUUID.String())
+		ctx.Set(CTX_SESSION_ID_KEY, sessionId.String())
 
 		ctx.Next()
 

@@ -19,32 +19,34 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName           = "/proto.UserService/CreateUser"
-	UserService_DeleteUserByUserID_FullMethodName   = "/proto.UserService/DeleteUserByUserID"
-	UserService_ActiveUser_FullMethodName           = "/proto.UserService/ActiveUser"
-	UserService_IsExistProfile_FullMethodName       = "/proto.UserService/IsExistProfile"
-	UserService_CreateProfile_FullMethodName        = "/proto.UserService/CreateProfile"
-	UserService_DisableUserByUserID_FullMethodName  = "/proto.UserService/DisableUserByUserID"
-	UserService_GetProfileByUserID_FullMethodName   = "/proto.UserService/GetProfileByUserID"
-	UserService_GetProfileByUserUUID_FullMethodName = "/proto.UserService/GetProfileByUserUUID"
-	UserService_VerifyIDTokenOTP_FullMethodName     = "/proto.UserService/VerifyIDTokenOTP"
-	UserService_UpdateProfile_FullMethodName        = "/proto.UserService/UpdateProfile"
-	UserService_UpdateAvatar_FullMethodName         = "/proto.UserService/UpdateAvatar"
-	UserService_ReportUserImage_FullMethodName      = "/proto.UserService/ReportUserImage"
+	UserService_SearchUserByUUID_FullMethodName    = "/proto.UserService/SearchUserByUUID"
+	UserService_CreateUser_FullMethodName          = "/proto.UserService/CreateUser"
+	UserService_DeleteUserByUserID_FullMethodName  = "/proto.UserService/DeleteUserByUserID"
+	UserService_ActiveUser_FullMethodName          = "/proto.UserService/ActiveUser"
+	UserService_IsExistProfile_FullMethodName      = "/proto.UserService/IsExistProfile"
+	UserService_CreateProfile_FullMethodName       = "/proto.UserService/CreateProfile"
+	UserService_DisableUserByUserID_FullMethodName = "/proto.UserService/DisableUserByUserID"
+	UserService_GetProfile_FullMethodName          = "/proto.UserService/GetProfile"
+	UserService_GetProfileByUserID_FullMethodName  = "/proto.UserService/GetProfileByUserID"
+	UserService_VerifyIDTokenOTP_FullMethodName    = "/proto.UserService/VerifyIDTokenOTP"
+	UserService_UpdateProfile_FullMethodName       = "/proto.UserService/UpdateProfile"
+	UserService_UpdateAvatar_FullMethodName        = "/proto.UserService/UpdateAvatar"
+	UserService_ReportUserImage_FullMethodName     = "/proto.UserService/ReportUserImage"
 )
 
 // UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
+	SearchUserByUUID(ctx context.Context, in *SearchUserByUUIDRequest, opts ...grpc.CallOption) (*SearchUserByUUIDResponse, error)
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	DeleteUserByUserID(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 	ActiveUser(ctx context.Context, in *EnableUserRequest, opts ...grpc.CallOption) (*EnableUserResponse, error)
 	IsExistProfile(ctx context.Context, in *IsExistProfileRequest, opts ...grpc.CallOption) (*IsExistProfileResponse, error)
 	CreateProfile(ctx context.Context, in *CreateProfileRequest, opts ...grpc.CallOption) (*CreateProfileResponse, error)
 	DisableUserByUserID(ctx context.Context, in *DisableUserRequest, opts ...grpc.CallOption) (*DisableUserResponse, error)
+	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 	GetProfileByUserID(ctx context.Context, in *GetProfileByUserIDRequest, opts ...grpc.CallOption) (*GetProfileByUserIDResponse, error)
-	GetProfileByUserUUID(ctx context.Context, in *GetProfileByUserUUIDRequest, opts ...grpc.CallOption) (*GetProfileByUserUUIDResponse, error)
 	VerifyIDTokenOTP(ctx context.Context, in *VerifyIDTokenOTPRequest, opts ...grpc.CallOption) (*VerifyIDTokenOTPResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
 	UpdateAvatar(ctx context.Context, in *UpdateAvatarRequest, opts ...grpc.CallOption) (*UpdateAvatarResponse, error)
@@ -57,6 +59,16 @@ type userServiceClient struct {
 
 func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
+}
+
+func (c *userServiceClient) SearchUserByUUID(ctx context.Context, in *SearchUserByUUIDRequest, opts ...grpc.CallOption) (*SearchUserByUUIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchUserByUUIDResponse)
+	err := c.cc.Invoke(ctx, UserService_SearchUserByUUID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *userServiceClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error) {
@@ -119,20 +131,20 @@ func (c *userServiceClient) DisableUserByUserID(ctx context.Context, in *Disable
 	return out, nil
 }
 
-func (c *userServiceClient) GetProfileByUserID(ctx context.Context, in *GetProfileByUserIDRequest, opts ...grpc.CallOption) (*GetProfileByUserIDResponse, error) {
+func (c *userServiceClient) GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetProfileByUserIDResponse)
-	err := c.cc.Invoke(ctx, UserService_GetProfileByUserID_FullMethodName, in, out, cOpts...)
+	out := new(GetProfileResponse)
+	err := c.cc.Invoke(ctx, UserService_GetProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userServiceClient) GetProfileByUserUUID(ctx context.Context, in *GetProfileByUserUUIDRequest, opts ...grpc.CallOption) (*GetProfileByUserUUIDResponse, error) {
+func (c *userServiceClient) GetProfileByUserID(ctx context.Context, in *GetProfileByUserIDRequest, opts ...grpc.CallOption) (*GetProfileByUserIDResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetProfileByUserUUIDResponse)
-	err := c.cc.Invoke(ctx, UserService_GetProfileByUserUUID_FullMethodName, in, out, cOpts...)
+	out := new(GetProfileByUserIDResponse)
+	err := c.cc.Invoke(ctx, UserService_GetProfileByUserID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -183,14 +195,15 @@ func (c *userServiceClient) ReportUserImage(ctx context.Context, in *ReportUserI
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
+	SearchUserByUUID(context.Context, *SearchUserByUUIDRequest) (*SearchUserByUUIDResponse, error)
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	DeleteUserByUserID(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	ActiveUser(context.Context, *EnableUserRequest) (*EnableUserResponse, error)
 	IsExistProfile(context.Context, *IsExistProfileRequest) (*IsExistProfileResponse, error)
 	CreateProfile(context.Context, *CreateProfileRequest) (*CreateProfileResponse, error)
 	DisableUserByUserID(context.Context, *DisableUserRequest) (*DisableUserResponse, error)
+	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
 	GetProfileByUserID(context.Context, *GetProfileByUserIDRequest) (*GetProfileByUserIDResponse, error)
-	GetProfileByUserUUID(context.Context, *GetProfileByUserUUIDRequest) (*GetProfileByUserUUIDResponse, error)
 	VerifyIDTokenOTP(context.Context, *VerifyIDTokenOTPRequest) (*VerifyIDTokenOTPResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
 	UpdateAvatar(context.Context, *UpdateAvatarRequest) (*UpdateAvatarResponse, error)
@@ -205,6 +218,9 @@ type UserServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUserServiceServer struct{}
 
+func (UnimplementedUserServiceServer) SearchUserByUUID(context.Context, *SearchUserByUUIDRequest) (*SearchUserByUUIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchUserByUUID not implemented")
+}
 func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
 }
@@ -223,11 +239,11 @@ func (UnimplementedUserServiceServer) CreateProfile(context.Context, *CreateProf
 func (UnimplementedUserServiceServer) DisableUserByUserID(context.Context, *DisableUserRequest) (*DisableUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DisableUserByUserID not implemented")
 }
+func (UnimplementedUserServiceServer) GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProfile not implemented")
+}
 func (UnimplementedUserServiceServer) GetProfileByUserID(context.Context, *GetProfileByUserIDRequest) (*GetProfileByUserIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProfileByUserID not implemented")
-}
-func (UnimplementedUserServiceServer) GetProfileByUserUUID(context.Context, *GetProfileByUserUUIDRequest) (*GetProfileByUserUUIDResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetProfileByUserUUID not implemented")
 }
 func (UnimplementedUserServiceServer) VerifyIDTokenOTP(context.Context, *VerifyIDTokenOTPRequest) (*VerifyIDTokenOTPResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyIDTokenOTP not implemented")
@@ -260,6 +276,24 @@ func RegisterUserServiceServer(s grpc.ServiceRegistrar, srv UserServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&UserService_ServiceDesc, srv)
+}
+
+func _UserService_SearchUserByUUID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchUserByUUIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SearchUserByUUID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_SearchUserByUUID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SearchUserByUUID(ctx, req.(*SearchUserByUUIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -370,6 +404,24 @@ func _UserService_DisableUserByUserID_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetProfile(ctx, req.(*GetProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_GetProfileByUserID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetProfileByUserIDRequest)
 	if err := dec(in); err != nil {
@@ -384,24 +436,6 @@ func _UserService_GetProfileByUserID_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetProfileByUserID(ctx, req.(*GetProfileByUserIDRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_GetProfileByUserUUID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetProfileByUserUUIDRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).GetProfileByUserUUID(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_GetProfileByUserUUID_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GetProfileByUserUUID(ctx, req.(*GetProfileByUserUUIDRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -486,6 +520,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "SearchUserByUUID",
+			Handler:    _UserService_SearchUserByUUID_Handler,
+		},
+		{
 			MethodName: "CreateUser",
 			Handler:    _UserService_CreateUser_Handler,
 		},
@@ -510,12 +548,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_DisableUserByUserID_Handler,
 		},
 		{
-			MethodName: "GetProfileByUserID",
-			Handler:    _UserService_GetProfileByUserID_Handler,
+			MethodName: "GetProfile",
+			Handler:    _UserService_GetProfile_Handler,
 		},
 		{
-			MethodName: "GetProfileByUserUUID",
-			Handler:    _UserService_GetProfileByUserUUID_Handler,
+			MethodName: "GetProfileByUserID",
+			Handler:    _UserService_GetProfileByUserID_Handler,
 		},
 		{
 			MethodName: "VerifyIDTokenOTP",

@@ -55,6 +55,12 @@ type ServiceConfig struct {
 
 	UserServiceAddr       string
 	UserServiceListenAddr string
+
+	FriendServiceAddr       string
+	FriendServiceListenAddr string
+
+	ChatServiceAddr       string
+	ChatServiceListenAddr string
 }
 
 type RedisGCPConfig struct {
@@ -88,6 +94,10 @@ func NewConfig() *Config {
 	// set user service
 	userCfg := NewConfigUserService()
 	cfg.Service.UserServiceAddr = userCfg.Service.UserServiceAddr
+
+	// set friend service
+	friendCfg := NewConfigFriendService()
+	cfg.Service.FriendServiceAddr = friendCfg.Service.FriendServiceAddr
 
 	return cfg
 }
@@ -166,6 +176,24 @@ func NewConfigUserService() *Config {
 		Service: ServiceConfig{
 			UserServiceAddr:       utils.GetEnv("USER_SERVICE_ADDR", ":50052"),
 			UserServiceListenAddr: utils.GetEnv("USER_SERVICE_LISTEN_ADDR", ":50052"),
+		},
+	}
+}
+
+func NewConfigFriendService() *Config {
+	return &Config{
+		Service: ServiceConfig{
+			FriendServiceAddr:       utils.GetEnv("FRIEND_SERVICE_ADDR", ":50053"),
+			FriendServiceListenAddr: utils.GetEnv("FRIEND_SERVICE_LISTEN_ADDR", ":50053"),
+		},
+	}
+}
+
+func NewConfigChatService() *Config {
+	return &Config{
+		Service: ServiceConfig{
+			ChatServiceAddr:       utils.GetEnv("CHAT_SERVICE_ADDR", ":50054"),
+			ChatServiceListenAddr: utils.GetEnv("CHAT_SERVICE_LISTEN_ADDR", ":50054"),
 		},
 	}
 }

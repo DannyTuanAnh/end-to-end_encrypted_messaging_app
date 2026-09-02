@@ -35,6 +35,9 @@ var userPolicies = map[string][]string{
 	"/proto.UserService/DisableUserByUserID": {
 		os.Getenv("API_GATEWAY_NAME"),
 	},
+	"/proto.UserService/SearchUserByUUID": {
+		os.Getenv("API_GATEWAY_NAME"),
+	},
 	"/proto.UserService/CreateUser": {
 		os.Getenv("AUTH_SERVICE_NAME"),
 	},
@@ -53,7 +56,7 @@ var userPolicies = map[string][]string{
 	"/proto.UserService/GetProfileByUserID": {
 		os.Getenv("API_GATEWAY_NAME"),
 	},
-	"/proto.UserService/GetProfileByUserUUID": {
+	"/proto.UserService/GetProfile": {
 		os.Getenv("API_GATEWAY_NAME"),
 	},
 	"/proto.UserService/UpdateProfile": {
@@ -68,7 +71,6 @@ var userPolicies = map[string][]string{
 }
 
 type UserServer struct {
-	user_proto.UnimplementedUserServiceServer
 	ctx    context.Context
 	cfg    *config.Config
 	server *grpc.Server
@@ -77,6 +79,9 @@ type UserServer struct {
 func NewUserServer(ctx context.Context, db db.UserDB, rdb *redis.Client) (*UserServer, error) {
 	userCertFile := utils.GetEnv("PATH_CERT_USER_SERVICE", "")
 	userKeyFile := utils.GetEnv("PATH_KEY_USER_SERVICE", "")
+
+	userCertFileClient := utils.GetEnv("PATH_CERT_USER_SERVICE_CLIENT", "")
+	userKeyFileClient := utils.GetEnv("PATH_KEY_USER_SERVICE_CLIENT", "")
 
 	var cert tls.Certificate
 	var err error
@@ -133,7 +138,7 @@ func NewUserServer(ctx context.Context, db db.UserDB, rdb *redis.Client) (*UserS
 
 	cfg.Service.UserServiceListenAddr = userCfg.Service.UserServiceListenAddr
 
-	auth_client, err := client.NewAuthClient(cfg.Service.AuthServiceAddr, userCertFile, userKeyFile)
+	auth_client, err := client.NewAuthClient(cfg.Service.AuthServiceAddr, userCertFileClient, userKeyFileClient)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create auth client: %v", err)
 	}
@@ -156,7 +161,6 @@ func NewUserServer(ctx context.Context, db db.UserDB, rdb *redis.Client) (*UserS
 		grpc.ChainUnaryInterceptor(
 			interceptor.MTLSIdentityInterceptor(),
 			interceptor.RBACInterceptor(userPolicies),
-			interceptor.JWTAuthServerInterceptor(userCertFile),
 		),
 	)
 
@@ -164,7 +168,7 @@ func NewUserServer(ctx context.Context, db db.UserDB, rdb *redis.Client) (*UserS
 
 	return &UserServer{
 		ctx:    ctx,
-		cfg:    userCfg,
+		cfg:    cfg,
 		server: s,
 	}, nil
 }

@@ -57,3 +57,30 @@ select f.status::boolean, f.message::text from send_friend_request($1, $2) as f;
 -- name: RejectFriendRequestById :exec
 delete from friend_requests
 where request_id = $1 and receiver_id = $2 and status = 'pending';
+
+-- name: GetInfoRelationship :one
+-- Get user info with friendship/friend request status
+select     
+    -- Friend request status (if exists)
+    case
+        when f.user1_id is not null then null
+        when fr.is_accepted = false and fr.sender_id = sqlc.arg(current_user_id) then 'sent'
+        when fr.is_accepted = false and fr.receiver_id = sqlc.arg(current_user_id) then 'received'
+        else null
+    end::text as friend_request_direction,
+    
+    -- Friendship status (if exists)
+    (f.user1_id is not null)::boolean as is_friend
+
+from (select 1) as dummy
+
+-- Check if there's a pending/accepted friend request
+left join friend_requests fr 
+    on (fr.sender_id = sqlc.arg(current_user_id) and fr.receiver_id = sqlc.arg(target_user_id))
+    or (fr.sender_id = sqlc.arg(target_user_id) and fr.receiver_id = sqlc.arg(current_user_id))
+
+-- Check if already friends
+left join friendships f
+    on (f.user1_id = LEAST(sqlc.arg(current_user_id), sqlc.arg(target_user_id)) and f.user2_id = GREATEST(sqlc.arg(current_user_id), sqlc.arg(target_user_id)))
+
+where sqlc.arg(target_user_id) <> sqlc.arg(current_user_id);  

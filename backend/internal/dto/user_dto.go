@@ -1,7 +1,35 @@
 package dto
 
-type GetProfileByUserUUID struct {
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type GetProfileByUserID struct {
+	ID int `uri:"id" binding:"required,gt=0"`
+}
+
+type SearchUserByUUIDRequest struct {
 	UUID string `uri:"uuid" binding:"required,uuid"`
+}
+
+type SearchUserByUUIDResponse struct {
+	UserID                 int64   `json:"user_id"`
+	Name                   string  `json:"name"`
+	AvatarUrl              *string `json:"avatar_url"`
+	IsFriend               bool    `json:"is_friend"`
+	FriendRequestDirection string  `json:"friend_request_direction"`
+}
+
+type GetProfileResponse struct {
+	UserUUID  uuid.UUID `json:"user_uuid"`
+	Name      *string   `json:"name"`
+	Email     string    `json:"email"`
+	Phone     *string   `json:"phone"`
+	Birthday  *string   `json:"birthday"`
+	AvatarUrl *string   `json:"avatar_url"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type UpdateUserRequest struct {

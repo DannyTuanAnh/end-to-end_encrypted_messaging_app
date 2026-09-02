@@ -13,32 +13,36 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/client"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/dto"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
+	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/middleware"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
+	friend_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/friend"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
 )
 
 type UserHandler struct {
-	user_client  *client.UserClient
-	redis_memory *redis.Client
-	gcs_client   *storage.Client
+	user_client   *client.UserClient
+	friend_client *client.FriendClient
+	redis_memory  *redis.Client
+	gcs_client    *storage.Client
 }
 
-func NewUserHandler(user_client *client.UserClient, rdb *redis.Client, gcs_client *storage.Client) *UserHandler {
+func NewUserHandler(user_client *client.UserClient, friend_client *client.FriendClient, rdb *redis.Client, gcs_client *storage.Client) *UserHandler {
 	return &UserHandler{
-		user_client:  user_client,
-		redis_memory: rdb,
-		gcs_client:   gcs_client,
+		user_client:   user_client,
+		friend_client: friend_client,
+		redis_memory:  rdb,
+		gcs_client:    gcs_client,
 	}
 }
 
 func (h *UserHandler) GetProfile(ctx *gin.Context) {
-	userId, exist := ctx.Get("user_id")
+	userId, exist := ctx.Get(middleware.CTX_USER_ID_KEY)
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
 		return
@@ -60,25 +64,64 @@ func (h *UserHandler) GetProfile(ctx *gin.Context) {
 		var cachedProfile models.ProfileRedis
 		if err := json.Unmarshal(profileData, &cachedProfile); err == nil {
 			log.Println("Profile data found in Redis in api-gateway for user ID: ", userID)
-			utils.ResponseSuccessWithData(ctx, http.StatusOK, &user_proto.GetProfileByUserIDResponse{
-				Uuid:      cachedProfile.UserUUID.String(),
-				Name:      cachedProfile.Name,
-				Email:     cachedProfile.Email,
-				Phone:     cachedProfile.Phone,
-				AvatarUrl: cachedProfile.AvatarUrl,
-				Birthday:  cachedProfile.Birthday,
-			})
+			utils.ResponseSuccessWithData(ctx, http.StatusOK, cachedProfile)
 			return
 		}
 	}
 
-	baseCtx := ctx.Request.Context()
+	data, err := h.user_client.Client.GetProfile(ctx, &user_proto.GetProfileRequest{UserId: userID})
+	if err != nil {
+		utils.WriteGRPCErrorToGin(ctx, err)
+		return
+	}
 
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
-	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
+	userUUID, err := uuid.Parse(data.GetUuid())
+	if err != nil {
+		utils.ResponseErrorAbort(ctx, utils.NewError("Invalid UUID format from user service", utils.ErrCodeInternal))
+		return
+	}
 
-	resp, err := h.user_client.Client.GetProfileByUserID(c, &user_proto.GetProfileByUserIDRequest{UserId: userID})
+	resp := dto.GetProfileResponse{
+		UserUUID:  userUUID,
+		Name:      data.Name,
+		Email:     data.Email,
+		Phone:     data.Phone,
+		Birthday:  data.Birthday,
+		AvatarUrl: data.AvatarUrl,
+		UpdatedAt: data.UpdatedAt.AsTime(),
+	}
+
+	utils.ResponseSuccessWithData(ctx, http.StatusOK, resp)
+}
+
+func (h *UserHandler) GetProfileByUserID(ctx *gin.Context) {
+	var params dto.GetProfileByUserID
+	if err := ctx.ShouldBindUri(&params); err != nil {
+		utils.ResponseValidator(ctx, validation.HandleValidationErrors(err))
+		return
+	}
+
+	currentUserID, exist := ctx.Get(middleware.CTX_USER_ID_KEY)
+	if !exist {
+		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
+		return
+	}
+
+	currentUserIDInt, ok := currentUserID.(int64)
+	if !ok {
+		utils.ResponseErrorAbort(ctx, utils.NewError("User ID in context has invalid type", utils.ErrCodeInternal))
+		return
+	}
+
+	if currentUserIDInt <= 0 {
+		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
+		return
+	}
+
+	resp, err := h.user_client.Client.GetProfileByUserID(ctx, &user_proto.GetProfileByUserIDRequest{
+		CurrentUserId: currentUserIDInt,
+		TargetUserId:  int64(params.ID),
+	})
 	if err != nil {
 		utils.WriteGRPCErrorToGin(ctx, err)
 		return
@@ -87,53 +130,65 @@ func (h *UserHandler) GetProfile(ctx *gin.Context) {
 	utils.ResponseSuccessWithData(ctx, http.StatusOK, resp)
 }
 
-func (h *UserHandler) GetProfileByUserUUID(ctx *gin.Context) {
-	var params dto.GetProfileByUserUUID
+func (h *UserHandler) SearchUserByUUID(ctx *gin.Context) {
+	var params dto.SearchUserByUUIDRequest
 	if err := ctx.ShouldBindUri(&params); err != nil {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(err))
 		return
 	}
 
-	userId, exist := ctx.Get("user_id")
+	currentUserID, exist := ctx.Get(middleware.CTX_USER_ID_KEY)
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
 		return
 	}
 
-	userID, ok := userId.(int64)
+	currentUserIDInt, ok := currentUserID.(int64)
 	if !ok {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID in context has invalid type", utils.ErrCodeInternal))
 		return
 	}
 
-	if userID <= 0 {
+	if currentUserIDInt <= 0 {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
 		return
 	}
 
-	user_uuid, exist := ctx.Get("user_uuid")
-	if exist {
-		if userUUIDStr, ok := user_uuid.(string); ok {
-			if userUUIDStr == params.UUID {
-				utils.ResponseErrorAbort(ctx, utils.NewError("You can't find your profile", utils.ErrCodeNotFound))
-				return
-			}
-		}
+	targetUserUUID, err := uuid.Parse(params.UUID)
+	if err != nil {
+		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("Invalid UUID format")))
+		return
 	}
 
-	baseCtx := ctx.Request.Context()
-
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
-	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-
-	resp, err := h.user_client.Client.GetProfileByUserUUID(c, &user_proto.GetProfileByUserUUIDRequest{
-		Uuid:   params.UUID,
-		UserId: userID,
+	dataSearchUser, err := h.user_client.Client.SearchUserByUUID(ctx, &user_proto.SearchUserByUUIDRequest{
+		CurrentUserId:  currentUserIDInt,
+		TargetUserUuid: targetUserUUID.String(),
 	})
 	if err != nil {
 		utils.WriteGRPCErrorToGin(ctx, err)
 		return
+	}
+
+	if dataSearchUser.UserId == currentUserIDInt {
+		utils.ResponseErrorAbort(ctx, utils.NewError("Cannot search for yourself", utils.ErrCodeBadRequest))
+		return
+	}
+
+	dataRelationship, err := h.friend_client.Client.GetRelationship(ctx, &friend_proto.GetRelationshipRequest{
+		CurrentUserId: currentUserIDInt,
+		TargetUserId:  dataSearchUser.UserId,
+	})
+	if err != nil {
+		utils.WriteGRPCErrorToGin(ctx, err)
+		return
+	}
+
+	resp := dto.SearchUserByUUIDResponse{
+		UserID:                 dataSearchUser.UserId,
+		Name:                   dataSearchUser.Name,
+		AvatarUrl:              dataSearchUser.AvatarUrl,
+		FriendRequestDirection: dataRelationship.FriendRequestDirection,
+		IsFriend:               dataRelationship.IsFriend,
 	}
 
 	utils.ResponseSuccessWithData(ctx, http.StatusOK, resp)
@@ -231,13 +286,7 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	baseCtx := ctx.Request.Context()
-
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
-	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-
-	resp, err := h.user_client.Client.UpdateProfile(c, &user_proto.UpdateProfileRequest{
+	resp, err := h.user_client.Client.UpdateProfile(ctx, &user_proto.UpdateProfileRequest{
 		UserId:   userID,
 		Name:     req.Name,
 		Birthday: req.Birthday,
@@ -252,7 +301,7 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 }
 
 func (h *UserHandler) DisableUser(ctx *gin.Context) {
-	userId, exist := ctx.Get("user_id")
+	userId, exist := ctx.Get(middleware.CTX_USER_ID_KEY)
 	if !exist {
 		utils.ResponseErrorAbort(ctx, utils.NewError("User ID not found in context", utils.ErrCodeNotFound))
 	}
@@ -266,13 +315,7 @@ func (h *UserHandler) DisableUser(ctx *gin.Context) {
 		utils.ResponseValidator(ctx, validation.HandleValidationErrors(errors.New("UserID must greater than 0")))
 	}
 
-	baseCtx := ctx.Request.Context()
-
-	c := context.WithValue(baseCtx, interceptor.CtxCallerKey, utils.GetEnv("API_GATEWAY_NAME", ""))
-	c = context.WithValue(c, interceptor.CtxUserIDKey, userID)
-	c = context.WithValue(c, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-
-	_, err := h.user_client.Client.DisableUserByUserID(c, &user_proto.DisableUserRequest{UserId: userID})
+	_, err := h.user_client.Client.DisableUserByUserID(ctx, &user_proto.DisableUserRequest{UserId: userID})
 	if err != nil {
 		utils.WriteGRPCErrorToGin(ctx, err)
 		return

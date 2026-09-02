@@ -17,7 +17,6 @@ import (
 	sqlc "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/db/sqlc/auth"
 	auth_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/auth"
 	user_proto "github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/gen/user"
-	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/interceptor"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/models"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/repository"
 	"github.com/DannyTuanAnh/end-to-end_encrypted_messaging_app/internal/utils"
@@ -74,9 +73,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		ProviderUserID: userInfo.Claims["sub"].(string),
 	})
 
-	ctx = context.WithValue(ctx, interceptor.CtxCallerKey, utils.GetEnv("AUTH_SERVICE_NAME", ""))
-	ctx = context.WithValue(ctx, interceptor.CtxAudKey, utils.GetEnv("USER_SERVICE_NAME", ""))
-
 	if err != nil {
 		if !errors.Is(err, repository.ErrNotFoundIdentityID) {
 			return nil, status.Errorf(codes.Internal, "Failed to check existing identity: %v", err)
@@ -129,8 +125,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		}
 
 		if !respIsExist.Exists {
-			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, userID)
-
 			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
 				UserId:    userID,
 				Name:      name,
@@ -148,9 +142,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 	}
 
 	if respIsExistingIdentity.Status == "revoked" && respIsExistingIdentity.RevokedAt.Valid && time.Since(respIsExistingIdentity.RevokedAt.Time) <= 30*24*time.Hour {
-		fmt.Println("Code is here")
-		ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, userID)
-
 		_, err := s.user_client.Client.ActiveUser(ctx, &user_proto.EnableUserRequest{
 			UserId: userID,
 		})
@@ -186,7 +177,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 				return nil, status.Errorf(codes.Internal, "Failed to create identity: %v", err)
 			}
 
-			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, respCreateUser.UserId)
 			//Compensating Action if identity creation fails, delete the user that was just created
 			_, err := s.user_client.Client.DeleteUserByUserID(ctx, &user_proto.DeleteUserRequest{
 				UserId: userID,
@@ -212,7 +202,6 @@ func (s *authService) LoginGoogle(ctx context.Context, req *auth_proto.LoginRequ
 		}
 
 		if !respIsExist.Exists {
-			ctx = context.WithValue(ctx, interceptor.CtxUserIDKey, userID)
 
 			_, err := s.user_client.Client.CreateProfile(ctx, &user_proto.CreateProfileRequest{
 				UserId:    userID,
@@ -376,16 +365,6 @@ func (s *authService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 }
 
 func (s *authService) DisableIdentity(ctx context.Context, req *auth_proto.DisableIdentityRequest) (*auth_proto.DisableIdentityResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
 	err := s.validator.Validate(req)
 	if err != nil {
 		return nil, validation.BuildValidationError(err)
@@ -411,16 +390,6 @@ func (s *authService) DisableIdentity(ctx context.Context, req *auth_proto.Disab
 }
 
 func (s *authService) LogoutAll(ctx context.Context, req *auth_proto.LogoutAllRequest) (*auth_proto.LogoutAllResponse, error) {
-	caller := utils.GetCaller(ctx)
-
-	if caller != ctx.Value(interceptor.CtxCallerKey).(string) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: Caller in context does not match expected caller")
-	}
-
-	if req.UserId != ctx.Value(interceptor.CtxUserIDKey).(int64) {
-		return nil, status.Errorf(codes.PermissionDenied, "Unauthorized: User ID in context does not match User ID in request")
-	}
-
 	err := s.validator.Validate(req)
 	if err != nil {
 		return nil, validation.BuildValidationError(err)

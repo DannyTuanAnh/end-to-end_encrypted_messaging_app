@@ -39,7 +39,6 @@ var authPolicies = map[string][]string{
 }
 
 type AuthServer struct {
-	auth_proto.UnimplementedAuthServiceServer
 	ctx    context.Context
 	cfg    *config.Config
 	server *grpc.Server
@@ -130,7 +129,6 @@ func NewAuthServer(ctx context.Context, db db.AuthDB, rdb *redis.Client) (*AuthS
 		grpc.ChainUnaryInterceptor(
 			interceptor.MTLSIdentityInterceptor(),
 			interceptor.RBACInterceptor(authPolicies),
-			interceptor.JWTAuthServerInterceptor(authCertFile),
 		),
 	)
 

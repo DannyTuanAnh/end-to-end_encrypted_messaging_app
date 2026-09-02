@@ -47,7 +47,7 @@ func getClientIP(ctx *gin.Context) string {
 }
 
 func GetRateLimitKey(ctx *gin.Context) string {
-	if uid, exists := ctx.Get("user_id"); exists {
+	if uid, exists := ctx.Get(CTX_USER_ID_KEY); exists {
 		return "rate:user:" + strconv.FormatInt(uid.(int64), 10)
 	}
 

@@ -3,22 +3,42 @@ syntax = "proto3";
 package proto;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "internal/gen-proto/user;user_proto";
 
 service UserService {
+  rpc SearchUserByUUID(SearchUserByUUIDRequest) returns (SearchUserByUUIDResponse);
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   rpc DeleteUserByUserID(DeleteUserRequest) returns (DeleteUserResponse);
   rpc ActiveUser(EnableUserRequest) returns (EnableUserResponse);
   rpc IsExistProfile(IsExistProfileRequest) returns (IsExistProfileResponse);
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
   rpc DisableUserByUserID(DisableUserRequest) returns (DisableUserResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
   rpc GetProfileByUserID(GetProfileByUserIDRequest) returns (GetProfileByUserIDResponse);
-  rpc GetProfileByUserUUID(GetProfileByUserUUIDRequest) returns (GetProfileByUserUUIDResponse);
   rpc VerifyIDTokenOTP(VerifyIDTokenOTPRequest) returns (VerifyIDTokenOTPResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc UpdateAvatar(UpdateAvatarRequest) returns (UpdateAvatarResponse);
   rpc ReportUserImage(ReportUserImageRequest) returns (ReportUserImageResponse);
+}
+
+message SearchUserByUUIDRequest {
+  string target_user_uuid = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+
+  int64 current_user_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int64.gt = 0
+  ];
+}
+
+message SearchUserByUUIDResponse {
+  int64 user_id = 1;
+  string name = 2;
+  optional string avatar_url = 3;
 }
 
 message CreateUserRequest {
@@ -109,38 +129,40 @@ message DisableUserResponse {
   string message = 2;
 }
 
-message GetProfileByUserIDRequest {
+message GetProfileRequest {
   int64 user_id = 1 [
     (buf.validate.field).required = true,
     (buf.validate.field).int64.gt = 0
   ];
 }
 
-message GetProfileByUserIDResponse {
+message GetProfileResponse {
   string uuid = 1;
   optional string name = 2;
   string email = 3;
   optional string birthday = 4;
   optional string phone = 5;
   optional string avatar_url = 6;
+  google.protobuf.Timestamp updated_at = 7;
 }
 
-message GetProfileByUserUUIDRequest {
-  string uuid = 1 [
+message GetProfileByUserIDRequest {
+  int64 target_user_id = 1 [
     (buf.validate.field).required = true,
-    (buf.validate.field).string.uuid = true
+    (buf.validate.field).int64.gt = 0
   ];
 
-  int64 user_id = 2 [
+  int64 current_user_id = 2 [
     (buf.validate.field).required = true,
     (buf.validate.field).int64.gt = 0
   ];
 }
 
-message GetProfileByUserUUIDResponse {
-  string name = 1;
-  string birthday = 2;
-  string avatar_url = 3;
+message GetProfileByUserIDResponse {
+  int64 user_id = 1;
+  string name = 2;
+  optional string birthday = 3;
+  optional string avatar_url = 4;
 }
 
 message VerifyIDTokenOTPRequest {

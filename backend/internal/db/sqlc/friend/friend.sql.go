@@ -30,6 +30,51 @@ func (q *Queries) AddFriendById(ctx context.Context, arg AddFriendByIdParams) (A
 	return i, err
 }
 
+const getInfoRelationship = `-- name: GetInfoRelationship :one
+select     
+    -- Friend request status (if exists)
+    case
+        when f.user1_id is not null then null
+        when fr.is_accepted = false and fr.sender_id = $1 then 'sent'
+        when fr.is_accepted = false and fr.receiver_id = $1 then 'received'
+        else null
+    end::text as friend_request_direction,
+    
+    -- Friendship status (if exists)
+    (f.user1_id is not null)::boolean as is_friend
+
+from (select 1) as dummy
+
+left join friend_requests fr 
+    on (fr.sender_id = $1 and fr.receiver_id = $2)
+    or (fr.sender_id = $2 and fr.receiver_id = $1)
+
+left join friendships f
+    on (f.user1_id = LEAST($1, $2) and f.user2_id = GREATEST($1, $2))
+
+where $2 <> $1
+`
+
+type GetInfoRelationshipParams struct {
+	CurrentUserID int64 `json:"current_user_id"`
+	TargetUserID  int64 `json:"target_user_id"`
+}
+
+type GetInfoRelationshipRow struct {
+	FriendRequestDirection string `json:"friend_request_direction"`
+	IsFriend               bool   `json:"is_friend"`
+}
+
+// Get user info with friendship/friend request status
+// Check if there's a pending/accepted friend request
+// Check if already friends
+func (q *Queries) GetInfoRelationship(ctx context.Context, arg GetInfoRelationshipParams) (GetInfoRelationshipRow, error) {
+	row := q.db.QueryRow(ctx, getInfoRelationship, arg.CurrentUserID, arg.TargetUserID)
+	var i GetInfoRelationshipRow
+	err := row.Scan(&i.FriendRequestDirection, &i.IsFriend)
+	return i, err
+}
+
 const rejectFriendRequestById = `-- name: RejectFriendRequestById :exec
 
 

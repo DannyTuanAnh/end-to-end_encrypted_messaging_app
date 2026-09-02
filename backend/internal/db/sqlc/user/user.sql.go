@@ -10,62 +10,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const activeUser = `-- name: ActiveUser :execresult
-    
-    
-    
-
-
-
-
-
 UPDATE users SET is_active = true, disable_at = null 
 WHERE user_id = $1
 AND is_active = false
 AND disable_at > now() - interval '30 days'
 `
 
-// -- name: GetUserByUUID :one
-// -- Get user info with friendship/friend request status
-// -- $1: target_user_uuid (user being searched)
-// -- $2: current_user_id (user doing the search)
-// SELECT
-//
-//	u.user_id,
-//	u.uuid,
-//	p.name,
-//	p.avatar_url,
-//	-- Friend request status (if exists)
-//	CASE
-//	    WHEN fr.status = 'pending' AND fr.sender_id = $2 THEN 'sent'
-//	    WHEN fr.status = 'pending' AND fr.receiver_id = $2 THEN 'received'
-//	    ELSE fr.status
-//	END as friend_request_direction,
-//	-- Friendship status (if exists)
-//	CASE
-//	    WHEN f.user1_id IS NOT NULL THEN true
-//	    ELSE false
-//	END as is_friend
-//
-// FROM users u
-// -- Check if there's a pending/accepted friend request
-// LEFT JOIN friend_requests fr
-//
-//	ON (fr.sender_id = $2 AND fr.receiver_id = u.user_id)
-//	OR (fr.sender_id = u.user_id AND fr.receiver_id = $2)
-//
-// -- Check if already friends
-// LEFT JOIN friendships f
-//
-//	ON (f.user1_id = LEAST($2, u.user_id) AND f.user2_id = GREATEST($2, u.user_id))
-//
-// LEFT JOIN profiles p
-//
-//	ON p.user_id = u.user_id
-//
-// WHERE u.uuid = $1 and u.is_active = true and u.user_id <> $2;
 func (q *Queries) ActiveUser(ctx context.Context, userID int64) (pgconn.CommandTag, error) {
 	return q.db.Exec(ctx, activeUser, userID)
 }
@@ -107,6 +61,48 @@ func (q *Queries) GetUUIDByUserId(ctx context.Context, userID int64) (uuid.UUID,
 	var uuid uuid.UUID
 	err := row.Scan(&uuid)
 	return uuid, err
+}
+
+const getUserByUUID = `-- name: GetUserByUUID :one
+SELECT 
+    u.user_id,
+    p.name,
+    u.is_active,
+    p.avatar_url,
+    p.avatar_version
+    
+FROM users u
+
+LEFT JOIN profiles p
+    ON p.user_id = u.user_id
+
+WHERE u.uuid = $1 and u.user_id <> $2
+`
+
+type GetUserByUUIDParams struct {
+	TargetUserUuid uuid.UUID `json:"target_user_uuid"`
+	CurrentUserID  int64     `json:"current_user_id"`
+}
+
+type GetUserByUUIDRow struct {
+	UserID        int64       `json:"user_id"`
+	Name          pgtype.Text `json:"name"`
+	IsActive      bool        `json:"is_active"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	AvatarVersion pgtype.Int4 `json:"avatar_version"`
+}
+
+func (q *Queries) GetUserByUUID(ctx context.Context, arg GetUserByUUIDParams) (GetUserByUUIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserByUUID, arg.TargetUserUuid, arg.CurrentUserID)
+	var i GetUserByUUIDRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Name,
+		&i.IsActive,
+		&i.AvatarUrl,
+		&i.AvatarVersion,
+	)
+	return i, err
 }
 
 const isExistProfile = `-- name: IsExistProfile :one
